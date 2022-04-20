@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Dependencies">
+      <UniqueIdentifier>{2b59863c-551f-492d-a690-ffdcaa2f7c44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lumen">
+      <UniqueIdentifier>{a6a60ed4-0c6e-4fba-9758-5f91deced8e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dependencies\imgui">
+      <UniqueIdentifier>{f76589ef-23de-425a-bd61-41ba610d23fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dependencies\glad">
+      <UniqueIdentifier>{9f292dab-b5f3-43ff-bacd-8715757d4db2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lumen\GLClasses">
+      <UniqueIdentifier>{ffe8454d-bbf0-4950-8589-327c2a2bbaa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lumen\Application">
+      <UniqueIdentifier>{1a265993-3150-4bed-9969-534499cdd780}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lumen\Misc">
+      <UniqueIdentifier>{3aeca788-e3be-4bab-a635-aeb7d9846cdb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lumen\Utils">
+      <UniqueIdentifier>{f2524e36-e85c-4168-a3fa-719d857b6008}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core">
+      <UniqueIdentifier>{49017ff4-3c91-4ad9-ac54-89cdbef769f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders">
+      <UniqueIdentifier>{e98655fb-fe9b-49c6-aeb4-aaf8dca40331}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Dependencies\imgui\imconfig.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imgui\imgui.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imgui\imgui_impl_glfw.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imgui\imgui_impl_opengl3.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imgui\imgui_internal.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imgui\imstb_rectpack.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imgui\imstb_textedit.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imgui\imstb_truetype.h">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\ComputeShader.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\CubeTextureMap.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\Fps.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\Framebuffer.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\FramebufferRed.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\IndexBuffer.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\Shader.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\stb_image.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\Texture.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\TextureArray.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\VertexArray.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\VertexBuffer.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Application\Application.h">
+      <Filter>Source Files\Lumen\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Application\Logger.h">
+      <Filter>Source Files\Lumen\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\FpsCamera.h">
+      <Filter>Source Files\Lumen\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\OrthographicCamera.h">
+      <Filter>Source Files\Lumen\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ShaderManager.h">
+      <Filter>Source Files\Lumen\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Utils\Random.h">
+      <Filter>Source Files\Lumen\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Utils\Timer.h">
+      <Filter>Source Files\Lumen\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Mesh.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ModelFileLoader.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Utils\Vertex.h">
+      <Filter>Source Files\Lumen\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Object.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Pipeline.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ModelRenderer.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Entity.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\MeshOptimizer.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ShadowRenderer.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GLClasses\DepthBuffer.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ProbeMap.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Dependencies\imgui\imgui.cpp">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui\imgui_demo.cpp">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui\imgui_draw.cpp">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui\imgui_impl_glfw.cpp">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui\imgui_widgets.cpp">
+      <Filter>Source Files\Dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\glad\src\glad.c">
+      <Filter>Source Files\Dependencies\glad</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\ComputeShader.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\CubeTextureMap.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\Fps.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\Framebuffer.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\FramebufferRed.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\IndexBuffer.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\Shader.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\stb_image.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\Texture.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\TextureArray.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\VertexArray.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\VertexBuffer.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Application\Application.cpp">
+      <Filter>Source Files\Lumen\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Application\Logger.cpp">
+      <Filter>Source Files\Lumen\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\FpsCamera.cpp">
+      <Filter>Source Files\Lumen\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\OrthographicCamera.cpp">
+      <Filter>Source Files\Lumen\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ShaderManager.cpp">
+      <Filter>Source Files\Lumen\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files\Lumen</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Mesh.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ModelFileLoader.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Object.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Pipeline.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ModelRenderer.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\MeshOptimizer.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ShadowRenderer.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GLClasses\DepthBuffer.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ProbeMap.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Core\Shaders\BasicFrag.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\BasicVert.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\FBOFrag.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\FBOVert.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\GeometryFrag.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\GeometryVert.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\ColorPass.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\DepthFrag.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\DepthVert.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\ProbeForwardFrag.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\ProbeForwardVert.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>
