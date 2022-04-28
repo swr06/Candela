@@ -16,10 +16,13 @@
 #include "ProbeMap.h"
 
 #include <string>
+#include "BVH/BVHConstructor.h"
+
 
 Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f);
 
 static bool vsync = false;
+static bool mode = true;
 static float SunTick = 50.0f;
 static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
@@ -105,6 +108,11 @@ public:
 		{
 			vsync = !vsync;
 		}
+
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_M && this->GetCurrentFrame() > 5)
+		{
+			mode = !mode;
+		}
 	}
 
 
@@ -164,22 +172,48 @@ GLClasses::Framebuffer LightingPass(16, 16, {GL_RGB16F, GL_RGB, GL_FLOAT, true, 
 
 void Lumen::StartPipeline()
 {
+	using namespace BVH;
+
 	RayTracerApp app;
 	app.Initialize();
 	app.SetCursorLocked(true);
 
 	// Scene setup 
 	Object Sponza;
-	FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
+	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
+	FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox-Sphere.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
+
+
+	// BVH ->
+	std::vector<Triangle> BVHTriangles;
+	std::vector<FlattenedNode> BVHNodes;
+	Node* RootNode = BuildBVH(Sponza, BVHTriangles, BVHNodes);
+
+	// SSBOs
+	GLuint BVHTriSSBO = 0;
+	GLuint BVHNodeSSBO = 0;
+
+	glGenBuffers(1, &BVHTriSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHTriSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Triangle) * BVHTriangles.size(), BVHTriangles.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glGenBuffers(1, &BVHNodeSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHNodeSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	///////////////
+
+
 
 	Entity MainModel(&Sponza);
-	MainModel.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+	//MainModel.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	MainModel.m_Model = glm::translate(MainModel.m_Model, glm::vec3(0.0f));
 	std::vector<Entity*> EntityRenderList = { &MainModel };
 	auto& EntityList = EntityRenderList;
-
-
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
@@ -277,6 +311,7 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_ShadowTexture", 4);
 		LightingShader.SetInteger("u_BlueNoise", 5);
 		LightingShader.SetInteger("u_Skymap", 6);
+		LightingShader.SetBool("u_Mode", mode);
 
 		LightingShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
 		LightingShader.SetMatrix4("u_View", Camera.GetViewMatrix());
@@ -310,11 +345,13 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
 
+		// Bind bvh test buffers
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BVHTriSSBO);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, BVHNodeSSBO);
+
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
-
-
 
 		// Final
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -43,6 +43,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders">
       <UniqueIdentifier>{e98655fb-fe9b-49c6-aeb4-aaf8dca40331}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\BVH">
+      <UniqueIdentifier>{bc875e6e-3a33-4d2c-ab88-fd23d352174d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -159,6 +162,9 @@
     <ClInclude Include="Core\ProbeMap.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
+    <ClInclude Include="Core\BVH\BVHConstructor.h">
+      <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -262,6 +268,9 @@
     </ClCompile>
     <ClCompile Include="Core\ProbeMap.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\BVH\BVHConstructor.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

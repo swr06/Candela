@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClInclude Include="Core\Application\Application.h" />
     <ClInclude Include="Core\Application\Logger.h" />
+    <ClInclude Include="Core\BVH\BVHConstructor.h" />
     <ClInclude Include="Core\Entity.h" />
     <ClInclude Include="Core\FpsCamera.h" />
     <ClInclude Include="Core\GLClasses\ComputeShader.h" />
@@ -189,6 +190,7 @@
   <ItemGroup>
     <ClCompile Include="Core\Application\Application.cpp" />
     <ClCompile Include="Core\Application\Logger.cpp" />
+    <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
     <ClCompile Include="Core\FpsCamera.cpp" />
     <ClCompile Include="Core\GLClasses\ComputeShader.cpp" />
     <ClCompile Include="Core\GLClasses\CubeTextureMap.cpp" />
