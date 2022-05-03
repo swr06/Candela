@@ -23,6 +23,97 @@ namespace Lumen {
 			return Length <= 4;
 		}
 
+		static float min4f(float f0, float f1, float f2, float f3)
+		{
+			return f0 < f1 ? (f0 < f2 ? (f0 < f3 ? f0 : f3) : (f2 < f3 ? f2 : f3)) : (f1 < f2 ? (f1 < f3 ? f1 : f3) : (f2 < f3 ? f2 : f3));
+		}
+
+		static float max4f(float f0, float f1, float f2, float f3)
+		{
+			return f0 > f1 ? (f0 > f2 ? (f0 > f3 ? f0 : f3) : (f2 > f3 ? f2 : f3)) : (f1 > f2 ? (f1 > f3 ? f1 : f3) : (f2 > f3 ? f2 : f3));
+		}
+
+		static float SurfaceAreaHeuristic(std::vector<Triangle> &Triangles, uint idxStart, uint idxCount, int cutDim, float cutPos)
+		{
+			uint lCount = 0;
+			uint rCount = 0;
+
+			glm::vec3 lMin = { INFINITY, INFINITY, INFINITY };
+			glm::vec3 lMax = { -INFINITY, -INFINITY, -INFINITY };
+
+			glm::vec3 rMin = { INFINITY, INFINITY, INFINITY };
+			glm::vec3 rMax = { -INFINITY, -INFINITY, -INFINITY };
+
+			for (uint i = idxStart; i < idxStart + idxCount; i++)
+			{
+				Triangle& triangle = Triangles[i];
+
+
+				if (triangle.v0.position[cutDim] <= cutPos || triangle.v1.position[cutDim] <= cutPos || triangle.v2.position[cutDim] <= cutPos)
+				{
+					lCount++;
+
+					lMin.x = min4f(lMin.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
+					lMin.y = min4f(lMin.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
+					lMin.z = min4f(lMin.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
+
+					lMax.x = max4f(lMax.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
+					lMax.y = max4f(lMax.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
+					lMax.z = max4f(lMax.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
+				}
+				else
+				{
+					rCount++;
+
+					rMin.x = min4f(rMin.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
+					rMin.y = min4f(rMin.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
+					rMin.z = min4f(rMin.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
+
+					rMax.x = max4f(rMax.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
+					rMax.y = max4f(rMax.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
+					rMax.z = max4f(rMax.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
+				}
+			}
+
+			glm::vec3 lDim = { lMax.x - lMin.x, lMax.y - lMin.y, lMax.z - lMin.z };
+			glm::vec3 rDim = { rMax.x - rMin.x, rMax.y - rMin.y, rMax.z - rMin.z };
+
+			float lArea = 2 * lDim.x * lDim.y + 2 * lDim.x * lDim.z + 2 * lDim.y * lDim.z;
+			float rArea = 2 * rDim.x * rDim.y + 2 * rDim.x * rDim.z + 2 * rDim.y * rDim.z;
+
+			return lArea * lCount + rArea * rCount;
+		}
+
+		static void FindSAHCut(std::vector<Triangle>& Triangles, const glm::vec3& boundingMin, const glm::vec3& boundingMax, uint idxStart, uint idxCount, int* cutDim, float* cutPos)
+		{
+			*cutDim = 0;
+			*cutPos = boundingMin.x + (boundingMax.x - boundingMin.x) * 0.5;
+
+			float bestCutCost = INFINITY;
+			for (int d = 0; d < 3; d++)
+			{
+				float lower = boundingMin[d];
+				float upper = boundingMax[d];
+
+				const float STEPS = 20;
+				for (int i = 0; i < STEPS; i++)
+				{
+					float f = i / STEPS;
+
+					float cut = lower + (upper - lower) * f;
+
+					float cost = SurfaceAreaHeuristic(Triangles, idxStart, idxCount, d, cut);
+
+					if (cost < bestCutCost)
+					{
+						bestCutCost = cost;
+						*cutDim = d;
+						*cutPos = cut;
+					}
+				}
+			}
+		}
+
 		int FindLongestAxis(const Bounds& bounds) {
 			glm::vec3 Diff = bounds.Max - bounds.Min;
 
@@ -39,6 +130,10 @@ namespace Lumen {
 
 		void BuildNodes(std::vector<Triangle>& Triangles, std::vector<FlattenedNode>& FlattenedNodes, Node* RootNode) {
 
+			// true : Uses Surface Area Heuristic (finds cut using a simple binary search)
+			// false : Uses median split (splits across largest axis)
+			const bool USE_SAH = false; 
+
 			std::stack<Node*> NodeStack;
 
 			NodeStack.push(RootNode);
@@ -47,7 +142,7 @@ namespace Lumen {
 
 				TotalIterations++;
 
-				if (TotalIterations % 20 == 0) {
+				if (TotalIterations % 32 == 0) {
 					std::cout << "\nIteration : " << TotalIterations;
 				}
 
@@ -59,11 +154,25 @@ namespace Lumen {
 					LeafNodeCount++;
 					continue;
 				}
-
-				uint SplitAxis = FindLongestAxis(BuildNode->NodeBounds);
-
+				
 				glm::vec3 Centroid = BuildNode->NodeBounds.GetCenter();
-				float Border = Centroid[SplitAxis];
+
+				//static void FindSAHCut(std::vector<Triangle>&Triangles, const glm::vec3 & boundingMin, const glm::vec3 & boundingMax, uint idxStart, uint idxCount, int* cutDim, float* cutPos)
+
+				uint SplitAxis;
+				float Border;
+
+				if (!USE_SAH) {
+					SplitAxis = FindLongestAxis(BuildNode->NodeBounds);
+					Border = Centroid[SplitAxis];
+				}
+
+				else {
+					int temp_;
+					FindSAHCut(Triangles, BuildNode->NodeBounds.Min, BuildNode->NodeBounds.Max, BuildNode->StartIndex, BuildNode->Length, &temp_, &Border);
+					SplitAxis = static_cast<uint>(temp_);
+				}
+
 
 				int LeftIdx = BuildNode->StartIndex;
 				int RightIdx = BuildNode->StartIndex + BuildNode->Length;
