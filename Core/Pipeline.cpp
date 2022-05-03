@@ -25,6 +25,7 @@ static bool vsync = false;
 static bool mode = true;
 static float SunTick = 50.0f;
 static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
+static int x = 0;
 
 class RayTracerApp : public Lumen::Application
 {
@@ -67,6 +68,14 @@ public:
 			if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 				Camera.ChangePosition(-(Camera.GetUp() * camera_speed));
 
+			if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+				x+= 4;
+
+			if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
+				x -= 4;
+				x = glm::max(0, x);
+			}
+
 		}
 	}
 
@@ -74,6 +83,7 @@ public:
 	{
 		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
+		ImGui::Text("Debuuug : %d", x);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &SunDirection[0], -1.0f, 1.0f);
 	}
@@ -113,6 +123,18 @@ public:
 		{
 			mode = !mode;
 		}
+
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_K && this->GetCurrentFrame() > 5)
+		{
+			x--;
+			x = glm::max(x, 0);
+		}
+
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_L && this->GetCurrentFrame() > 5)
+		{
+			x++;
+		}
+
 	}
 
 
@@ -182,7 +204,9 @@ void Lumen::StartPipeline()
 	Object Sponza;
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
 	FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox-Sphere.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
 
 
@@ -190,6 +214,19 @@ void Lumen::StartPipeline()
 	std::vector<Triangle> BVHTriangles;
 	std::vector<FlattenedNode> BVHNodes;
 	Node* RootNode = BuildBVH(Sponza, BVHTriangles, BVHNodes);
+
+
+	//for (int i = 0; i < 200; i++) {
+	//	if (BVHNodes[i].TriangleCount > 0) {
+	//		std::cout << "\nLEAF | " << BVHNodes[i].StartIdx << "  |  " << BVHNodes[i].SecondChildOffset;
+	//	}
+	//	
+	//	else {
+	//		std::cout << "\nINTERIOR | " << BVHNodes[i].StartIdx << "  |  " << BVHNodes[i].SecondChildOffset;
+	//	}
+	//
+	//	std::cout << "  | i : " << i;
+	//}
 
 	// SSBOs
 	GLuint BVHTriSSBO = 0;
@@ -311,6 +348,7 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_ShadowTexture", 4);
 		LightingShader.SetInteger("u_BlueNoise", 5);
 		LightingShader.SetInteger("u_Skymap", 6);
+		LightingShader.SetInteger("u_x", x);
 		LightingShader.SetBool("u_Mode", mode);
 
 		LightingShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());

@@ -46,19 +46,18 @@ namespace Lumen {
 		struct Node {
 			Bounds NodeBounds;
 
-			uint NodeIndex = 0;
-			uint StartIndex = 0;
-			uint Length = 0;
-			uint LeftChild = 0;
-			uint RightChild = 0;
+			uint StartIndex;
+			uint Length;
+			
+			uint NodeIndex;
 
+			Node* LeftChildPtr = nullptr;
+			Node* RightChildPtr = nullptr;
+
+			bool IsLeftNode = false;
 			bool IsLeafNode = false;
 
-			Node* LeftChildPtr = 0;
-			Node* RightChildPtr = 0;
-			uint ParentNode = 0;
-			uint SplitAxis = 0;
-			bool IsLeftNode = false;
+			uint Axis = 1000;
 		};
 
 		struct FlattenedNode {
@@ -67,7 +66,7 @@ namespace Lumen {
 			uint StartIdx;
 			uint TriangleCount;
 			uint Axis;
-			uint Padding0;
+			uint SecondChildOffset;
 		};
 
 		struct FVertex {
@@ -79,7 +78,7 @@ namespace Lumen {
 			FVertex v0, v1, v2;
 
 			inline glm::vec3 GetCentroid() const noexcept {
-				return (v0.position + v1.position + v2.position) / 3.0f;
+				return (glm::vec3(v0.position) + glm::vec3(v1.position) + glm::vec3(v2.position)) / 3.0f;
 			}
 
 			inline Bounds GetBounds() const noexcept {
