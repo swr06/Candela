@@ -25,7 +25,9 @@ uniform vec2 u_Dims;
 uniform bool u_Mode;
 uniform int u_x;
 
-
+const float INFINITY = 10000000.0f;
+const float INF = INFINITY;
+const float EPS = 0.001f;
 
 struct FlattenedNode {
 	vec4 Min;
@@ -89,34 +91,34 @@ float RayBounds(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t
     vec3 t1 = (aabb_max - ray_origin) * ray_inv_dir;
     float tmin = max(max3(min(t0, t1)), t_min);
     float tmax = min(min3(max(t0, t1)), t_max);
-    return (tmax >= tmin) ? tmin : -1.0f;
+    return (tmax >= tmin) ? tmin : INFINITY;
 }
 
+vec3 DEBUG_COLOR = vec3(0.,1.,0.);
 
+void RayTraceBVH(vec3 RayOrigin, vec3 RayDirection) {
 
-vec3 RayTraceBVH(vec3 RayOrigin, vec3 RayDirection) {
-
-	int Stack[64];
+	uint Stack[64];
 	uint StackPointer = 0;
 	uint CurrentNode = 0;
 
 	vec3 InverseDirection = 1.0f / RayDirection;
-	bvec3 InverseRaySign = bvec3(RayDirection.x < 0.0f, RayDirection.y < 0.0f, RayDirection.z < 0.0f);
 
-	float TMax = 1000000.0f;
+	float TMax = INFINITY;
 	vec3 IntersectionUVW = vec3(-1.0f);
 
-	for (int ITERATION = 0 ; ITERATION < 10000 ; ITERATION++) {
+	int Iterations = 0;
 
+	while (Iterations < 1000000) {
+
+		Iterations++;
 		FlattenedNode Node = BVHNodes[CurrentNode];
-
-		float BoxIntersect = RayBounds(Node.Min.xyz, Node.Max.xyz, RayOrigin, InverseDirection, 0.001f, 1000000.0f);
-		if (BoxIntersect < TMax && BoxIntersect > 0.0f) {
-
-			if (Node.TriangleCount > 0) {
-
-				// Leaf node 
-				for (uint tri = 0 ; tri < Node.TriangleCount  ; tri++)  {
+		
+		// Leaf node 
+		if (Node.TriangleCount > 0) {
+			
+			// Intersect triangles 
+			for (uint tri = 0 ; tri < Node.TriangleCount  ; tri++)  {
 					
 					uint triangle = tri + Node.StartIdx;
 					vec3 Intersection = RayTriangle(RayOrigin, RayDirection, BVHTriangles[triangle].Position[0].xyz,  BVHTriangles[triangle].Position[1].xyz,  BVHTriangles[triangle].Position[2].xyz);
@@ -125,108 +127,85 @@ vec3 RayTraceBVH(vec3 RayOrigin, vec3 RayDirection) {
 						
 						TMax = Intersection.x;
 						IntersectionUVW = Intersection;
+
+						// DEBUG
+						DEBUG_COLOR = vec3(1.,0.,0.); return;
+						// DEBUG 
 					}
-
-				}
-
-				if (StackPointer == 0) {
-					break; 
-				}
-
-				StackPointer--;
-                CurrentNode = Stack[StackPointer];
-
 			}
 
-			else {
-
-				if (InverseRaySign[Node.Axis]) 
-				{
-				   Stack[StackPointer++] = int(CurrentNode + 1);
-				   CurrentNode = Node.SecondChildIndex;
-				} 
-				
-				else 
-				{
-				   Stack[StackPointer++] = int(Node.SecondChildIndex);
-				   CurrentNode++;
-				}
-			}
-
-		}
-
-		else {
-			
-			
+			// Move stack pointer back, explore pushed nodes 
 			if (StackPointer <= 0) {
 				break;
 			}
 
-			StackPointer--;
-			CurrentNode = Stack[StackPointer];
-			
+			CurrentNode = Stack[--StackPointer];
 		}
+
+		// Node index that will be traversed
+		uint TraversalNode = CurrentNode + 1;
+		uint OtherTraversalNode = Node.SecondChildIndex;
+
+		// Intersect both child nodes 
+		FlattenedNode LeftNode = BVHNodes[CurrentNode + 1];
+		FlattenedNode RightNode = BVHNodes[Node.SecondChildIndex];
+
+		float TransversalA = RayBounds(LeftNode.Min.xyz, LeftNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
+		float TransversalB = RayBounds(RightNode.Min.xyz, RightNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
+
+		// Check right node, if it's closer, traverse that first.
+		if (TransversalB < TransversalA) {
+			
+			OtherTraversalNode = TraversalNode; // TraversalNode already has the index of the left node 
+			TraversalNode = Node.SecondChildIndex;
+			
+			// Swap transversals 
+			float Closest = TransversalA;
+			TransversalA = TransversalB;
+			TransversalB = Closest;
+		}
+
+		// No intersection with both nodes 
+		if (TransversalA >= TMax) {
+
+			// Move stack pointer, explore pushed nodes 
+			if (StackPointer <= 0) {
+				break;
+			}
+
+			CurrentNode = Stack[--StackPointer];
+		}
+
+		else {
+			
+			// Traverse the closest node next, push the other one on the stack if it was intersected 
+			CurrentNode = TraversalNode;
+
+			// If we intersected the other node, push it onto the stack
+			if (TransversalB < (INFINITY - EPS)) {
+				Stack[StackPointer++] = OtherTraversalNode;
+			}
+
+			if (StackPointer > 63) {
+
+				// DEBUG
+				DEBUG_COLOR = vec3(0.,0.,1.); return;
+				// DEBUG 
+
+			}
+		}
+
 
 	}
 
-	return IntersectionUVW;
+
+	return;
 }
 
 float HASH2SEED = 0.0f;
 vec2 hash2() 
 {
     return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
-}
-
-vec3 RayTraceTrianglesLinear(vec3 RayOrigin, vec3 RayDirection, uint StartIdx, uint Triangles) {
-
-	vec3 IntersectionTUV = vec3(-1., -1., -1.);
-
-	float TMax = 100000.0f;
-
-	float s = 1.0f;
-
-	for (uint i = 0 ; i < Triangles ; i++) {
-
-		uint triangle = uint(StartIdx + i);
-		vec3 Intersection = RayTriangle(RayOrigin, RayDirection, BVHTriangles[triangle].Position[0].xyz * s,  BVHTriangles[triangle].Position[1].xyz* s,  BVHTriangles[triangle].Position[2].xyz* s);
-
-		if (Intersection.x > 0.0f && Intersection.x < TMax) {
-			TMax = Intersection.x;
-			IntersectionTUV = Intersection;
-		}
-	}
-
-	return IntersectionTUV;
-}
-
-vec3 DebugBVHTris(vec3 RayOrigin, vec3 RayDirection, uint Size) {
-
-	vec3 IntersectionTUV = vec3(-1., -1., -1.);
-
-	float TMax = 100000.0f;
-
-	float s = 1.0f;
-
-	for (uint i = 0 ; i < Size ; i++) {
-
-		FlattenedNode Node = BVHNodes[i];
-
-		if (Node.TriangleCount > 0) {
-			
-			for (uint j = 0; j < Node.TriangleCount ; j++) {
-				uint triangle = Node.StartIdx + j;
-				vec3 Intersection = RayTriangle(RayOrigin, RayDirection, BVHTriangles[triangle].Position[0].xyz * s,  BVHTriangles[triangle].Position[1].xyz* s,  BVHTriangles[triangle].Position[2].xyz* s);
-
-				if (Intersection.x > 0.0f && Intersection.x < TMax) {
-					TMax = Intersection.x;
-					IntersectionTUV = Intersection;
-				}
-			}
-		}
-	}
-
-	return IntersectionTUV;
 }
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -255,15 +234,9 @@ void main()
 
 	float s = 1.0f;
 	
-	vec3 Intersection = RayTraceBVH(rO, rD);
+	RayTraceBVH(rO, rD);
 	
-	if (Intersection.x > 0.0f) {
-		o_Color = vec3(Intersection.x / 23.0f);
-	}
-	
-	else {
-		o_Color = vec3(0.0f, 1.0f, 0.0f);
-	}
+	o_Color = DEBUG_COLOR;
 
 
 	

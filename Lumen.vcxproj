@@ -118,6 +118,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\assimp\include;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\glad\include;$(SolutionDir)Dependencies\imgui;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -239,6 +240,7 @@
     <None Include="Core\Shaders\GeometryVert.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
+    <None Include="Core\Shaders\Raytrace.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
