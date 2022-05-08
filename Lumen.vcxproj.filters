@@ -307,7 +307,7 @@
     <None Include="Core\Shaders\ProbeForwardVert.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\Raytrace.comp">
+    <None Include="Core\Shaders\RaytraceBVH.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>

@@ -8,6 +8,7 @@
 #include "ModelRenderer.h"
 #include "GLClasses/Fps.h"
 #include "GLClasses/Framebuffer.h"
+#include "GLClasses/ComputeShader.h"
 #include "ShaderManager.h"
 #include "GLClasses/DepthBuffer.h"
 #include "ShadowRenderer.h"
@@ -26,6 +27,7 @@ static bool mode = true;
 static float SunTick = 50.0f;
 static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 static int x = 0;
+GLClasses::ComputeShader TraceShader;
 
 class RayTracerApp : public Lumen::Application
 {
@@ -112,6 +114,7 @@ public:
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F2 && this->GetCurrentFrame() > 5)
 		{
 			Lumen::ShaderManager::RecompileShaders();
+			TraceShader.Recompile();
 		}
 
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
@@ -297,12 +300,19 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
 	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE_FORWARD");
 
+	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
+	RayTraceOutput.CreateFramebuffer();
+
+	TraceShader.CreateComputeShader("Core/Shaders/RaytraceBVH.glsl");
+	TraceShader.Compile();
 
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
 		GBuffer.SetSize(app.GetWidth(), app.GetHeight());
 		LightingPass.SetSize(app.GetWidth(), app.GetHeight());
+
+		RayTraceOutput.SetSize(app.GetWidth(), app.GetHeight());
 
 		// App update 
 		app.OnUpdate();
@@ -336,6 +346,31 @@ void Lumen::StartPipeline()
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
 
+		// Raytracjesad
+
+		TraceShader.Use();
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BVHTriSSBO);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, BVHNodeSSBO);
+
+		glBindImageTexture(0, RayTraceOutput.GetTexture(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+		
+		TraceShader.SetInteger("u_TriangleCount", BVHTriangles.size());
+		TraceShader.SetInteger("u_NodeCount", BVHNodes.size());
+		TraceShader.SetVector2f("u_Dimensions", glm::vec2(RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight()));
+		TraceShader.SetMatrix4("u_View", Camera.GetViewMatrix());
+		TraceShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
+		TraceShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
+		TraceShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
+
+		TraceShader.SetMatrix4("u_LightVP", GetLightViewProjection(SunDirection));
+		TraceShader.SetVector2f("u_Dims", glm::vec2(app.GetWidth(), app.GetHeight()));
+		TraceShader.SetVector3f("u_LightDirection", SunDirection);
+		TraceShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
+
+		glDispatchCompute((int)floor(float(RayTraceOutput.GetWidth()) / 16.0f), (int)floor(float(RayTraceOutput.GetHeight())) / 16.0f, 1);
+
+
 		// Lighting pass : 
 
 		LightingShader.Use();
@@ -348,6 +383,7 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_ShadowTexture", 4);
 		LightingShader.SetInteger("u_BlueNoise", 5);
 		LightingShader.SetInteger("u_Skymap", 6);
+		LightingShader.SetInteger("u_Trace", 7);
 		LightingShader.SetInteger("u_x", x);
 		LightingShader.SetBool("u_Mode", mode);
 
@@ -382,6 +418,9 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
+		
+		glActiveTexture(GL_TEXTURE7);
+		glBindTexture(GL_TEXTURE_2D, RayTraceOutput.GetTexture());
 
 		// Bind bvh test buffers
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BVHTriSSBO);
