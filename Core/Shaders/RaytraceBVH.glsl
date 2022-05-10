@@ -13,7 +13,7 @@ uniform mat4 u_View;
 uniform mat4 u_LightVP;
 uniform vec2 u_Dims;
 
-const float INFINITY = 10000000.0f;
+const float INFINITY = 1.0f / 0.0f;
 const float INF = INFINITY;
 const float EPS = 0.001f;
 
@@ -100,92 +100,93 @@ void RayTraceBVH(vec3 RayOrigin, vec3 RayDirection) {
 
 	while (Iterations < 128) {
 
-		Iterations++;
-		FlattenedNode Node = BVHNodes[CurrentNode];
+		while (StackPointer >= 0) {
+			Iterations++;
+			FlattenedNode Node = BVHNodes[CurrentNode];
 		
-		// Leaf node 
-		if (Node.TriangleCount > 0) {
+			// Leaf node 
+			if (Node.TriangleCount > 0) {
 			
-			// Intersect triangles 
-			for (uint tri = 0 ; tri < Node.TriangleCount  ; tri++)  {
+				// Intersect triangles 
+				for (uint tri = 0 ; tri < Node.TriangleCount  ; tri++)  {
 					
-					uint triangle = tri + Node.StartIdx;
-					vec3 Intersection = RayTriangle(RayOrigin, RayDirection, BVHTriangles[triangle].Position[0].xyz,  BVHTriangles[triangle].Position[1].xyz,  BVHTriangles[triangle].Position[2].xyz);
+						uint triangle = tri + Node.StartIdx;
+						vec3 Intersection = RayTriangle(RayOrigin, RayDirection, BVHTriangles[triangle].Position[0].xyz,  BVHTriangles[triangle].Position[1].xyz,  BVHTriangles[triangle].Position[2].xyz);
 
-					if (Intersection.x > 0.0f && Intersection.x < TMax) {
+						if (Intersection.x > 0.0f && Intersection.x < TMax) {
 						
-						TMax = Intersection.x;
-						IntersectionUVW = Intersection;
+							TMax = Intersection.x;
+							IntersectionUVW = Intersection;
 
-						// DEBUG
-						DEBUG_COLOR = vec3(1.,0.,0.); return;
-						// DEBUG 
-					}
+							// DEBUG
+							DEBUG_COLOR = vec3(1.,0.,0.); return;
+							// DEBUG 
+						}
+				}
+
+				// Move stack pointer back, explore pushed nodes 
+				if (StackPointer <= 0) {
+					break;
+				}
+
+				CurrentNode = Stack[--StackPointer];
 			}
 
-			// Move stack pointer back, explore pushed nodes 
-			if (StackPointer <= 0) {
-				break;
-			}
+			// Node index that will be traversed
+			uint TraversalNode = CurrentNode + 1;
+			uint OtherTraversalNode = Node.SecondChildIndex;
 
-			CurrentNode = Stack[--StackPointer];
-		}
+			// Intersect both child nodes 
+			FlattenedNode LeftNode = BVHNodes[CurrentNode + 1];
+			FlattenedNode RightNode = BVHNodes[Node.SecondChildIndex];
 
-		// Node index that will be traversed
-		uint TraversalNode = CurrentNode + 1;
-		uint OtherTraversalNode = Node.SecondChildIndex;
+			float TransversalA = RayBounds(LeftNode.Min.xyz, LeftNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
+			float TransversalB = RayBounds(RightNode.Min.xyz, RightNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
 
-		// Intersect both child nodes 
-		FlattenedNode LeftNode = BVHNodes[CurrentNode + 1];
-		FlattenedNode RightNode = BVHNodes[Node.SecondChildIndex];
-
-		float TransversalA = RayBounds(LeftNode.Min.xyz, LeftNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
-		float TransversalB = RayBounds(RightNode.Min.xyz, RightNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
-
-		// Check right node, if it's closer, traverse that first.
-		if (TransversalB < TransversalA) {
+			// Check right node, if it's closer, traverse that first.
+			if (TransversalB < TransversalA) {
 			
-			OtherTraversalNode = TraversalNode; // TraversalNode already has the index of the left node 
-			TraversalNode = Node.SecondChildIndex;
+				OtherTraversalNode = TraversalNode; // TraversalNode already has the index of the left node 
+				TraversalNode = Node.SecondChildIndex;
 			
-			// Swap transversals 
-			float Closest = TransversalA;
-			TransversalA = TransversalB;
-			TransversalB = Closest;
-		}
-
-		// No intersection with both nodes 
-		if (TransversalA >= TMax) {
-
-			// Move stack pointer, explore pushed nodes 
-			if (StackPointer <= 0) {
-				break;
+				// Swap transversals 
+				float Closest = TransversalA;
+				TransversalA = TransversalB;
+				TransversalB = Closest;
 			}
 
-			CurrentNode = Stack[--StackPointer];
-		}
+			// No intersection with both nodes 
+			if (TransversalA >= TMax) {
 
-		else {
+				// Move stack pointer, explore pushed nodes 
+				if (StackPointer <= 0) {
+					break;
+				}
+
+				CurrentNode = Stack[--StackPointer];
+			}
+
+			else {
 			
 
-			// Traverse the closest node next, push the other one on the stack if it was intersected 
-			CurrentNode = TraversalNode;
+				// Traverse the closest node next, push the other one on the stack if it was intersected 
+				CurrentNode = TraversalNode;
 
-			// If we intersected the other node, push it onto the stack
+				// If we intersected the other node, push it onto the stack
 
-			if (TransversalB < (INFINITY - EPS)) {
-				Stack[StackPointer++] = OtherTraversalNode;
-			}
+				if (TransversalB < (INFINITY - EPS)) {
+					Stack[StackPointer++] = OtherTraversalNode;
+				}
 
-			if (StackPointer > 32) {
+				if (StackPointer > 32) {
 
-				// DEBUG
-				DEBUG_COLOR = vec3(0.,0.,1.); return;
-				// DEBUG 
+					// DEBUG
+					DEBUG_COLOR = vec3(0.,0.,1.); return;
+					// DEBUG 
 
+				}
 			}
 		}
-
 
 	}
 
