@@ -9,5 +9,6 @@ namespace Lumen
 		glm::vec3 position;
 		glm::uvec3 normal_tangent_data;
 		GLuint texcoords;
+		GLuint pad;
 	};
 }

@@ -214,9 +214,8 @@ void Lumen::StartPipeline()
 
 
 	// BVH ->
-	std::vector<Triangle> BVHTriangles;
 	std::vector<FlattenedNode> BVHNodes;
-	Node* RootNode = BuildBVH(Sponza, BVHTriangles, BVHNodes);
+	Node* RootNode = BuildBVH(Sponza, BVHNodes);
 
 
 	//for (int i = 0; i < 200; i++) {
@@ -237,12 +236,12 @@ void Lumen::StartPipeline()
 
 	glGenBuffers(1, &BVHTriSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHTriSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Triangle) * BVHTriangles.size(), BVHTriangles.data(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 8 * 1, nullptr, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glGenBuffers(1, &BVHNodeSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHNodeSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 8 * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	///////////////
@@ -355,7 +354,6 @@ void Lumen::StartPipeline()
 
 		glBindImageTexture(0, RayTraceOutput.GetTexture(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 		
-		TraceShader.SetInteger("u_TriangleCount", BVHTriangles.size());
 		TraceShader.SetInteger("u_NodeCount", BVHNodes.size());
 		TraceShader.SetVector2f("u_Dimensions", glm::vec2(RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight()));
 		TraceShader.SetMatrix4("u_View", Camera.GetViewMatrix());

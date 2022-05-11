@@ -10,6 +10,7 @@ namespace Lumen {
 		static uint64_t LeafNodeCount = 0;
 		static uint32_t LastNodeIndex = 0;
 		static uint32_t SplitFails = 0;
+		static uint MaxBVHDepth = 0;
 
 		inline glm::vec3 Vec3Min(const glm::vec3& a, const glm::vec3& b) {
 			return glm::vec3(glm::min(a.x, b.x), glm::min(a.y, b.y), glm::min(a.z, b.z));
@@ -20,98 +21,7 @@ namespace Lumen {
 		}
 
 		inline bool ShouldBeLeaf(uint Length) {
-			return Length <= 4;
-		}
-
-		static float min4f(float f0, float f1, float f2, float f3)
-		{
-			return f0 < f1 ? (f0 < f2 ? (f0 < f3 ? f0 : f3) : (f2 < f3 ? f2 : f3)) : (f1 < f2 ? (f1 < f3 ? f1 : f3) : (f2 < f3 ? f2 : f3));
-		}
-
-		static float max4f(float f0, float f1, float f2, float f3)
-		{
-			return f0 > f1 ? (f0 > f2 ? (f0 > f3 ? f0 : f3) : (f2 > f3 ? f2 : f3)) : (f1 > f2 ? (f1 > f3 ? f1 : f3) : (f2 > f3 ? f2 : f3));
-		}
-
-		static float SurfaceAreaHeuristic(std::vector<Triangle> &Triangles, uint idxStart, uint idxCount, int cutDim, float cutPos)
-		{
-			uint lCount = 0;
-			uint rCount = 0;
-
-			glm::vec3 lMin = { INFINITY, INFINITY, INFINITY };
-			glm::vec3 lMax = { -INFINITY, -INFINITY, -INFINITY };
-
-			glm::vec3 rMin = { INFINITY, INFINITY, INFINITY };
-			glm::vec3 rMax = { -INFINITY, -INFINITY, -INFINITY };
-
-			for (uint i = idxStart; i < idxStart + idxCount; i++)
-			{
-				Triangle& triangle = Triangles[i];
-
-
-				if (triangle.v0.position[cutDim] <= cutPos || triangle.v1.position[cutDim] <= cutPos || triangle.v2.position[cutDim] <= cutPos)
-				{
-					lCount++;
-
-					lMin.x = min4f(lMin.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
-					lMin.y = min4f(lMin.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
-					lMin.z = min4f(lMin.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
-
-					lMax.x = max4f(lMax.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
-					lMax.y = max4f(lMax.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
-					lMax.z = max4f(lMax.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
-				}
-				else
-				{
-					rCount++;
-
-					rMin.x = min4f(rMin.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
-					rMin.y = min4f(rMin.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
-					rMin.z = min4f(rMin.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
-
-					rMax.x = max4f(rMax.x, triangle.v0.position.x, triangle.v1.position.x, triangle.v2.position.x);
-					rMax.y = max4f(rMax.y, triangle.v0.position.y, triangle.v1.position.y, triangle.v2.position.y);
-					rMax.z = max4f(rMax.z, triangle.v0.position.z, triangle.v1.position.z, triangle.v2.position.z);
-				}
-			}
-
-			glm::vec3 lDim = { lMax.x - lMin.x, lMax.y - lMin.y, lMax.z - lMin.z };
-			glm::vec3 rDim = { rMax.x - rMin.x, rMax.y - rMin.y, rMax.z - rMin.z };
-
-			float lArea = 2 * lDim.x * lDim.y + 2 * lDim.x * lDim.z + 2 * lDim.y * lDim.z;
-			float rArea = 2 * rDim.x * rDim.y + 2 * rDim.x * rDim.z + 2 * rDim.y * rDim.z;
-
-			return lArea * lCount + rArea * rCount;
-		}
-
-		static void FindSAHCut(std::vector<Triangle>& Triangles, const glm::vec3& boundingMin, const glm::vec3& boundingMax, uint idxStart, uint idxCount, int* cutDim, float* cutPos)
-		{
-			*cutDim = 0;
-			*cutPos = boundingMin.x + (boundingMax.x - boundingMin.x) * 0.5;
-
-			float bestCutCost = INFINITY;
-			for (int d = 0; d < 3; d++)
-			{
-				float lower = boundingMin[d];
-				float upper = boundingMax[d];
-
-				const float STEPS = 20;
-				for (int i = 0; i < STEPS; i++)
-				{
-					float f = i / STEPS;
-
-					float cut = lower + (upper - lower) * f;
-
-					float cost = SurfaceAreaHeuristic(Triangles, idxStart, idxCount, d, cut);
-
-					if (cost < bestCutCost)
-					{
-						bestCutCost = cost;
-						*cutDim = d;
-						*cutPos = cut;
-					}
-				}
-			}
+			return Length <= 1;
 		}
 
 		int FindLongestAxis(const Bounds& bounds) {
@@ -128,17 +38,56 @@ namespace Lumen {
 			return 0;
 		}
 
-		void BuildNodes(std::vector<Triangle>& Triangles, std::vector<FlattenedNode>& FlattenedNodes, Node* RootNode) {
+		void BuildNodes(const std::vector<Vertex>& Vertices, std::vector<GLuint>& Indices, std::vector<FlattenedNode>& FlattenedNodes, Node* RootNode) {
+
+			std::vector<glm::vec3> CentroidCache;
+			std::vector<Bounds> BoundsCache;
+
+			glm::vec3 MinInitial = glm::vec3(1000000.0f);
+			glm::vec3 MaxInitial = glm::vec3(-1000000.0f);
+
+			// Cache bounds and centroids 
+			for (int i = 0; i < Indices.size(); i += 3) {
+				Bounds CurrentBounds;
+
+				CurrentBounds.Min = glm::vec3(100000.0f);
+				CurrentBounds.Max = glm::vec3(-100000.0f);
+			
+				for (int t = 0; t < 3; t++) {
+					CurrentBounds.Min = glm::min(CurrentBounds.Min, Vertices[Indices[i + t]].position);
+					CurrentBounds.Max = glm::max(CurrentBounds.Max, Vertices[Indices[i + t]].position);
+				}
+
+				MinInitial = glm::min(MinInitial, CurrentBounds.Min);
+				MaxInitial = glm::max(MaxInitial, CurrentBounds.Max);
+
+				CentroidCache.push_back(CurrentBounds.GetCenter());
+				BoundsCache.push_back(CurrentBounds);
+			}
+
+			RootNode->NodeBounds.Min = MinInitial;
+			RootNode->NodeBounds.Max = MaxInitial;
+
+			// Sorted indices, indices are pushed here if they are a leaf node
+			std::vector<GLuint> SortedIndices;
 
 			// true : Uses Surface Area Heuristic (finds cut using a simple binary search)
 			// false : Uses median split (splits across largest axis)
 			const bool USE_SAH = false; 
 
+			// Stack to hold processed nodes 
 			std::stack<Node*> NodeStack;
 
+			// Array that holds the pointers of the nodes themselves 
+			std::vector<Node*> NodeArray;
+
+			// Push to stack/array
 			NodeStack.push(RootNode);
+			NodeArray.push_back(RootNode);
 
 			while (!NodeStack.empty()) {
+
+				MaxBVHDepth = glm::max(MaxBVHDepth, (uint)NodeStack.size());
 
 				TotalIterations++;
 
@@ -152,6 +101,14 @@ namespace Lumen {
 				if (ShouldBeLeaf(BuildNode->Length)) {
 					BuildNode->IsLeafNode = true;
 					LeafNodeCount++;
+
+					// Push indices 
+					for (int i = BuildNode->StartIndex; i < BuildNode->StartIndex + BuildNode->Length; i++) {
+						SortedIndices.push_back(Indices.at(i));
+					}
+
+					BuildNode->StartIndex = SortedIndices.size();
+
 					continue;
 				}
 				
@@ -162,17 +119,8 @@ namespace Lumen {
 				uint SplitAxis;
 				float Border;
 
-				if (!USE_SAH) {
-					SplitAxis = FindLongestAxis(BuildNode->NodeBounds);
-					Border = Centroid[SplitAxis];
-				}
-
-				else {
-					int temp_;
-					FindSAHCut(Triangles, BuildNode->NodeBounds.Min, BuildNode->NodeBounds.Max, BuildNode->StartIndex, BuildNode->Length, &temp_, &Border);
-					SplitAxis = static_cast<uint>(temp_);
-				}
-
+				SplitAxis = FindLongestAxis(BuildNode->NodeBounds);
+				Border = Centroid[SplitAxis];
 
 				int LeftIdx = BuildNode->StartIndex;
 				int RightIdx = BuildNode->StartIndex + BuildNode->Length;
@@ -184,7 +132,7 @@ namespace Lumen {
 				while (true) {
 					while (LeftIdx != RightIdx) {
 
-						glm::vec3 Centroid = Triangles[LeftIdx].GetCentroid();
+						glm::vec3 Centroid = CentroidCache[Indices[LeftIdx]];
 
 						if (Centroid[SplitAxis] > Border) {
 							break;
@@ -197,7 +145,7 @@ namespace Lumen {
 
 					while (LeftIdx != RightIdx) {
 
-						glm::vec3 Centroid = Triangles[RightIdx].GetCentroid();
+						glm::vec3 Centroid = CentroidCache[Indices[RightIdx]];
 
 						if (Centroid[SplitAxis] < Border) {
 							break;
@@ -212,9 +160,10 @@ namespace Lumen {
 
 					LeftIdx++;
 
-					Triangle TempTri = Triangles[LeftIdx];
-					Triangles[LeftIdx] = Triangles[RightIdx];
-					Triangles[RightIdx] = TempTri;
+					// swap
+					int Temp = Indices[LeftIdx];
+					Indices[LeftIdx] = Indices[RightIdx];
+					Indices[RightIdx] = Temp;
 				}
 
 				uint SplitIndex = LeftIdx;
@@ -246,7 +195,7 @@ namespace Lumen {
 				
 				for (int x = 0; x < LeftNode.Length; x++) {
 
-					Bounds bounds = Triangles[LeftNode.StartIndex + x].GetBounds();
+					Bounds bounds = BoundsCache[Indices[LeftNode.StartIndex + x]];
 					LeftMin = glm::min(bounds.Min, LeftMin);
 					LeftMax = glm::max(bounds.Max, LeftMax);
 				}
@@ -257,7 +206,7 @@ namespace Lumen {
 
 				for (int x = 0; x < RightNode.Length; x++) {
 
-					Bounds bounds = Triangles[RightNode.StartIndex + x].GetBounds();
+					Bounds bounds = BoundsCache[Indices[RightNode.StartIndex + x]];
 					RightMin = glm::min(bounds.Min, RightMin);
 					RightMax = glm::max(bounds.Max, RightMax);
 				} 
@@ -271,132 +220,115 @@ namespace Lumen {
 				BuildNode->LeftChildPtr = LeftNodePtr;
 				BuildNode->RightChildPtr = RightNodePtr;
 
+				// Push nodes to array 
+				NodeArray.push_back(LeftNodePtr);
+				NodeArray.push_back(RightNodePtr);
+
 				// Push to stack
 				NodeStack.push(&LeftNode);
 				NodeStack.push(&RightNode);
 			}
+
+			// Flatten.
+
+
 		}
 
 
 
-		std::vector<FlattenedNode>* FlattenedNodesPtr;
-
-		uint FlattenBVHRecursive(Node* RootNode, uint* offset) {
-
-			FlattenedNode* CurrentFlattenedNode = &FlattenedNodesPtr->at(*offset);
-			CurrentFlattenedNode->Min = glm::vec4(RootNode->NodeBounds.Min, 0.0f);
-			CurrentFlattenedNode->Max = glm::vec4(RootNode->NodeBounds.Max, 0.0f);
-			uint offset_ = (*offset)++;
-
-			if (RootNode->Length > 0)
-			{
-				if (RootNode->LeftChildPtr) {
-					throw "!!!";
-				}
-
-				if (RootNode->RightChildPtr) {
-					throw "!!!";
-				}
-
-				if (!RootNode->IsLeafNode) {
-					throw "!!!";
-				}
-
-				CurrentFlattenedNode->StartIdx = RootNode->StartIndex;
-				CurrentFlattenedNode->TriangleCount = RootNode->Length;
-			}
-
-			else
-			{
-				if (!RootNode->LeftChildPtr) {
-					throw "!!!";
-				}
-
-				if (!RootNode->RightChildPtr) {
-					throw "!!!";
-				}
-
-				CurrentFlattenedNode->Axis = RootNode->Axis;
-				CurrentFlattenedNode->TriangleCount = 0;
-				FlattenBVHRecursive(RootNode->LeftChildPtr, offset);
-				CurrentFlattenedNode->SecondChildOffset = FlattenBVHRecursive(RootNode->RightChildPtr, offset);
-			}
-
-			return offset_;
-		}
-
+		//uint FlattenBVHRecursive(Node* RootNode, uint* offset, std::vector<FlattenedNode>& FlattenedNodes) {
+		//
+		//	FlattenedNode* CurrentFlattenedNode = &FlattenedNodes.at(*offset);
+		//	CurrentFlattenedNode->Min = glm::vec4(RootNode->NodeBounds.Min, 0.0f);
+		//	CurrentFlattenedNode->Max = glm::vec4(RootNode->NodeBounds.Max, 0.0f);
+		//	uint offset_ = (*offset)++;
+		//
+		//	if (RootNode->Length > 0)
+		//	{
+		//		if (RootNode->LeftChildPtr) {
+		//			throw "!!!";
+		//		}
+		//
+		//		if (RootNode->RightChildPtr) {
+		//			throw "!!!";
+		//		}
+		//
+		//		if (!RootNode->IsLeafNode) {
+		//			throw "!!!";
+		//		}
+		//
+		//		CurrentFlattenedNode->StartIdx = RootNode->StartIndex;
+		//		CurrentFlattenedNode->TriangleCount = RootNode->Length;
+		//	}
+		//
+		//	else
+		//	{
+		//		if (!RootNode->LeftChildPtr) {
+		//			throw "!!!";
+		//		}
+		//
+		//		if (!RootNode->RightChildPtr) {
+		//			throw "!!!";
+		//		}
+		//
+		//		CurrentFlattenedNode->Axis = RootNode->Axis;
+		//		CurrentFlattenedNode->TriangleCount = 0;
+		//		FlattenBVHRecursive(RootNode->LeftChildPtr, offset, FlattenedNodes);
+		//		CurrentFlattenedNode->SecondChildOffset = FlattenBVHRecursive(RootNode->RightChildPtr, offset, FlattenedNodes);
+		//	}
+		//
+		//	return offset_;
+		//}
 
 		uint FlattenBVHNaive(Node* RootNode, uint* offset) {
 
+			for (int i = 0; i < LastNodeIndex; i++) {
 
 
 
+
+
+
+			}
 		}
 
 
-
-
-		Node* BuildBVH(Object& object, std::vector<Triangle>& Triangles, std::vector<FlattenedNode>& FlattenedNodes)
+		Node* BuildBVH(Object& object, std::vector<FlattenedNode>& FlattenedNodes)
 		{
 			TotalIterations = 0;
 			LastNodeIndex = 0;
 				
 			// First, generate triangles from vertices to make everything easier to work with 
 
-			std::cout << "\nGenerating Triangles..";
+			std::cout << "\nGenerating Combined Mesh Vertices/Indices..";
+
+			// Combined vertices and indices 
+			std::vector<Vertex> MeshVertices; 
+			std::vector<GLuint> MeshIndices; 
+
+			uint IndexOffset = 0;
 
 			for (auto& Mesh : object.m_Meshes) {
 
 				auto& Indices = Mesh.m_Indices;
 				auto& Vertices = Mesh.m_Vertices;
 
-				if (true) {
-
-					int TrianglesCounter = 0;
-
-					for (int x = 0; x < Indices.size(); x += 3)
-					{
-						FVertex v0 = { glm::vec4(Vertices.at(Indices.at(x)).position, 1.0f) };
-						FVertex v1 = { glm::vec4(Vertices.at(Indices.at(x + 1)).position, 1.0f) };
-						FVertex v2 = { glm::vec4(Vertices.at(Indices.at(x + 2)).position, 1.0f) };
-
-						Triangle tri = { (v0), (v1), (v2) };
-						Triangles.push_back(tri);
-						TrianglesCounter++;
-					}
-
+				for (int x = 0; x < Indices.size(); x += 1)
+				{
+					MeshIndices.push_back(Indices.at(x) + IndexOffset);
 				}
 
-				else {
-
-					for (int x = 0; x < Vertices.size(); x += 3)
-					{
-						FVertex v0 = { glm::vec4(Vertices.at(x).position, 1.0f) };
-						FVertex v1 = { glm::vec4(Vertices.at(x).position, 1.0f) };
-						FVertex v2 = { glm::vec4(Vertices.at(x).position, 1.0f) };
-
-						Triangle tri = { (v0), (v1), (v2) };
-						Triangles.push_back(tri);
-					}
-
+				for (int x = 0; x < Vertices.size(); x += 1) 
+				{
+					MeshVertices.push_back(Vertices.at(x));
 				}
 
+				IndexOffset += Vertices.size();
 			}
 
-			std::cout << "\nGenerated Triangles!";
+			std::cout << "\nGenerated!";
 
-			// Create bounding box 
-			std::cout << "\nCreating initial node bounding box..";
-
-			glm::vec3 InitialMin = glm::vec3(10000.0f);
-			glm::vec3 InitialMax = glm::vec3(-10000.0f);
-
-			for (int i = 0; i < Triangles.size(); i++)
-			{
-				Bounds CurrentBounds = Triangles.at(i).GetBounds();
-				InitialMin = Vec3Min(CurrentBounds.Min, InitialMin);
-				InitialMax = Vec3Max(CurrentBounds.Max, InitialMax);
-			}
+			uint Triangles = MeshIndices.size() / 3;
 
 			Node* RootNodePtr = new Node;
 			Node& RootNode = *RootNodePtr;
@@ -405,38 +337,27 @@ namespace Lumen {
 			RootNode.LeftChildPtr = nullptr;
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;
-			RootNode.Length = Triangles.size() - 1;
+			RootNode.Length = Triangles;
 			RootNode.IsLeftNode = false;
-			RootNode.NodeBounds = Bounds(InitialMin, InitialMax);
 
-			std::cout << "\nGenerated bounding box!";
-			BuildNodes(Triangles, FlattenedNodes, &RootNode);
-			
+			BuildNodes(MeshVertices, MeshIndices, FlattenedNodes, &RootNode);
 			FlattenedNodes.resize(LastNodeIndex + 1);
 
 			uint Offset = 0;
-			FlattenedNodesPtr = &FlattenedNodes;
 
 			// Output debug stats 
 
 			std::cout << "\n\n\n";
 			std::cout << "--BVH Construction Info--";
-			std::cout << "\nTriangle Count : " << Triangles.size();
+			std::cout << "\nTriangle Count : " << Triangles;
 			std::cout << "\nNode Count : " << LastNodeIndex;
 			std::cout << "\nLeaf Count : " << LeafNodeCount;
 			std::cout << "\nSplit Fail Count : " << SplitFails;
+			std::cout << "\nMax Depth : " << MaxBVHDepth;
 			std::cout << "\n\n\n";
 
-			uint flattenedidx = FlattenBVHRecursive(RootNodePtr, &Offset);
-
-
 			return RootNodePtr;
-
 		}
-
 	}
-
-
-
 
 }

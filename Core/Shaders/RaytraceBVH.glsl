@@ -213,8 +213,8 @@ void main() {
 
 	float s = 1.0f;
 	
-	RayTraceBVH(rO, rD);
+	//RayTraceBVH(rO, rD);
 	
-	vec3 o_Color = DEBUG_COLOR;
+	vec3 o_Color = vec3(1.,0.,0.);
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }
