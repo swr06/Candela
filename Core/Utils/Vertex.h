@@ -6,9 +6,8 @@ namespace Lumen
 {
 	struct Vertex
 	{
-		glm::vec3 position;
+		glm::vec4 position;
 		glm::uvec3 normal_tangent_data;
 		GLuint texcoords;
-		GLuint pad;
 	};
 }

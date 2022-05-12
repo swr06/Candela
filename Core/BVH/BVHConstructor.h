@@ -61,34 +61,47 @@ namespace Lumen {
 			uint Axis = 1000;
 		};
 
-		struct FlattenedBBox {
+		struct FBounds {
 			glm::vec4 Min;
 			glm::vec4 Max;
 		};
 
-		struct FlattenedNode {
-
-			union {
-			
-				struct {
-					FlattenedBBox bounds[2]; // 64 bytes
-				}s0;
-			
+		struct FlattenedNode
+		{
+			union
+			{
 				struct
 				{
-					int StartIdx;
-					int EndIdx;
-					int PaddingT;
-					int ChildA;
+					FBounds bounds[2];
+				}s0;
+
+				struct
+				{
+					int i0, i1, i2;
+					int Child0;
+					int ShapeMask;
 					int ShapeID;
 					int PrimitiveID;
-					int ChildB;
-					int Padding[8]; // Pad to 64 bytes 
+					int Child1;
+					int Padding[8];
 				}s1;
 			};
 
+			FlattenedNode()
+				: s0()
+			{
+
+			}
 		};
 
-		Node* BuildBVH(Object& object, std::vector<FlattenedNode>& FlattenedNodes);
+		struct Face
+		{
+			int idx[3];
+			int shapeidx;
+			int id;
+			int shape_mask;
+		};
+
+		Node* BuildBVH(Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices);
 	}
 };

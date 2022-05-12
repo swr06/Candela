@@ -92,11 +92,11 @@ namespace Lumen
 			for (int i = 0; i < mesh->mNumVertices; i++)
 			{
 				Vertex vt;
-				vt.position = glm::vec3(
+				vt.position = glm::vec4(glm::vec3(
 					mesh->mVertices[i].x,
 					mesh->mVertices[i].y,
 					mesh->mVertices[i].z
-				);
+				), 1.);
 
 				glm::vec3 vnormal = glm::vec3(0.0f), vtan = glm::vec3(0.0f);
 

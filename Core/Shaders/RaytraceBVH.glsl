@@ -1,5 +1,7 @@
 #version 430 core
 
+#define InvalidIdx 0xffffffffu
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
@@ -18,25 +20,32 @@ const float INF = INFINITY;
 const float EPS = 0.001f;
 
 
-struct FlattenedNode {
-	vec4 Min;
-	vec4 Max;
-	uint StartIdx;
-	uint TriangleCount;
-	uint Axis;
-	uint SecondChildIndex;
+vec3 DEBUG_COLOR = vec3(0.,1.,0.);
+
+struct Node
+{
+    vec3 aabb_left_min_or_v0;
+    uint addr_left;
+    vec3 aabb_left_max_or_v1;
+    uint mesh_id;
+    vec3 aabb_right_min_or_v2;
+    uint addr_right;
+    vec3 aabb_right_max;
+    uint prim_id;
 };
 
-struct Triangle {
-	vec4 Position[3];
+struct Vertex
+{
+	vec4 position; // 16 bytes
+	uvec4 normal_tangent_texcoords_data; // 16 bytes
 };
 
-layout (std430, binding = 1) buffer SSBO_BVHTriangles {
-	Triangle BVHTriangles[];
+layout (std430, binding = 1) buffer SSBO_BVHVertices {
+	Vertex Vertices[];
 };
 
 layout (std430, binding = 2) buffer SSBO_BVHNodes {
-	FlattenedNode BVHNodes[];
+	Node BVHNodes[];
 };
 
 float max3(vec3 val) 
@@ -44,9 +53,9 @@ float max3(vec3 val)
     return max(max(val.x, val.y), val.z);
 }
 
-float min3(vec3 val)
+float min3(float a, float b, float c)
 {
-    return min(min(val.x, val.y), val.z);
+    return min(c, min(a, b));
 }
 
 // By Inigo Quilez
@@ -72,127 +81,110 @@ vec3 RayTriangle(in vec3 ro, in vec3 rd, in vec3 v0, in vec3 v1, in vec3 v2)
 }
 
 
-float RayBounds(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t_min, float t_max)
+vec2 fast_intersect_aabb(
+    vec3 pmin, vec3 pmax,
+    vec3 invdir, vec3 oxinvdir,
+    float t_max)
 {
-    vec3 aabb_min = min_;
-    vec3 aabb_max = max_;
-    vec3 t0 = (aabb_min - ray_origin) * ray_inv_dir;
-    vec3 t1 = (aabb_max - ray_origin) * ray_inv_dir;
-    float tmin = max(max3(min(t0, t1)), t_min);
-    float tmax = min(min3(max(t0, t1)), t_max);
-    return (tmax >= tmin) ? tmin : INFINITY;
+    vec3 f = fma(pmax, invdir, oxinvdir);
+    vec3 n = fma(pmin, invdir, oxinvdir);
+    vec3 tmax = max(f, n);
+    vec3 tmin = min(f, n);
+    float t1 = min(min3(tmax.x, tmax.y, tmax.z), t_max);
+    float t0 = max(min3(tmin.x, tmin.y, tmin.z), 0.0);
+    return vec2(t0, t1);
 }
 
-vec3 DEBUG_COLOR = vec3(0.,1.,0.);
 
-void RayTraceBVH(vec3 RayOrigin, vec3 RayDirection) {
-
-	uint Stack[32];
-	uint StackPointer = 0;
-	uint CurrentNode = 0;
-
-	vec3 InverseDirection = 1.0f / RayDirection;
-
-	float TMax = INFINITY;
-	vec3 IntersectionUVW = vec3(-1.0f);
-
-	int Iterations = 0;
-
-	while (Iterations < 128) {
-
-		while (StackPointer >= 0) {
-			Iterations++;
-			FlattenedNode Node = BVHNodes[CurrentNode];
-		
-			// Leaf node 
-			if (Node.TriangleCount > 0) {
-			
-				// Intersect triangles 
-				for (uint tri = 0 ; tri < Node.TriangleCount  ; tri++)  {
-					
-						uint triangle = tri + Node.StartIdx;
-						vec3 Intersection = RayTriangle(RayOrigin, RayDirection, BVHTriangles[triangle].Position[0].xyz,  BVHTriangles[triangle].Position[1].xyz,  BVHTriangles[triangle].Position[2].xyz);
-
-						if (Intersection.x > 0.0f && Intersection.x < TMax) {
-						
-							TMax = Intersection.x;
-							IntersectionUVW = Intersection;
-
-							// DEBUG
-							DEBUG_COLOR = vec3(1.,0.,0.); return;
-							// DEBUG 
-						}
-				}
-
-				// Move stack pointer back, explore pushed nodes 
-				if (StackPointer <= 0) {
-					break;
-				}
-
-				CurrentNode = Stack[--StackPointer];
-			}
-
-			// Node index that will be traversed
-			uint TraversalNode = CurrentNode + 1;
-			uint OtherTraversalNode = Node.SecondChildIndex;
-
-			// Intersect both child nodes 
-			FlattenedNode LeftNode = BVHNodes[CurrentNode + 1];
-			FlattenedNode RightNode = BVHNodes[Node.SecondChildIndex];
-
-			float TransversalA = RayBounds(LeftNode.Min.xyz, LeftNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
-			float TransversalB = RayBounds(RightNode.Min.xyz, RightNode.Max.xyz, RayOrigin, InverseDirection, 0.000001f, TMax);
-
-			// Check right node, if it's closer, traverse that first.
-			if (TransversalB < TransversalA) {
-			
-				OtherTraversalNode = TraversalNode; // TraversalNode already has the index of the left node 
-				TraversalNode = Node.SecondChildIndex;
-			
-				// Swap transversals 
-				float Closest = TransversalA;
-				TransversalA = TransversalB;
-				TransversalB = Closest;
-			}
-
-			// No intersection with both nodes 
-			if (TransversalA >= TMax) {
-
-				// Move stack pointer, explore pushed nodes 
-				if (StackPointer <= 0) {
-					break;
-				}
-
-				CurrentNode = Stack[--StackPointer];
-			}
-
-			else {
-			
-
-				// Traverse the closest node next, push the other one on the stack if it was intersected 
-				CurrentNode = TraversalNode;
-
-				// If we intersected the other node, push it onto the stack
-
-				if (TransversalB < (INFINITY - EPS)) {
-					Stack[StackPointer++] = OtherTraversalNode;
-				}
-
-				if (StackPointer > 32) {
-
-					// DEBUG
-					DEBUG_COLOR = vec3(0.,0.,1.); return;
-					// DEBUG 
-
-				}
-			}
-		}
-
-	}
-
-
-	return;
+bool IsInternalNode(in Node node) {
+    return node.addr_left != InvalidIdx;
 }
+
+bool IsLeaf(in Node node) {
+    return !IsInternalNode(node);
+}
+
+vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
+
+    vec3 InverseDirection = 1.0f / RayDirection;
+    vec3 RayOriginD = -RayOrigin * InverseDirection;
+
+    uint Stack[64];
+    uint CurrentNodePointer = 0;
+    int StackPointer = 0;
+
+    vec3 IntersectionUVW = vec3(-1.0f);
+    float TMax = 100000.0f;
+    float TMin = 10000.0f;
+
+    int Iterations = 0;
+
+    while (Iterations < 128 && CurrentNodePointer != InvalidIdx) {
+        
+        Iterations++;
+
+        Node CurrentNode = BVHNodes[CurrentNodePointer];
+
+        if (IsLeaf(CurrentNode)) {
+
+             vec2 s0 = fast_intersect_aabb(
+                CurrentNode.aabb_left_min_or_v0,
+                CurrentNode.aabb_left_max_or_v1,
+                InverseDirection, RayOriginD, TMin);
+            
+            vec2 s1 = fast_intersect_aabb(
+                CurrentNode.aabb_right_min_or_v2,
+                CurrentNode.aabb_right_max,
+                InverseDirection, RayOriginD, TMin);
+
+            bool traverse_c0 = (s0.x <= s0.y);
+            bool traverse_c1 = (s1.x <= s1.y);
+            bool c1first = traverse_c1 && (s0.x > s1.x);
+
+            if (traverse_c0 || traverse_c1)
+            {
+                uint deferred = InvalidIdx;
+
+                if (c1first || !traverse_c0)
+                {
+                    CurrentNodePointer = CurrentNode.addr_right;
+                    deferred = CurrentNode.addr_left;
+                }
+                else
+                {
+                    CurrentNodePointer = CurrentNode.addr_left;
+                    deferred = CurrentNode.addr_right;
+                }
+
+                if (traverse_c0 && traverse_c1)
+                {
+                    Stack[StackPointer++] = deferred;
+                }
+
+                continue;
+
+            }
+        }
+
+        else {
+            
+            vec3 v1 = Vertices[node.i0].xyz;
+            vec3 v2 = Vertices[node.i1].xyz;
+            vec3 v3 = Vertices[node.i2].xyz;
+            float const f = fast_intersect_triangle(r, v1, v2, v3, t_max);
+            // If hit update closest hit distance and index
+            if (f < t_max)
+            {
+                t_max = f;
+                isect_idx = addr;
+            }
+
+        }
+    }
+
+}
+
+
 
 vec3 GetRayDirectionAt(vec2 screenspace)
 {
