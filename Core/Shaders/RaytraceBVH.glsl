@@ -19,29 +19,34 @@ const float INFINITY = 1.0f / 0.0f;
 const float INF = INFINITY;
 const float EPS = 0.001f;
 
-
 vec3 DEBUG_COLOR = vec3(0.,1.,0.);
 
-struct Node
-{
-    vec3 aabb_left_min_or_v0;
-    uint addr_left;
-    vec3 aabb_left_max_or_v1;
-    uint mesh_id;
-    vec3 aabb_right_min_or_v2;
-    uint addr_right;
-    vec3 aabb_right_max;
-    uint prim_id;
-};
-
+// 32 bytes 
 struct Vertex
 {
-	vec4 position; // 16 bytes
-	uvec4 normal_tangent_texcoords_data; // 16 bytes
+	vec4 Position;
+	uvec4 PackedData;
 };
 
-layout (std430, binding = 1) buffer SSBO_BVHVertices {
+// 16 bytes 
+struct Triangle {
+    int Packed[4];
+};
+
+// 32 bytes 
+// W Component has packed data 
+struct Node {
+    vec4 Min; // W component contains packed links
+    vec4 Max; // W component contains packed leaf data 
+};
+
+// SSBOs
+layout (std430, binding = 0) buffer SSBO_BVHVertices {
 	Vertex Vertices[];
+};
+
+layout (std430, binding = 1) buffer SSBO_BVHTris {
+	Triangle BVHTris[];
 };
 
 layout (std430, binding = 2) buffer SSBO_BVHNodes {
@@ -53,9 +58,9 @@ float max3(vec3 val)
     return max(max(val.x, val.y), val.z);
 }
 
-float min3(float a, float b, float c)
+float min3(vec3 val)
 {
-    return min(c, min(a, b));
+    return min(val.x, min(val.y, val.z));
 }
 
 // By Inigo Quilez
@@ -80,112 +85,20 @@ vec3 RayTriangle(in vec3 ro, in vec3 rd, in vec3 v0, in vec3 v1, in vec3 v2)
     return vec3(t, u, v);
 }
 
-
-vec2 fast_intersect_aabb(
-    vec3 pmin, vec3 pmax,
-    vec3 invdir, vec3 oxinvdir,
-    float t_max)
+// Returns transversals 
+float RayBounds(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t_min, float t_max)
 {
-    vec3 f = fma(pmax, invdir, oxinvdir);
-    vec3 n = fma(pmin, invdir, oxinvdir);
-    vec3 tmax = max(f, n);
-    vec3 tmin = min(f, n);
-    float t1 = min(min3(tmax.x, tmax.y, tmax.z), t_max);
-    float t0 = max(min3(tmin.x, tmin.y, tmin.z), 0.0);
-    return vec2(t0, t1);
+    vec3 aabb_min = min_;
+    vec3 aabb_max = max_;
+    vec3 t0 = (aabb_min - ray_origin) * ray_inv_dir;
+    vec3 t1 = (aabb_max - ray_origin) * ray_inv_dir;
+    float tmin = max(max3(min(t0, t1)), t_min);
+    float tmax = min(min3(max(t0, t1)), t_max);
+    return (tmax >= tmin) ? tmin : -1.;
 }
 
 
-bool IsInternalNode(in Node node) {
-    return node.addr_left != InvalidIdx;
-}
-
-bool IsLeaf(in Node node) {
-    return !IsInternalNode(node);
-}
-
-vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
-
-    vec3 InverseDirection = 1.0f / RayDirection;
-    vec3 RayOriginD = -RayOrigin * InverseDirection;
-
-    uint Stack[64];
-    uint CurrentNodePointer = 0;
-    int StackPointer = 0;
-
-    vec3 IntersectionUVW = vec3(-1.0f);
-    float TMax = 100000.0f;
-    float TMin = 10000.0f;
-
-    int Iterations = 0;
-
-    while (Iterations < 128 && CurrentNodePointer != InvalidIdx) {
-        
-        Iterations++;
-
-        Node CurrentNode = BVHNodes[CurrentNodePointer];
-
-        if (IsLeaf(CurrentNode)) {
-
-             vec2 s0 = fast_intersect_aabb(
-                CurrentNode.aabb_left_min_or_v0,
-                CurrentNode.aabb_left_max_or_v1,
-                InverseDirection, RayOriginD, TMin);
-            
-            vec2 s1 = fast_intersect_aabb(
-                CurrentNode.aabb_right_min_or_v2,
-                CurrentNode.aabb_right_max,
-                InverseDirection, RayOriginD, TMin);
-
-            bool traverse_c0 = (s0.x <= s0.y);
-            bool traverse_c1 = (s1.x <= s1.y);
-            bool c1first = traverse_c1 && (s0.x > s1.x);
-
-            if (traverse_c0 || traverse_c1)
-            {
-                uint deferred = InvalidIdx;
-
-                if (c1first || !traverse_c0)
-                {
-                    CurrentNodePointer = CurrentNode.addr_right;
-                    deferred = CurrentNode.addr_left;
-                }
-                else
-                {
-                    CurrentNodePointer = CurrentNode.addr_left;
-                    deferred = CurrentNode.addr_right;
-                }
-
-                if (traverse_c0 && traverse_c1)
-                {
-                    Stack[StackPointer++] = deferred;
-                }
-
-                continue;
-
-            }
-        }
-
-        else {
-            
-            vec3 v1 = Vertices[node.i0].xyz;
-            vec3 v2 = Vertices[node.i1].xyz;
-            vec3 v3 = Vertices[node.i2].xyz;
-            float const f = fast_intersect_triangle(r, v1, v2, v3, t_max);
-            // If hit update closest hit distance and index
-            if (f < t_max)
-            {
-                t_max = f;
-                isect_idx = addr;
-            }
-
-        }
-    }
-
-}
-
-
-
+// Gets ray direction from screenspace UV
 vec3 GetRayDirectionAt(vec2 screenspace)
 {
 	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
@@ -193,6 +106,57 @@ vec3 GetRayDirectionAt(vec2 screenspace)
 	return vec3(u_InverseView * eye);
 }
 
+bool IsLeafNode(in Node node) {
+    return node.Min.w != -1.0f;
+}
+
+int GetStartIdx(in Node node) {
+    return int(node.Min.w);
+}
+
+vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
+
+    vec3 InverseDirection = 1.0f / RayDirection;
+
+    int Iterations = 0;
+
+    int Pointer = 0;
+
+    float TMax = 100000.0f;
+
+    while (Pointer >= 0 && Iterations < 64) {
+
+        Iterations++;
+
+        Node CurrentNode = BVHNodes[Pointer];
+
+        float BoxTraversal = RayBounds(CurrentNode.Min.xyz, CurrentNode.Max.xyz, RayOrigin, InverseDirection, 0.001f, TMax);
+
+        if (BoxTraversal > 0.0f) {
+
+           // TMax = BoxTraversal;
+            
+            if (IsLeafNode(CurrentNode)) {
+                return vec3(1.,0.,0.);
+            }
+
+            else {
+
+                Pointer++;
+            }
+
+        }
+
+        else {
+
+            Pointer = int(CurrentNode.Max.w);
+            
+        }
+    }
+
+    return vec3(0., 1., 0.);
+
+}
 
 
 void main() {
@@ -207,6 +171,9 @@ void main() {
 	
 	//RayTraceBVH(rO, rD);
 	
-	vec3 o_Color = vec3(1.,0.,0.);
+
+	//vec3 o_Color = vec3(1.,0.,0.);
+    vec3 o_Color =  IntersectBVH(rO, rD);
+
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }

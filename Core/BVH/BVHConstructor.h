@@ -68,40 +68,16 @@ namespace Lumen {
 
 		struct FlattenedNode
 		{
-			union
-			{
-				struct
-				{
-					FBounds bounds[2];
-				}s0;
-
-				struct
-				{
-					int i0, i1, i2;
-					int Child0;
-					int ShapeMask;
-					int ShapeID;
-					int PrimitiveID;
-					int Child1;
-					int Padding[8];
-				}s1;
-			};
-
-			FlattenedNode()
-				: s0()
-			{
-
-			}
+			glm::vec4 Min;
+			glm::vec4 Max;
 		};
 
-		struct Face
-		{
-			int idx[3];
-			int shapeidx;
-			int id;
-			int shape_mask;
+		struct Triangle {
+			// 0, 1, 2 indices 
+			// 3 mesh ID
+			int Packed[4];
 		};
 
-		Node* BuildBVH(Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices);
+		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris);
 	}
 };

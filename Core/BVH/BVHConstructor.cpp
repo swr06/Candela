@@ -22,7 +22,7 @@ namespace Lumen {
 		}
 
 		inline bool ShouldBeLeaf(uint Length) {
-			return Length <= 1;
+			return Length <= 4;
 		}
 
 		int FindLongestAxis(const Bounds& bounds) {
@@ -46,7 +46,10 @@ namespace Lumen {
 			return x;
 		}
 
-		void ConstructHierarchy(const std::vector<Vertex>& Vertices, std::vector<GLuint>& Indices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, Node* RootNode) {
+		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<int>& Cache, int& ProcessedNodes);
+
+
+		void ConstructHierarchy(const std::vector<Vertex>& Vertices, std::vector<GLuint>& Indices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
 
 			std::vector<glm::vec3> CentroidCache;
 			std::vector<Bounds> BoundsCache;
@@ -240,136 +243,86 @@ namespace Lumen {
 				NodeStack.push(&RightNode);
 			}
 
-			// Flatten.
-			// Linearizing and flattened structure based on RadeonRays' algorithm
+			// Flatten!
 
-			std::vector<int> FPackedIndices;
+			std::vector<int> FlattenCache; 
+			int ProcessedNodes_ = 0;
 
+			FlattenCache.resize(LastNodeIndex + 1);
 			FlattenedNodes.resize(LastNodeIndex + 1);
-			FPackedIndices.resize(LastNodeIndex + 1);
-			
-			std::queue<std::pair<Node*, int>> WorkQueue;
-			WorkQueue.push(std::make_pair(RootNode, 0));
-			
-			int FNodePointer = 0;
-			int FMaxIdx = -1;
-			
-			while (!WorkQueue.empty()) {
-			
-				std::pair<Node*, int> Current = std::make_pair(WorkQueue.front().first, WorkQueue.front().second);
-				WorkQueue.pop();
-			
-				FlattenedNode& CurrentFlattenedNode(FlattenedNodes[FNodePointer]);
-				FPackedIndices[FNodePointer] = Current.first->StartIndex;
-				FNodePointer++;
-			
-				if (Current.first->StartIndex > FMaxIdx) {
-					FMaxIdx = Current.first->StartIndex;
-				}
-			
-				if (!Current.first->IsLeafNode) {
-			
-					CurrentFlattenedNode.s0.bounds[0] = CastToFBox(Current.first->LeftChildPtr->NodeBounds);
-					CurrentFlattenedNode.s0.bounds[1] = CastToFBox(Current.first->RightChildPtr->NodeBounds);
-					WorkQueue.push(std::make_pair(Current.first->LeftChildPtr, FNodePointer));
-					WorkQueue.push(std::make_pair(Current.first->RightChildPtr, -FNodePointer));
-				}
-			
-				else {
-					CurrentFlattenedNode.s1.Child0 = -1;
-					CurrentFlattenedNode.s1.Child1 = -1;
-					CurrentFlattenedNode.s1.i0 = Current.first->StartIndex;
-				}
-			
-				if (Current.second > 0)
-				{
-					FlattenedNodes[Current.second - 1].s1.Child0 = FNodePointer - 1;
-				}
-			
-				else if (Current.second < 0)
-				{
-					FlattenedNodes[-Current.second - 1].s1.Child1 = FNodePointer - 1;
-				}
-			}
 
-			// Generate faces
-			std::vector<Face> FaceData(SortedIndices.size());
+			FlattenBVH(RootNode, FlattenedNodes, FlattenCache, ProcessedNodes_);
 
-			GLuint* Reordering = SortedIndices.data();
+			// Generate faces 
 
-			for (int i = 0; i < SortedIndices.size(); i++) {
+			oTriangles.resize(LastNodeIndex + 1);
 
-				int IndexToLookFor = Reordering[i];
-				FaceData[i].idx[0] = OriginalIndices[IndexToLookFor * 3];
-				FaceData[i].idx[1] = OriginalIndices[IndexToLookFor * 3 + 1];
-				FaceData[i].idx[2] = OriginalIndices[IndexToLookFor * 3 + 2];
-				FaceData[i].id = IndexToLookFor;
-			}
-
-			// Inject indices into nodes (allows for more coherent traversal)
-			for (auto& node : FlattenedNodes)
-			{
-				if (node.s1.Child0 == -1)
-				{
-					auto idx = node.s1.i0 - 1;
-					node.s1.i0 = FaceData[idx].idx[0];
-					node.s1.i1 = FaceData[idx].idx[1];
-					node.s1.i2 = FaceData[idx].idx[2];
-					node.s1.ShapeID = FaceData[idx].shapeidx;
-					node.s1.PrimitiveID = FaceData[idx].id;
-					node.s1.ShapeMask = FaceData[idx].shape_mask;
-				}
-			}
-
+			//for (int i = 0; i < SortedIndices.size(); i++) {
+			//
+			//	auto& CurrentTriangle = oTriangles[i];
+			//
+			//	int TriangleIndex = SortedIndices[i];
+			//
+			//	int CurrentIndexRef = TriangleIndex * 3;
+			//
+			//	CurrentTriangle.Packed[0] = OriginalIndices[CurrentIndexRef + 0];
+			//	CurrentTriangle.Packed[1] = OriginalIndices[CurrentIndexRef + 1];
+			//	CurrentTriangle.Packed[2] = OriginalIndices[CurrentIndexRef + 2];
+			//
+			//	CurrentTriangle.Packed[3] = OriginalIndices[TriangleIndex];
+			//
+			//}
 		}
 
-
-
-		//uint FlattenBVHRecursive(Node* RootNode, uint* offset, std::vector<FlattenedNode>& FlattenedNodes) {
-		//
-		//	FlattenedNode* CurrentFlattenedNode = &FlattenedNodes.at(*offset);
-		//	CurrentFlattenedNode->Min = glm::vec4(RootNode->NodeBounds.Min, 0.0f);
-		//	CurrentFlattenedNode->Max = glm::vec4(RootNode->NodeBounds.Max, 0.0f);
-		//	uint offset_ = (*offset)++;
-		//
-		//	if (RootNode->Length > 0)
-		//	{
-		//		if (RootNode->LeftChildPtr) {
-		//			throw "!!!";
-		//		}
-		//
-		//		if (RootNode->RightChildPtr) {
-		//			throw "!!!";
-		//		}
-		//
-		//		if (!RootNode->IsLeafNode) {
-		//			throw "!!!";
-		//		}
-		//
-		//		CurrentFlattenedNode->StartIdx = RootNode->StartIndex;
-		//		CurrentFlattenedNode->TriangleCount = RootNode->Length;
-		//	}
-		//
-		//	else
-		//	{
-		//		if (!RootNode->LeftChildPtr) {
-		//			throw "!!!";
-		//		}
-		//
-		//		if (!RootNode->RightChildPtr) {
-		//			throw "!!!";
-		//		}
-		//
-		//		CurrentFlattenedNode->Axis = RootNode->Axis;
-		//		CurrentFlattenedNode->TriangleCount = 0;
-		//		FlattenBVHRecursive(RootNode->LeftChildPtr, offset, FlattenedNodes);
-		//		CurrentFlattenedNode->SecondChildOffset = FlattenBVHRecursive(RootNode->RightChildPtr, offset, FlattenedNodes);
-		//	}
-		//
-		//	return offset_;
-		//}
+		// Default BVH 
+		/*
+		uint FlattenBVHRecursive(Node* RootNode, uint* offset, std::vector<FlattenedNode>& FlattenedNodes) {
+		
+			FlattenedNode* CurrentFlattenedNode = &FlattenedNodes.at(*offset);
+			CurrentFlattenedNode->Min = glm::vec4(RootNode->NodeBounds.Min, 0.0f);
+			CurrentFlattenedNode->Max = glm::vec4(RootNode->NodeBounds.Max, 0.0f);
+			uint offset_ = (*offset)++;
+		
+			if (RootNode->Length > 0)
+			{
+				if (RootNode->LeftChildPtr) {
+					throw "!!!";
+				}
+		
+				if (RootNode->RightChildPtr) {
+					throw "!!!";
+				}
+		
+				if (!RootNode->IsLeafNode) {
+					throw "!!!";
+				}
+		
+				CurrentFlattenedNode->StartIdx = RootNode->StartIndex;
+				CurrentFlattenedNode->TriangleCount = RootNode->Length;
+			}
+		
+			else
+			{
+				if (!RootNode->LeftChildPtr) {
+					throw "!!!";
+				}
+		
+				if (!RootNode->RightChildPtr) {
+					throw "!!!";
+				}
+		
+				CurrentFlattenedNode->Axis = RootNode->Axis;
+				CurrentFlattenedNode->TriangleCount = 0;
+				FlattenBVHRecursive(RootNode->LeftChildPtr, offset, FlattenedNodes);
+				CurrentFlattenedNode->SecondChildOffset = FlattenBVHRecursive(RootNode->RightChildPtr, offset, FlattenedNodes);
+			}
+		
+			return offset_;
+		}*/
 
 		uint FlattenBVHNaive(Node* RootNode, uint* offset) {
+
+			std::stack<FlattenedNode> WorkStack;
 
 			for (int i = 0; i < LastNodeIndex; i++) {
 
@@ -380,8 +333,71 @@ namespace Lumen {
 			}
 		}
 
+		int FlattenBVHRecursive(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<int>& Cache, int& ProcessedNodes) {
 
-		Node* BuildBVH(Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices)
+			int idx = ProcessedNodes;
+			FlattenedNode& node = FlattenedNodes[ProcessedNodes];
+			node.Min = glm::vec4(RootNode->NodeBounds.Min, 0.0f);
+			node.Max = glm::vec4(RootNode->NodeBounds.Max, 0.0f);
+
+			int& extra = Cache[ProcessedNodes++];
+
+			if (RootNode->IsLeafNode)
+			{
+				// 28 bits for start index 
+				// 4 for length 
+				int Packed = ((RootNode->StartIndex) << 4) | (RootNode->Length & 0xF);
+				extra = Packed;
+				node.Min.w = -1.0f; // <- Used as a flag
+			}
+			else
+			{
+				FlattenBVHRecursive(RootNode->LeftChildPtr, FlattenedNodes, Cache, ProcessedNodes);
+				
+				// Store links to right nodes
+				node.Min.w = (float)FlattenBVHRecursive(RootNode->RightChildPtr, FlattenedNodes, Cache, ProcessedNodes);
+			}
+
+			return idx;
+		}
+
+		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<int>& Cache, int& ProcessedNodes) {
+
+			FlattenBVHRecursive(RootNode, FlattenedNodes, Cache, ProcessedNodes);
+
+			FlattenedNodes[0].Max.w = -1.0f;
+
+			// Link nodes 
+			for (int i = 0; i < FlattenedNodes.size(); i++) {
+
+				if (FlattenedNodes[i].Min.w != -1.0f)
+				{
+					FlattenedNodes[i + 1].Max.w = FlattenedNodes[i].Min.w;
+
+					int Indice = (int)(FlattenedNodes[i].Min.w);
+
+					FlattenedNodes[Indice].Max.w = FlattenedNodes[i].Max.w;
+				}
+
+			}
+
+			// Write start/end idx for leaves 
+			// -1.0 used as a flag 
+			for (int i = 0; i < FlattenedNodes.size(); i++)
+			{
+				if (FlattenedNodes[i].Min.w == -1.0f)
+				{
+					FlattenedNodes[i].Min.w = (float) Cache[i];
+				}
+				else
+				{
+					FlattenedNodes[i].Min.w = -1.0f;
+				}
+			}
+		}
+
+
+		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris)
 		{
 			TotalIterations = 0;
 			LastNodeIndex = 0;
@@ -429,7 +445,7 @@ namespace Lumen {
 			RootNode.Length = Triangles;
 			RootNode.IsLeftNode = false;
 
-			ConstructHierarchy(MeshVertices, MeshIndices, IndicesCopy, FlattenedNodes, &RootNode);
+			ConstructHierarchy(MeshVertices, MeshIndices, IndicesCopy, FlattenedNodes, FlattenedTris, &RootNode);
 
 			uint Offset = 0;
 

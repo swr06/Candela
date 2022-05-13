@@ -206,17 +206,18 @@ void Lumen::StartPipeline()
 	// Scene setup 
 	Object Sponza;
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
-	FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox-Sphere.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox-Sphere.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
 
 
 	// BVH ->
 	std::vector<FlattenedNode> BVHNodes;
-	Node* RootNode = BuildBVH(Sponza, BVHNodes);
-
+	std::vector<Vertex> BVHVertices;
+	std::vector<BVH::Triangle> BVHTriangles;
+	Node* RootNode = BuildBVH(Sponza, BVHNodes, BVHVertices, BVHTriangles);
 
 	//for (int i = 0; i < 200; i++) {
 	//	if (BVHNodes[i].TriangleCount > 0) {
@@ -233,18 +234,22 @@ void Lumen::StartPipeline()
 	// SSBOs
 	GLuint BVHTriSSBO = 0;
 	GLuint BVHNodeSSBO = 0;
+	GLuint BVHVerticesSSBO = 0;
 
 	glGenBuffers(1, &BVHTriSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHTriSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 8 * 1, nullptr, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BVH::Triangle) * BVHTriangles.size(), BVHTriangles.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glGenBuffers(1, &BVHNodeSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHNodeSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 8 * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	///////////////
+	glGenBuffers(1, &BVHVerticesSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHVerticesSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Vertex) * BVHVertices.size(), BVHVertices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
 
@@ -349,6 +354,7 @@ void Lumen::StartPipeline()
 
 		TraceShader.Use();
 
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, BVHVerticesSSBO);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BVHTriSSBO);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, BVHNodeSSBO);
 
