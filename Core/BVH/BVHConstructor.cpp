@@ -22,7 +22,7 @@ namespace Lumen {
 		}
 
 		inline bool ShouldBeLeaf(uint Length) {
-			return Length <= 4;
+			return Length <= 1;
 		}
 
 		int FindLongestAxis(const Bounds& bounds) {
@@ -49,7 +49,19 @@ namespace Lumen {
 		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<int>& Cache, int& ProcessedNodes);
 
 
-		void ConstructHierarchy(const std::vector<Vertex>& Vertices, std::vector<GLuint>& Indices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
+		void ConstructHierarchy(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
+
+			uint TriangleCountTotal = OriginalIndices.size() / 3;
+
+			std::vector<int> TriangleReferences;
+
+			TriangleReferences.resize(TriangleCountTotal);
+
+			for (int i = 0; i < TriangleCountTotal; i++) {
+
+				TriangleReferences[i] = i;
+
+			}
 
 			std::vector<glm::vec3> CentroidCache;
 			std::vector<Bounds> BoundsCache;
@@ -58,15 +70,15 @@ namespace Lumen {
 			glm::vec3 MaxInitial = glm::vec3(-1000000.0f);
 
 			// Cache bounds and centroids 
-			for (int i = 0; i < Indices.size(); i += 3) {
+			for (int i = 0; i < OriginalIndices.size(); i += 3) {
 				Bounds CurrentBounds;
 
 				CurrentBounds.Min = glm::vec3(100000.0f);
 				CurrentBounds.Max = glm::vec3(-100000.0f);
 			
 				for (int t = 0; t < 3; t++) {
-					CurrentBounds.Min = glm::min(CurrentBounds.Min, glm::vec3(Vertices[Indices[i + t]].position));
-					CurrentBounds.Max = glm::max(CurrentBounds.Max, glm::vec3(Vertices[Indices[i + t]].position));
+					CurrentBounds.Min = glm::min(CurrentBounds.Min, glm::vec3(Vertices[OriginalIndices[i + t]].position));
+					CurrentBounds.Max = glm::max(CurrentBounds.Max, glm::vec3(Vertices[OriginalIndices[i + t]].position));
 				}
 
 				MinInitial = glm::min(MinInitial, CurrentBounds.Min);
@@ -80,7 +92,7 @@ namespace Lumen {
 			RootNode->NodeBounds.Max = MaxInitial;
 
 			// Sorted indices, indices are pushed here if they are a leaf node
-			std::vector<GLuint> SortedIndices;
+			std::vector<GLuint> SortedTriangleReferences;
 
 			// true : Uses Surface Area Heuristic (finds cut using a simple binary search)
 			// false : Uses median split (splits across largest axis)
@@ -115,10 +127,10 @@ namespace Lumen {
 
 					// Push indices 
 					for (int i = BuildNode->StartIndex; i < BuildNode->StartIndex + BuildNode->Length; i++) {
-						SortedIndices.push_back(Indices.at(i));
+						SortedTriangleReferences.push_back(TriangleReferences.at(i));
 					}
 
-					BuildNode->StartIndex = SortedIndices.size();
+					BuildNode->StartIndex = SortedTriangleReferences.size();
 
 					continue;
 				}
@@ -143,7 +155,7 @@ namespace Lumen {
 				while (true) {
 					while (LeftIdx != RightIdx) {
 
-						glm::vec3 Centroid = CentroidCache[Indices[LeftIdx]];
+						glm::vec3 Centroid = CentroidCache[TriangleReferences[LeftIdx]];
 
 						if (Centroid[SplitAxis] > Border) {
 							break;
@@ -156,7 +168,7 @@ namespace Lumen {
 
 					while (LeftIdx != RightIdx) {
 
-						glm::vec3 Centroid = CentroidCache[Indices[RightIdx]];
+						glm::vec3 Centroid = CentroidCache[TriangleReferences[RightIdx]];
 
 						if (Centroid[SplitAxis] < Border) {
 							break;
@@ -172,9 +184,9 @@ namespace Lumen {
 					LeftIdx++;
 
 					// swap
-					int Temp = Indices[LeftIdx];
-					Indices[LeftIdx] = Indices[RightIdx];
-					Indices[RightIdx] = Temp;
+					int Temp = TriangleReferences[LeftIdx];
+					TriangleReferences[LeftIdx] = TriangleReferences[RightIdx];
+					TriangleReferences[RightIdx] = Temp;
 				}
 
 				uint SplitIndex = LeftIdx;
@@ -206,7 +218,7 @@ namespace Lumen {
 				
 				for (int x = 0; x < LeftNode.Length; x++) {
 
-					Bounds bounds = BoundsCache[Indices[LeftNode.StartIndex + x]];
+					Bounds bounds = BoundsCache[TriangleReferences[LeftNode.StartIndex + x]];
 					LeftMin = glm::min(bounds.Min, LeftMin);
 					LeftMax = glm::max(bounds.Max, LeftMax);
 				}
@@ -217,7 +229,7 @@ namespace Lumen {
 
 				for (int x = 0; x < RightNode.Length; x++) {
 
-					Bounds bounds = BoundsCache[Indices[RightNode.StartIndex + x]];
+					Bounds bounds = BoundsCache[TriangleReferences[RightNode.StartIndex + x]];
 					RightMin = glm::min(bounds.Min, RightMin);
 					RightMax = glm::max(bounds.Max, RightMax);
 				} 
@@ -255,23 +267,24 @@ namespace Lumen {
 
 			// Generate faces 
 
-			oTriangles.resize(LastNodeIndex + 1);
+			oTriangles.resize((SortedTriangleReferences.size()));
 
-			//for (int i = 0; i < SortedIndices.size(); i++) {
-			//
-			//	auto& CurrentTriangle = oTriangles[i];
-			//
-			//	int TriangleIndex = SortedIndices[i];
-			//
-			//	int CurrentIndexRef = TriangleIndex * 3;
-			//
-			//	CurrentTriangle.Packed[0] = OriginalIndices[CurrentIndexRef + 0];
-			//	CurrentTriangle.Packed[1] = OriginalIndices[CurrentIndexRef + 1];
-			//	CurrentTriangle.Packed[2] = OriginalIndices[CurrentIndexRef + 2];
-			//
-			//	CurrentTriangle.Packed[3] = OriginalIndices[TriangleIndex];
-			//
-			//}
+			for (int i = 0; i < SortedTriangleReferences.size(); i++) {
+			
+				auto& CurrentTriangle = oTriangles[i];
+			
+				int TriangleIndex = SortedTriangleReferences[i];
+			
+				int CurrentIndexRef = TriangleIndex * 3;
+			
+				CurrentTriangle.Packed[0] = OriginalIndices[CurrentIndexRef + 0];
+				CurrentTriangle.Packed[1] = OriginalIndices[CurrentIndexRef + 1];
+				CurrentTriangle.Packed[2] = OriginalIndices[CurrentIndexRef + 2];
+
+				CurrentTriangle.Packed[3] = OriginalIndices[TriangleIndex];
+			
+			}
+
 		}
 
 		// Default BVH 
@@ -346,7 +359,7 @@ namespace Lumen {
 			{
 				// 28 bits for start index 
 				// 4 for length 
-				int Packed = ((RootNode->StartIndex) << 4) | (RootNode->Length & 0xF);
+				int Packed = RootNode->StartIndex; // ((RootNode->StartIndex) << 4) | (RootNode->Length & 0xF);
 				extra = Packed;
 				node.Min.w = -1.0f; // <- Used as a flag
 			}
@@ -369,7 +382,8 @@ namespace Lumen {
 
 			// Link nodes 
 			for (int i = 0; i < FlattenedNodes.size(); i++) {
-
+				
+				// Leaf?
 				if (FlattenedNodes[i].Min.w != -1.0f)
 				{
 					FlattenedNodes[i + 1].Max.w = FlattenedNodes[i].Min.w;
@@ -429,8 +443,6 @@ namespace Lumen {
 				IndexOffset += Vertices.size();
 			}
 
-			std::vector<GLuint> IndicesCopy = MeshIndices;
-
 			std::cout << "\nGenerated!";
 
 			uint Triangles = MeshIndices.size() / 3;
@@ -445,7 +457,7 @@ namespace Lumen {
 			RootNode.Length = Triangles;
 			RootNode.IsLeftNode = false;
 
-			ConstructHierarchy(MeshVertices, MeshIndices, IndicesCopy, FlattenedNodes, FlattenedTris, &RootNode);
+			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, &RootNode);
 
 			uint Offset = 0;
 
@@ -458,6 +470,9 @@ namespace Lumen {
 			std::cout << "\nLeaf Count : " << LeafNodeCount;
 			std::cout << "\nSplit Fail Count : " << SplitFails;
 			std::cout << "\nMax Depth : " << MaxBVHDepth;
+			std::cout << "\nNode Array Length : " << FlattenedNodes.size();
+			std::cout << "\nVertices Array Length : " << MeshVertices.size();
+			std::cout << "\nTriangle Array Length : " << FlattenedTris.size();
 			std::cout << "\n\n\n";
 
 			return RootNodePtr;

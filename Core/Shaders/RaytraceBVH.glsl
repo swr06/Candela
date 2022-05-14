@@ -15,6 +15,10 @@ uniform mat4 u_View;
 uniform mat4 u_LightVP;
 uniform vec2 u_Dims;
 
+uniform int u_Counter;
+
+uniform int u_NodeCount;
+
 const float INFINITY = 1.0f / 0.0f;
 const float INF = INFINITY;
 const float EPS = 0.001f;
@@ -30,7 +34,7 @@ struct Vertex
 
 // 16 bytes 
 struct Triangle {
-    int Packed[4];
+    ivec4 Packed;
 };
 
 // 32 bytes 
@@ -42,7 +46,7 @@ struct Node {
 
 // SSBOs
 layout (std430, binding = 0) buffer SSBO_BVHVertices {
-	Vertex Vertices[];
+	Vertex BVHVertices[];
 };
 
 layout (std430, binding = 1) buffer SSBO_BVHTris {
@@ -111,7 +115,30 @@ bool IsLeafNode(in Node node) {
 }
 
 int GetStartIdx(in Node node) {
-    return int(node.Min.w);
+    return int(node.Min.w) >> 4;
+}
+
+bool IntersectTriangleP(vec3 r0, vec3 rD, in vec3 v1, in vec3 v2, in vec3 v3, float TMax)
+{
+    const vec3 e1 = v2 - v1;
+    const vec3 e2 = v3 - v1;
+    const vec3 s1 = cross(rD.xyz, e2);
+    const float  invd = 1.0f/(dot(s1, e1));
+    const vec3 d = r0.xyz - v1;
+    const float  b1 = dot(d, s1) * invd;
+    const vec3 s2 = cross(d, e1);
+    const float  b2 = dot(rD.xyz, s2) * invd;
+    const float temp = dot(e2, s2) * invd;
+
+    if (b1 < 0.f || b1 > 1.f || b2 < 0.f || b1 + b2 > 1.f || temp < 0.f || temp > TMax)
+    {
+        return false;
+    }
+
+    else
+    {
+        return true;
+    }
 }
 
 vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
@@ -124,7 +151,9 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
 
     float TMax = 100000.0f;
 
-    while (Pointer >= 0 && Iterations < 64) {
+    vec3 ClosestIntersect = vec3(-1.0f);
+
+    while (Pointer >= 0 && Iterations < 1024 && Pointer < u_NodeCount) {
 
         Iterations++;
 
@@ -132,32 +161,94 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
 
         float BoxTraversal = RayBounds(CurrentNode.Min.xyz, CurrentNode.Max.xyz, RayOrigin, InverseDirection, 0.001f, TMax);
 
-        if (BoxTraversal > 0.0f) {
+        if (BoxTraversal > 0.0f && BoxTraversal < TMax) {
 
-           // TMax = BoxTraversal;
-            
             if (IsLeafNode(CurrentNode)) {
-                return vec3(1.,0.,0.);
+
+                //if (BoxTraversal > 0.0f && BoxTraversal < TMax)
+                //{
+                //    TMax = BoxTraversal;
+                //    ClosestIntersect = vec3(BoxTraversal);
+                //}
+                
+                int Packed = int(CurrentNode.Min.w);
+                
+                int Idx = Packed;
+
+                //int Size = Packed & 0xF;
+                
+                for (int Reference = Idx ; Reference < Idx + 1 ; Reference++) 
+                {
+                    Triangle triangle = BVHTris[Reference];
+                
+                    vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
+                    vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
+                    vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                
+                    if (Intersect.x > 0.0f && Intersect.x < TMax)
+                    {
+                        TMax = Intersect.x;
+                        ClosestIntersect = Intersect;
+                    }
+                
+                }
+
+                Pointer = int(CurrentNode.Max.w);
+                continue;
             }
 
             else {
 
                 Pointer++;
+                continue;
             }
 
         }
 
         else {
 
-            Pointer = int(CurrentNode.Max.w);
-            
+             Pointer = int(CurrentNode.Max.w);
+             continue;
+        }
+
+        if (Pointer < 0) {
+            break;
         }
     }
 
-    return vec3(0., 1., 0.);
+    if (ClosestIntersect.x > 0.0f) {
+        return vec3(ClosestIntersect.x) / 8.0f;
+    }
 
+    return vec3(1.0f, 0.0f, 0.0f);
 }
 
+vec3 BruteForceTris(vec3 rO, vec3 rD) {
+    
+    float TMax = 100000.0f;
+
+    vec3 FIntersect = vec3(-1.);
+
+    for (int x = 0 ; x < 2188; x++) {
+        Triangle triangle = BVHTris[x];
+        vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
+        vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
+        vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+        vec3 Intersect = RayTriangle(rO, rD, VertexA, VertexB, VertexC);
+        
+        if (Intersect.x > 0. && Intersect.x < TMax) {
+            TMax = Intersect.x;
+            FIntersect = Intersect;
+        }
+    }
+
+    if (FIntersect.x > 0.0f) {
+        return vec3(FIntersect.x) / 8.0f;
+    }
+
+    return vec3(1.0f, 0.0f, 0.0f);
+}
 
 void main() {
 
@@ -169,11 +260,59 @@ void main() {
 
 	float s = 1.0f;
 	
-	//RayTraceBVH(rO, rD);
-	
+	vec3 o_Color = IntersectBVH(rO, rD);
+	//vec3 o_Color = BruteForceTris(rO, rD);
 
-	//vec3 o_Color = vec3(1.,0.,0.);
-    vec3 o_Color =  IntersectBVH(rO, rD);
+	//vec3 o_Color = vec3(0.,0.,1.);
+    //
+    //if (true) {
+	//
+    //    Node CurrentNode = BVHNodes[u_Counter];
+    //    float BoxTraversal = RayBounds(CurrentNode.Min.xyz, CurrentNode.Max.xyz, rO, 1./rD, 0.001f, 10000.0f);
+    //
+    //
+    //    if (BoxTraversal > 0.) {
+    //
+    //        if (IsLeafNode(CurrentNode)) {
+    //            
+    //             int Reference = GetStartIdx(CurrentNode);
+    //
+    //            Triangle triangle = BVHTris[Reference];
+    //
+    //            vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
+    //            vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
+    //            vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+    //            vec3 Intersect = RayTriangle(rO, rD, VertexA, VertexB, VertexC);
+    //           
+    //            if (Intersect.x > 0.0f)
+    //            {
+    //                o_Color = vec3(1.,0.,0.);
+    //            }
+    //
+    //            else {
+    //
+    //                o_Color = vec3(0.,1.,0.);
+    //            }
+    //
+    //        }
+    //
+    //        else {
+    //
+    //            o_Color = vec3(1.,1.,1.);
+    //        }
+    //    }
+    //} else {
+    //
+    //    Triangle triangle = BVHTris[u_Counter];
+    //    vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
+    //    vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
+    //    vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+    //    vec3 Intersect = RayTriangle(rO, rD, VertexA, VertexB, VertexC);
+    //    
+    //    if (Intersect.x > 0.) {
+    //        o_Color = vec3(1.,0.,0.);
+    //    }
+    //}
 
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }

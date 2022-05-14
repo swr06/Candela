@@ -206,9 +206,9 @@ void Lumen::StartPipeline()
 	// Scene setup 
 	Object Sponza;
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
-	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox-Sphere.obj");
+	FileLoader::LoadModelFile(&Sponza,  "Models/cornell/CornellBox-Sphere.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
-	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
 
@@ -366,6 +366,8 @@ void Lumen::StartPipeline()
 		TraceShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
 		TraceShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
 		TraceShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
+		TraceShader.SetInteger("u_Counter", x);
+		TraceShader.SetInteger("u_NodeCount", BVHNodes.size());
 
 		TraceShader.SetMatrix4("u_LightVP", GetLightViewProjection(SunDirection));
 		TraceShader.SetVector2f("u_Dims", glm::vec2(app.GetWidth(), app.GetHeight()));
