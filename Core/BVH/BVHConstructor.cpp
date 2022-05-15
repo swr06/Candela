@@ -152,8 +152,8 @@ namespace Lumen {
 				BuildNode->Axis = SplitAxis;
 
 				// Sort triangles, split them into two sets based on border
-				while (true) {
-					while (LeftIdx != RightIdx) {
+				while (LeftIdx < RightIdx) {
+					while (LeftIdx < RightIdx) {
 
 						glm::vec3 Centroid = CentroidCache[TriangleReferences[LeftIdx]];
 
@@ -164,9 +164,7 @@ namespace Lumen {
 						LeftIdx++;
 					}
 
-					if (LeftIdx == RightIdx--) { break; }
-
-					while (LeftIdx != RightIdx) {
+					while (LeftIdx < RightIdx) {
 
 						glm::vec3 Centroid = CentroidCache[TriangleReferences[RightIdx]];
 
@@ -177,16 +175,13 @@ namespace Lumen {
 						RightIdx--;
 					}
 
-					if (LeftIdx == RightIdx) {
-						break;
+					if (LeftIdx < RightIdx)
+					{
+						// swap
+						int Temp = TriangleReferences[LeftIdx];
+						TriangleReferences[LeftIdx] = TriangleReferences[RightIdx];
+						TriangleReferences[RightIdx] = Temp;
 					}
-
-					LeftIdx++;
-
-					// swap
-					int Temp = TriangleReferences[LeftIdx];
-					TriangleReferences[LeftIdx] = TriangleReferences[RightIdx];
-					TriangleReferences[RightIdx] = Temp;
 				}
 
 				uint SplitIndex = LeftIdx;
@@ -454,7 +449,7 @@ namespace Lumen {
 			RootNode.LeftChildPtr = nullptr;
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;
-			RootNode.Length = Triangles;
+			RootNode.Length = Triangles - 1;
 			RootNode.IsLeftNode = false;
 
 			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, &RootNode);

@@ -153,7 +153,7 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
 
     vec3 ClosestIntersect = vec3(-1.0f);
 
-    while (Pointer >= 0 && Iterations < 1024 && Pointer < u_NodeCount) {
+    while (Pointer >= 0 && Iterations < 512 && Pointer < u_NodeCount) {
 
         Iterations++;
 
@@ -171,28 +171,28 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
                 //    ClosestIntersect = vec3(BoxTraversal);
                 //}
                 
-                int Packed = int(CurrentNode.Min.w);
-                
-                int Idx = Packed;
-
-                //int Size = Packed & 0xF;
-                
-                for (int Reference = Idx ; Reference < Idx + 1 ; Reference++) 
-                {
-                    Triangle triangle = BVHTris[Reference];
-                
-                    vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
-                    vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
-                    vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
-                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
-                
-                    if (Intersect.x > 0.0f && Intersect.x < TMax)
-                    {
-                        TMax = Intersect.x;
-                        ClosestIntersect = Intersect;
-                    }
-                
-                }
+                //int Packed = int(CurrentNode.Min.w);
+                //
+                //int Idx = Packed;
+                //
+                ////int Size = Packed & 0xF;
+                //
+                //for (int Reference = Idx ; Reference < Idx + 1 ; Reference++) 
+                //{
+                //    Triangle triangle = BVHTris[Reference];
+                //
+                //    vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
+                //    vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
+                //    vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+                //    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                //
+                //    if (Intersect.x > 0.0f && Intersect.x < TMax)
+                //    {
+                //        TMax = Intersect.x;
+                //        ClosestIntersect = Intersect;
+                //    }
+                //
+                //}
 
                 Pointer = int(CurrentNode.Max.w);
                 continue;
@@ -216,6 +216,8 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
             break;
         }
     }
+
+    return vec3(Iterations / 1000.0f);
 
     if (ClosestIntersect.x > 0.0f) {
         return vec3(ClosestIntersect.x) / 8.0f;
