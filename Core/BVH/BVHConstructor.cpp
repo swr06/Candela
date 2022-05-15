@@ -13,14 +13,6 @@ namespace Lumen {
 		static uint32_t SplitFails = 0;
 		static uint MaxBVHDepth = 0;
 
-		inline glm::vec3 Vec3Min(const glm::vec3& a, const glm::vec3& b) {
-			return glm::vec3(glm::min(a.x, b.x), glm::min(a.y, b.y), glm::min(a.z, b.z));
-		}
-
-		inline glm::vec3 Vec3Max(const glm::vec3& a, const glm::vec3& b) {
-			return glm::vec3(glm::max(a.x, b.x), glm::max(a.y, b.y), glm::max(a.z, b.z));
-		}
-
 		inline bool ShouldBeLeaf(uint Length) {
 			return Length <= 1;
 		}
@@ -46,8 +38,7 @@ namespace Lumen {
 			return x;
 		}
 
-		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<int>& Cache, int& ProcessedNodes);
-
+		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector <glm::ivec2>& Cache, int& ProcessedNodes);
 
 		void ConstructHierarchy(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
 
@@ -121,23 +112,21 @@ namespace Lumen {
 				Node* BuildNode = NodeStack.top();
 				NodeStack.pop();
 
-				if (ShouldBeLeaf(BuildNode->Length)) {
+				if (ShouldBeLeaf(BuildNode->Length) || BuildNode->Length <= 1) {
 					BuildNode->IsLeafNode = true;
 					LeafNodeCount++;
+
+					BuildNode->StartIndex = SortedTriangleReferences.size();
 
 					// Push indices 
 					for (int i = BuildNode->StartIndex; i < BuildNode->StartIndex + BuildNode->Length; i++) {
 						SortedTriangleReferences.push_back(TriangleReferences.at(i));
 					}
 
-					BuildNode->StartIndex = SortedTriangleReferences.size();
-
 					continue;
 				}
 				
 				glm::vec3 Centroid = BuildNode->NodeBounds.GetCenter();
-
-				//static void FindSAHCut(std::vector<Triangle>&Triangles, const glm::vec3 & boundingMin, const glm::vec3 & boundingMax, uint idxStart, uint idxCount, int* cutDim, float* cutPos)
 
 				uint SplitAxis;
 				float Border;
@@ -252,7 +241,7 @@ namespace Lumen {
 
 			// Flatten!
 
-			std::vector<int> FlattenCache; 
+			std::vector<glm::ivec2> FlattenCache; 
 			int ProcessedNodes_ = 0;
 
 			FlattenCache.resize(LastNodeIndex + 1);
@@ -341,49 +330,49 @@ namespace Lumen {
 			}
 		}
 
-		int FlattenBVHRecursive(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<int>& Cache, int& ProcessedNodes) {
+		int FlattenBVHRecursive(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<glm::ivec2>& Cache, int& ProcessedNodes) {
 
 			int idx = ProcessedNodes;
 			FlattenedNode& node = FlattenedNodes[ProcessedNodes];
 			node.Min = glm::vec4(RootNode->NodeBounds.Min, 0.0f);
 			node.Max = glm::vec4(RootNode->NodeBounds.Max, 0.0f);
 
-			int& extra = Cache[ProcessedNodes++];
+			glm::ivec2& CacheRef = Cache[ProcessedNodes++];
 
 			if (RootNode->IsLeafNode)
 			{
-				// 28 bits for start index 
-				// 4 for length 
-				int Packed = RootNode->StartIndex; // ((RootNode->StartIndex) << 4) | (RootNode->Length & 0xF);
-				extra = Packed;
-				node.Min.w = -1.0f; // <- Used as a flag
+				int Packed = RootNode->StartIndex;
+				CacheRef.y = Packed;
+				CacheRef.x = -1; // <- flag
 			}
 			else
 			{
 				FlattenBVHRecursive(RootNode->LeftChildPtr, FlattenedNodes, Cache, ProcessedNodes);
 				
 				// Store links to right nodes
-				node.Min.w = (float)FlattenBVHRecursive(RootNode->RightChildPtr, FlattenedNodes, Cache, ProcessedNodes);
+				CacheRef.x = FlattenBVHRecursive(RootNode->RightChildPtr, FlattenedNodes, Cache, ProcessedNodes);
 			}
 
 			return idx;
 		}
 
-		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector<int>& Cache, int& ProcessedNodes) {
+		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector <glm::ivec2> & Cache, int& ProcessedNodes) {
 
 			FlattenBVHRecursive(RootNode, FlattenedNodes, Cache, ProcessedNodes);
 
-			FlattenedNodes[0].Max.w = -1.0f;
+			const float NegativeOneRaw = glm::intBitsToFloat(-1);
+
+			FlattenedNodes[0].Max.w = NegativeOneRaw;
 
 			// Link nodes 
 			for (int i = 0; i < FlattenedNodes.size(); i++) {
 				
-				// Leaf?
-				if (FlattenedNodes[i].Min.w != -1.0f)
+				// Inner node?
+				if (Cache[i].x != -1)
 				{
-					FlattenedNodes[i + 1].Max.w = FlattenedNodes[i].Min.w;
+					FlattenedNodes[i + 1].Max.w = glm::intBitsToFloat(Cache[i].x);
 
-					int Indice = (int)(FlattenedNodes[i].Min.w);
+					int Indice = (int)(Cache[i].x);
 
 					FlattenedNodes[Indice].Max.w = FlattenedNodes[i].Max.w;
 				}
@@ -394,13 +383,13 @@ namespace Lumen {
 			// -1.0 used as a flag 
 			for (int i = 0; i < FlattenedNodes.size(); i++)
 			{
-				if (FlattenedNodes[i].Min.w == -1.0f)
+				if (Cache[i].x == -1)
 				{
-					FlattenedNodes[i].Min.w = (float) Cache[i];
+					FlattenedNodes[i].Min.w = glm::intBitsToFloat(Cache[i].y);
 				}
 				else
 				{
-					FlattenedNodes[i].Min.w = -1.0f;
+					FlattenedNodes[i].Min.w = NegativeOneRaw;
 				}
 			}
 		}
