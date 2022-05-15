@@ -171,28 +171,28 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
                 //    ClosestIntersect = vec3(BoxTraversal);
                 //}
                 
-                //int Packed = int(CurrentNode.Min.w);
-                //
-                //int Idx = Packed;
-                //
-                ////int Size = Packed & 0xF;
-                //
-                //for (int Reference = Idx ; Reference < Idx + 1 ; Reference++) 
-                //{
-                //    Triangle triangle = BVHTris[Reference];
-                //
-                //    vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
-                //    vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
-                //    vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
-                //    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
-                //
-                //    if (Intersect.x > 0.0f && Intersect.x < TMax)
-                //    {
-                //        TMax = Intersect.x;
-                //        ClosestIntersect = Intersect;
-                //    }
-                //
-                //}
+                int Packed = int(CurrentNode.Min.w);
+                
+                int Idx = Packed;
+                
+                //int Size = Packed & 0xF;
+                
+                for (int Reference = Idx ; Reference < Idx + 1 ; Reference++) 
+                {
+                    Triangle triangle = BVHTris[Reference];
+                
+                    vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
+                    vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
+                    vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                
+                    if (Intersect.x > 0.0f && Intersect.x < TMax)
+                    {
+                        TMax = Intersect.x;
+                        ClosestIntersect = Intersect;
+                    }
+                
+                }
 
                 Pointer = int(CurrentNode.Max.w);
                 continue;
