@@ -9,12 +9,12 @@ namespace Lumen {
 
 		static uint64_t TotalIterations = 0;
 		static uint64_t LeafNodeCount = 0;
-		static uint32_t LastNodeIndex = 0;
-		static uint32_t SplitFails = 0;
+		static uint64_t LastNodeIndex = 0;
+		static uint64_t SplitFails = 0;
 		static uint MaxBVHDepth = 0;
 
 		inline bool ShouldBeLeaf(uint Length) {
-			return Length <= 1;
+			return Length <= 2;
 		}
 
 		int FindLongestAxis(const Bounds& bounds) {
@@ -42,6 +42,9 @@ namespace Lumen {
 
 		void ConstructHierarchy(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
 
+			bool DEBUG_BVH = false;
+
+
 			uint TriangleCountTotal = OriginalIndices.size() / 3;
 
 			std::vector<int> TriangleReferences;
@@ -54,18 +57,18 @@ namespace Lumen {
 
 			}
 
+			// Cache bounds and centroids 
 			std::vector<glm::vec3> CentroidCache;
 			std::vector<Bounds> BoundsCache;
 
-			glm::vec3 MinInitial = glm::vec3(1000000.0f);
-			glm::vec3 MaxInitial = glm::vec3(-1000000.0f);
+			glm::vec3 MinInitial = glm::vec3(ARBITRARY_MAX);
+			glm::vec3 MaxInitial = glm::vec3(ARBITRARY_MIN);
 
-			// Cache bounds and centroids 
 			for (int i = 0; i < OriginalIndices.size(); i += 3) {
 				Bounds CurrentBounds;
 
-				CurrentBounds.Min = glm::vec3(100000.0f);
-				CurrentBounds.Max = glm::vec3(-100000.0f);
+				CurrentBounds.Min = glm::vec3(ARBITRARY_MAX);
+				CurrentBounds.Max = glm::vec3(ARBITRARY_MIN);
 			
 				for (int t = 0; t < 3; t++) {
 					CurrentBounds.Min = glm::min(CurrentBounds.Min, glm::vec3(Vertices[OriginalIndices[i + t]].position));
@@ -105,7 +108,7 @@ namespace Lumen {
 
 				TotalIterations++;
 
-				if (TotalIterations % 32 == 0) {
+				if (TotalIterations % 32 == 0 && DEBUG_BVH) {
 					std::cout << "\nIteration : " << TotalIterations;
 				}
 
@@ -116,12 +119,16 @@ namespace Lumen {
 					BuildNode->IsLeafNode = true;
 					LeafNodeCount++;
 
-					BuildNode->StartIndex = SortedTriangleReferences.size();
+					int Finalidx = (int) SortedTriangleReferences.size();
 
 					// Push indices 
-					for (int i = BuildNode->StartIndex; i < BuildNode->StartIndex + BuildNode->Length; i++) {
-						SortedTriangleReferences.push_back(TriangleReferences.at(i));
+					for (int i = BuildNode->StartIndex; i < BuildNode->StartIndex + BuildNode->Length; i++) 
+					{
+						int data = TriangleReferences.at(i);
+						SortedTriangleReferences.push_back(data);
 					}
+
+					BuildNode->StartIndex = Finalidx;
 
 					continue;
 				}
@@ -134,46 +141,74 @@ namespace Lumen {
 				SplitAxis = FindLongestAxis(BuildNode->NodeBounds);
 				Border = Centroid[SplitAxis];
 
-				int LeftIdx = BuildNode->StartIndex;
-				int RightIdx = BuildNode->StartIndex + BuildNode->Length;
-
 				// Set axis
 				BuildNode->Axis = SplitAxis;
 
-				// Sort triangles, split them into two sets based on border
-				while (LeftIdx < RightIdx) {
+				// The index that defines the split 
+				uint SplitIndex = 0;
+
+				if (false) {
+
+					int LeftIdx = BuildNode->StartIndex;
+					int RightIdx = BuildNode->StartIndex + BuildNode->Length;
+
+					// Sort triangles, split them into two sets based on border
 					while (LeftIdx < RightIdx) {
+						while (LeftIdx < RightIdx) {
 
-						glm::vec3 Centroid = CentroidCache[TriangleReferences[LeftIdx]];
+							glm::vec3 Centroid = CentroidCache[TriangleReferences[LeftIdx]];
 
-						if (Centroid[SplitAxis] > Border) {
-							break;
+							if (Centroid[SplitAxis] > Border) {
+								break;
+							}
+
+							LeftIdx++;
 						}
 
-						LeftIdx++;
-					}
+						while (LeftIdx < RightIdx) {
 
-					while (LeftIdx < RightIdx) {
+							glm::vec3 Centroid = CentroidCache[TriangleReferences[RightIdx]];
 
-						glm::vec3 Centroid = CentroidCache[TriangleReferences[RightIdx]];
+							if (Centroid[SplitAxis] < Border) {
+								break;
+							}
 
-						if (Centroid[SplitAxis] < Border) {
-							break;
+							RightIdx--;
 						}
 
-						RightIdx--;
+						if (LeftIdx < RightIdx)
+						{
+							// swap
+							int Temp = TriangleReferences[LeftIdx];
+							TriangleReferences[LeftIdx] = TriangleReferences[RightIdx];
+							TriangleReferences[RightIdx] = Temp;
+						}
 					}
 
-					if (LeftIdx < RightIdx)
-					{
-						// swap
-						int Temp = TriangleReferences[LeftIdx];
-						TriangleReferences[LeftIdx] = TriangleReferences[RightIdx];
-						TriangleReferences[RightIdx] = Temp;
-					}
+					SplitIndex = LeftIdx;
 				}
 
-				uint SplitIndex = LeftIdx;
+				else {
+
+					int Midpointer = BuildNode->StartIndex;
+
+					for (int i = BuildNode->StartIndex; i < BuildNode->StartIndex + BuildNode->Length; i++) {
+
+						const glm::vec3& Centroid = CentroidCache[TriangleReferences[i]];
+
+						if (Centroid[SplitAxis] < Border) {
+
+							// Swap
+							int Temp = TriangleReferences[i];
+							TriangleReferences[i] = TriangleReferences[Midpointer];
+							TriangleReferences[Midpointer] = Temp;
+							Midpointer++;
+						}
+
+					}
+
+					SplitIndex = Midpointer;
+				}
 
 				// Can't split, assume an arbitrary split location (midpoint chosen here)
 				if (SplitIndex == BuildNode->StartIndex || SplitIndex == BuildNode->StartIndex + BuildNode->Length) {
@@ -194,11 +229,11 @@ namespace Lumen {
 				Node& RightNode = *RightNodePtr;
 				RightNode.NodeIndex = LastNodeIndex;
 				RightNode.StartIndex = SplitIndex; // LeftNode.StartIndex + LeftNode.Length;
-				RightNode.Length = BuildNode->Length - (SplitIndex - BuildNode->StartIndex);
+				RightNode.Length = (BuildNode->StartIndex + BuildNode->Length) - SplitIndex;//BuildNode->Length - (SplitIndex - BuildNode->StartIndex);
 
 				// Find bounds for left node
-				glm::vec3 LeftMin = glm::vec3(10000.0f);
-				glm::vec3 LeftMax = glm::vec3(-10000.0f);
+				glm::vec3 LeftMin = glm::vec3(ARBITRARY_MAX);
+				glm::vec3 LeftMax = glm::vec3(ARBITRARY_MIN);
 				
 				for (int x = 0; x < LeftNode.Length; x++) {
 
@@ -208,8 +243,8 @@ namespace Lumen {
 				}
 
 				// Find bounds for right node
-				glm::vec3 RightMin = glm::vec3(10000.0f);
-				glm::vec3 RightMax = glm::vec3(-10000.0f);
+				glm::vec3 RightMin = glm::vec3(ARBITRARY_MAX);
+				glm::vec3 RightMax = glm::vec3(ARBITRARY_MIN);
 
 				for (int x = 0; x < RightNode.Length; x++) {
 
@@ -249,6 +284,32 @@ namespace Lumen {
 
 			FlattenBVH(RootNode, FlattenedNodes, FlattenCache, ProcessedNodes_);
 
+			if (DEBUG_BVH) {
+
+				for (int i = 0; i < SortedTriangleReferences.size(); i++) {
+
+					bool found = false;
+
+					for (int j = 0; j < SortedTriangleReferences.size(); j++) {
+
+						int CurrentElement = SortedTriangleReferences[j];
+
+
+						if (CurrentElement == i) {
+							found = true;
+							break;
+						}
+
+					}
+
+					if (!found) {
+						std::cout << "\nBVH DEBUG -> DIDNT FIND ELEMENT : " << i;
+					}
+
+				}
+			}
+
+
 			// Generate faces 
 
 			oTriangles.resize((SortedTriangleReferences.size()));
@@ -264,8 +325,7 @@ namespace Lumen {
 				CurrentTriangle.Packed[0] = OriginalIndices[CurrentIndexRef + 0];
 				CurrentTriangle.Packed[1] = OriginalIndices[CurrentIndexRef + 1];
 				CurrentTriangle.Packed[2] = OriginalIndices[CurrentIndexRef + 2];
-
-				CurrentTriangle.Packed[3] = OriginalIndices[TriangleIndex];
+				CurrentTriangle.Packed[3] = TriangleIndex;
 			
 			}
 
@@ -341,7 +401,7 @@ namespace Lumen {
 
 			if (RootNode->IsLeafNode)
 			{
-				int Packed = RootNode->StartIndex;
+				int Packed = (RootNode->StartIndex << 4) | (RootNode->Length & 0xF); // <- Pack data 
 				CacheRef.y = Packed;
 				CacheRef.x = -1; // <- flag
 			}
@@ -360,9 +420,9 @@ namespace Lumen {
 
 			FlattenBVHRecursive(RootNode, FlattenedNodes, Cache, ProcessedNodes);
 
-			const float NegativeOneRaw = glm::intBitsToFloat(-1);
+			const float NegativeOneIntBits = glm::intBitsToFloat(-1);
 
-			FlattenedNodes[0].Max.w = NegativeOneRaw;
+			FlattenedNodes[0].Max.w = NegativeOneIntBits;
 
 			// Link nodes 
 			for (int i = 0; i < FlattenedNodes.size(); i++) {
@@ -389,7 +449,7 @@ namespace Lumen {
 				}
 				else
 				{
-					FlattenedNodes[i].Min.w = NegativeOneRaw;
+					FlattenedNodes[i].Min.w = NegativeOneIntBits;
 				}
 			}
 		}
@@ -442,8 +502,6 @@ namespace Lumen {
 			RootNode.IsLeftNode = false;
 
 			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, &RootNode);
-
-			uint Offset = 0;
 
 			// Output debug stats 
 

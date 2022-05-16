@@ -1,7 +1,5 @@
 #version 430 core
 
-#define InvalidIdx 0xffffffffu
-
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
@@ -15,8 +13,6 @@ uniform mat4 u_View;
 uniform mat4 u_LightVP;
 uniform vec2 u_Dims;
 
-uniform int u_Counter;
-
 uniform int u_NodeCount;
 
 const float INFINITY = 1.0f / 0.0f;
@@ -26,15 +22,14 @@ const float EPS = 0.001f;
 vec3 DEBUG_COLOR = vec3(0.,1.,0.);
 
 // 32 bytes 
-struct Vertex
-{
+struct Vertex {
 	vec4 Position;
-	uvec4 PackedData;
+	uvec4 PackedData; // Packed normal, tangent and texcoords
 };
 
 // 16 bytes 
 struct Triangle {
-    ivec4 Packed;
+    ivec4 Packed; // Contains packed indices and triangle index
 };
 
 // 32 bytes 
@@ -147,7 +142,7 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
 
     int Iterations = 0;
 
-    const int MaxIterations = 512;
+    const int MaxIterations = 1024;
 
     int Pointer = 0;
 
@@ -161,37 +156,32 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
 
         Node CurrentNode = BVHNodes[Pointer];
 
-        float BoxTraversal = RayBounds(CurrentNode.Min.xyz, CurrentNode.Max.xyz, RayOrigin, InverseDirection, 0.001f, TMax);
+        float BoxTraversal = RayBounds(CurrentNode.Min.xyz, CurrentNode.Max.xyz, RayOrigin, InverseDirection, 0.0001f, TMax);
 
         if (BoxTraversal > 0.0f && BoxTraversal < TMax) {
 
             if (IsLeafNode(CurrentNode)) {
 
-                //if (BoxTraversal > 0.0f && BoxTraversal < TMax)
-                //{
-                //    TMax = BoxTraversal;
-                //    ClosestIntersect = vec3(BoxTraversal);
-                //}
-                
                 int Packed = floatBitsToInt(CurrentNode.Min.w);
                 
-                int Idx = Packed;
+                int Length = Packed & 0xF;
                 
-                //int Size = Packed & 0xF;
-                
-                Triangle triangle = BVHTris[Idx];
-                
-                vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
-                vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
-                vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
-                vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
-                
-                if (Intersect.x > 0.0f && Intersect.x < TMax)
-                {
-                    TMax = Intersect.x;
-                    ClosestIntersect = Intersect;
+                for (int Idx = Packed >> 4 ; Idx < (Packed >> 4) + Length ; Idx++) {
+                    Triangle triangle = BVHTris[Idx];
 
-                    return vec3(1.,0.,0.);
+                    const int Offset = 0;
+                    
+                    vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
+                    vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
+                    vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+
+                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                    
+                    if (Intersect.x > 0.0f && Intersect.x < TMax)
+                    {
+                        TMax = Intersect.x;
+                        ClosestIntersect = Intersect;
+                    }
                 }
                 
 
@@ -218,36 +208,10 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
         }
     }
 
-    return vec3(Iterations / float(MaxIterations ));
+    //return vec3(Iterations / 1000.0f);
 
     if (ClosestIntersect.x > 0.0f) {
-        return vec3(ClosestIntersect.x) / 8.0f;
-    }
-
-    return vec3(1.0f, 0.0f, 0.0f);
-}
-
-vec3 BruteForceTris(vec3 rO, vec3 rD) {
-    
-    float TMax = 100000.0f;
-
-    vec3 FIntersect = vec3(-1.);
-
-    for (int x = 0 ; x < 2188; x++) {
-        Triangle triangle = BVHTris[x];
-        vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
-        vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
-        vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
-        vec3 Intersect = RayTriangle(rO, rD, VertexA, VertexB, VertexC);
-        
-        if (Intersect.x > 0. && Intersect.x < TMax) {
-            TMax = Intersect.x;
-            FIntersect = Intersect;
-        }
-    }
-
-    if (FIntersect.x > 0.0f) {
-        return vec3(FIntersect.x) / 8.0f;
+        return ClosestIntersect;//vec3(ClosestIntersect.x) / 8.0f;
     }
 
     return vec3(1.0f, 0.0f, 0.0f);
@@ -263,59 +227,6 @@ void main() {
 
 	float s = 1.0f;
 	
-	//vec3 o_Color = IntersectBVH(rO, rD);
-	//vec3 o_Color = BruteForceTris(rO, rD);
-
-	vec3 o_Color = vec3(0.,0.,1.);
-    //
-    if (true) {
-	
-        Node CurrentNode = BVHNodes[u_Counter];
-        float BoxTraversal = RayBounds(CurrentNode.Min.xyz, CurrentNode.Max.xyz, rO, 1./rD, 0.001f, 10000.0f);
-    
-    
-        if (BoxTraversal > 0.) {
-    
-            if (IsLeafNode(CurrentNode)) {
-                
-                int Reference = GetStartIdx(CurrentNode);
-    
-                Triangle triangle = BVHTris[Reference];
-    
-                vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
-                vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
-                vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
-                vec3 Intersect = RayTriangle(rO, rD, VertexA, VertexB, VertexC);
-               
-                if (Intersect.x > 0.0f)
-                {
-                    o_Color = vec3(1.,0.,0.);
-                }
-    
-                else {
-    
-                    o_Color = vec3(0.,1.,0.);
-                }
-    
-            }
-    
-            else {
-    
-                o_Color = vec3(1.,1.,1.);
-            }
-        }
-    } else {
-    
-        Triangle triangle = BVHTris[u_Counter];
-        vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
-        vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
-        vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
-        vec3 Intersect = RayTriangle(rO, rD, VertexA, VertexB, VertexC);
-        
-        if (Intersect.x > 0.) {
-            o_Color = vec3(1.,0.,0.);
-        }
-    }
-
+	vec3 o_Color = IntersectBVH(rO, rD);
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }
