@@ -7,6 +7,17 @@
 namespace Lumen {
 	namespace BVH {
 
+		// true : Uses Surface Area Heuristic (finds cut using a simple binary search)
+		// false : Uses median split (splits across largest axis)
+		const bool USE_SAH = true;
+
+		// Max primitives each leaf can hold 
+		// Recommended : 2 - 3
+		const int MAX_TRIANGLES_PER_LEAF = 2;
+
+
+		static const float INF_COST = 1e29f;
+
 		static uint64_t TotalIterations = 0;
 		static uint64_t LeafNodeCount = 0;
 		static uint64_t LastNodeIndex = 0;
@@ -14,7 +25,7 @@ namespace Lumen {
 		static uint MaxBVHDepth = 0;
 
 		inline bool ShouldBeLeaf(uint Length) {
-			return Length <= 2;
+			return Length <= MAX_TRIANGLES_PER_LEAF;
 		}
 
 		int FindLongestAxis(const Bounds& bounds) {
@@ -39,6 +50,177 @@ namespace Lumen {
 		}
 
 		void FlattenBVH(const Node* RootNode, std::vector<FlattenedNode>& FlattenedNodes, std::vector <glm::ivec2>& Cache, int& ProcessedNodes);
+
+		void GetMedianSplit(Node* node, int& Axis, float& Border) {
+			glm::vec3 Centroid = node->NodeBounds.GetCenter();
+			Axis = FindLongestAxis(node->NodeBounds);
+			Border = Centroid[Axis];
+		}
+
+		float GetSAH(Node* Node, int Axis, float Border, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache) {
+
+			Bounds LeftBox;
+			Bounds RightBox;
+
+			int LeftMultiplier = 0;
+			int RightMultiplier = 0;
+
+			LeftBox.Min = glm::vec3(ARBITRARY_MAX);
+			RightBox.Min = glm::vec3(ARBITRARY_MAX);
+			LeftBox.Max = glm::vec3(ARBITRARY_MIN);
+			RightBox.Max = glm::vec3(ARBITRARY_MIN);
+
+			for (int i = Node->StartIndex; i < Node->StartIndex + Node->Length; i++) {
+
+				const Bounds& CurrentBounds = BoundsCache[TriangleReferences[i]];
+				const glm::vec3& CurrentCentroid = CentroidCache[TriangleReferences[i]];
+
+				if (CurrentCentroid[Axis] < Border) {
+
+					LeftMultiplier += 1;
+					LeftBox.Max = glm::max(LeftBox.Max, CurrentBounds.Max);
+					LeftBox.Min = glm::min(LeftBox.Min, CurrentBounds.Min);
+				}
+
+				else {
+
+					RightMultiplier += 1;
+					RightBox.Max = glm::max(RightBox.Max, CurrentBounds.Max);
+					RightBox.Min = glm::min(RightBox.Min, CurrentBounds.Min);
+
+				}
+			}
+
+			// Heuristic ->
+			float Cost = LeftMultiplier * LeftBox.GetArea() + RightMultiplier * RightBox.GetArea();
+			Cost = Cost > 0.0001f ? Cost : INF_COST;
+			
+			return Cost;
+		}
+
+		float SearchBestPlaneSAHLinear(Node* node, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
+
+			GetMedianSplit(node, oAxis, oBorder);
+
+			float BestCost = INF_COST;
+
+			int Steps = 64;
+
+			for (int Axis = 0; Axis < 3; Axis++) {
+
+				float MinAxis = node->NodeBounds.Min[Axis];
+				float MaxAxis = node->NodeBounds.Max[Axis];
+
+				if (MinAxis == MaxAxis) {
+					continue;
+				}
+
+				float CurrentPosition = MinAxis;
+
+				float StepSize = (MaxAxis - MinAxis) / ((float)Steps);
+
+				for (int Step = 0; Step < Steps; Step++) {
+
+					CurrentPosition += StepSize;
+
+					float CostAt = GetSAH(node, Axis, CurrentPosition, TriangleReferences, BoundsCache, CentroidCache);
+				
+					if (CostAt < BestCost) {
+						BestCost = CostAt;
+						oAxis = Axis;
+						oBorder = CurrentPosition;
+					}
+
+				}
+
+
+			}
+
+			return BestCost;
+		}
+
+		float SearchBestPlaneSAHBinary(Node* node, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
+
+			const int StepCount = 12;
+			const int BinaryStepCount = 4;
+
+			GetMedianSplit(node, oAxis, oBorder);
+
+			float BestCost = INF_COST;
+
+			float LastStepSize = 2.0f / 64.0f;
+
+			for (int Axis = 0; Axis < 3; Axis++) {
+
+				float MinAxis = node->NodeBounds.Min[Axis];
+				float MaxAxis = node->NodeBounds.Max[Axis];
+
+				if (MinAxis == MaxAxis) {
+					continue;
+				}
+
+				float CurrentPosition = MinAxis;
+
+				float StepSize = (MaxAxis - MinAxis) / ((float)StepCount);
+
+				for (int Step = 0; Step < StepCount; Step++) {
+
+					CurrentPosition += StepSize;
+
+					float CostAt = GetSAH(node, Axis, CurrentPosition, TriangleReferences, BoundsCache, CentroidCache);
+
+					if (CostAt < BestCost) {
+						BestCost = CostAt;
+						oAxis = Axis;
+						oBorder = CurrentPosition;
+						LastStepSize = StepSize;
+					}
+
+				}
+
+
+			}
+
+			// Binary search 
+
+			float StepSize = LastStepSize * 0.5f;
+			float BinaryPosition = oBorder + StepSize;
+
+			for (int Step = 0; Step < BinaryStepCount; Step++) {
+
+				StepSize *= 0.5f;
+
+				float CostAt = GetSAH(node, oAxis, BinaryPosition, TriangleReferences, BoundsCache, CentroidCache);
+
+				if (CostAt < BestCost) {
+					BinaryPosition += StepSize;
+					BestCost = CostAt;
+				}
+
+				else {
+					BinaryPosition -= StepSize;
+				}
+
+			}
+
+			oBorder = BinaryPosition;
+			return BestCost;
+		}
+
+		void GetSplit(Node* node, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
+
+			if (USE_SAH) {
+
+				SearchBestPlaneSAHBinary(node, TriangleReferences, BoundsCache, CentroidCache, oAxis, oBorder);
+			}
+
+			else {
+
+				GetMedianSplit(node, oAxis, oBorder);
+
+			}
+		}
+
 
 		void ConstructHierarchy(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
 
@@ -88,10 +270,6 @@ namespace Lumen {
 			// Sorted indices, indices are pushed here if they are a leaf node
 			std::vector<GLuint> SortedTriangleReferences;
 
-			// true : Uses Surface Area Heuristic (finds cut using a simple binary search)
-			// false : Uses median split (splits across largest axis)
-			const bool USE_SAH = false; 
-
 			// Stack to hold processed nodes 
 			std::stack<Node*> NodeStack;
 
@@ -108,8 +286,8 @@ namespace Lumen {
 
 				TotalIterations++;
 
-				if (TotalIterations % 32 == 0 && DEBUG_BVH) {
-					std::cout << "\nIteration : " << TotalIterations;
+				if (TotalIterations % 32 == 0) {
+					std::cout << "\nBVH Iteration : " << TotalIterations;
 				}
 
 				Node* BuildNode = NodeStack.top();
@@ -133,13 +311,14 @@ namespace Lumen {
 					continue;
 				}
 				
-				glm::vec3 Centroid = BuildNode->NodeBounds.GetCenter();
+				glm::vec3 CentroidNodeBounds = BuildNode->NodeBounds.GetCenter();
 
-				uint SplitAxis;
+				int SplitAxis;
 				float Border;
 
-				SplitAxis = FindLongestAxis(BuildNode->NodeBounds);
-				Border = Centroid[SplitAxis];
+				//SplitAxis = FindLongestAxis(BuildNode->NodeBounds);
+				//Border = Centroid[SplitAxis];
+				GetSplit(BuildNode, TriangleReferences, BoundsCache, CentroidCache, SplitAxis, Border);
 
 				// Set axis
 				BuildNode->Axis = SplitAxis;
@@ -520,5 +699,5 @@ namespace Lumen {
 			return RootNodePtr;
 		}
 	}
-
+	
 }

@@ -142,11 +142,11 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
 
     int Iterations = 0;
 
-    const int MaxIterations = 1024;
+    const int MaxIterations = 512;
 
     int Pointer = 0;
 
-    float TMax = 100000.0f;
+    float TMax = 1000000.0f;
 
     vec3 ClosestIntersect = vec3(-1.0f);
 
@@ -208,13 +208,13 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
         }
     }
 
-    //return vec3(Iterations / 1000.0f);
 
     if (ClosestIntersect.x > 0.0f) {
-        return ClosestIntersect;//vec3(ClosestIntersect.x) / 8.0f;
+         return ClosestIntersect;
+         //return vec3(Iterations / 512.0f);
     }
 
-    return vec3(1.0f, 0.0f, 0.0f);
+    return vec3(Iterations / 1024.0f);
 }
 
 void main() {

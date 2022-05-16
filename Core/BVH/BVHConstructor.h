@@ -34,12 +34,17 @@ namespace Lumen {
 			glm::vec3 Min;
 			glm::vec3 Max;
 
-			glm::vec3 GetCenter() {
+			inline glm::vec3 GetCenter() const noexcept {
 				return (Min + Max) / 2.0f;
 			}
 
-			glm::vec3 GetExtent() {
+			inline glm::vec3 GetExtent() const noexcept {
 				return Max - Min;
+			}
+
+			inline float GetArea() const noexcept {
+				glm::vec3 Extent = GetExtent();
+				return Extent.x * Extent.y + Extent.y * Extent.z + Extent.z * Extent.x;
 			}
 		};
 

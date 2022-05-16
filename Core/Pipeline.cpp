@@ -88,6 +88,11 @@ public:
 		ImGui::Text("Debuuug : %d", x);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &SunDirection[0], -1.0f, 1.0f);
+		
+		if (ImGui::Button("BENCH")) {
+			Camera.SetPosition(glm::vec3(10.0f, 2.0f, 0.125f));
+			Camera.SetFront(glm::normalize(glm::vec3(-0.99f, -0.03f, 0.05f)));
+		}
 	}
 
 	void OnEvent(Lumen::Event e) override
