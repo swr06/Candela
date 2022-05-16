@@ -21,8 +21,8 @@ namespace Lumen {
 	namespace BVH {
 		typedef uint32_t uint;
 
-		const float ARBITRARY_MAX = 1000000.0f;
-		const float ARBITRARY_MIN = -1000000.0f;
+		const float ARBITRARY_MAX = 10000000.0f;
+		const float ARBITRARY_MIN = -10000000.0f;
 
 		class Bounds {
 

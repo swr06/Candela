@@ -208,6 +208,7 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
         }
     }
 
+    return vec3(Iterations / 256.0f);
 
     if (ClosestIntersect.x > 0.0f) {
          return ClosestIntersect;

@@ -49,7 +49,7 @@ public:
 		glfwSwapInterval((int)vsync);
 
 		GLFWwindow* window = GetWindow();
-		float camera_speed = 0.1f * (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 2.5f : 1.0f);
+		float camera_speed = 0.25f * (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f);
 
 		if (GetCursorLocked()) {
 			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -213,8 +213,8 @@ void Lumen::StartPipeline()
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
 	//FileLoader::LoadModelFile(&Sponza,  "Models/cornell/CornellBox-Sphere.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
-	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
 
 
