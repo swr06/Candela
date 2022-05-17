@@ -96,6 +96,20 @@ float RayBounds(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t
     return (tmax >= tmin) ? tmin : -1.;
 }
 
+// Outputs traversal to the `Traversal` out variable 
+// Returns if a ray hit the box or not.
+bool RayBoundsP(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t_min, float t_max, out float Traversal)
+{
+    vec3 aabb_min = min_;
+    vec3 aabb_max = max_;
+    vec3 t0 = (aabb_min - ray_origin) * ray_inv_dir;
+    vec3 t1 = (aabb_max - ray_origin) * ray_inv_dir;
+    float tmin = max(max3(min(t0, t1)), t_min);
+    float tmax = min(min3(max(t0, t1)), t_max);
+    Traversal = (tmax >= tmin) ? tmin : -1.;
+    return Traversal < 0.0f ? false : true;
+}
+
 
 // Gets ray direction from screenspace UV
 vec3 GetRayDirectionAt(vec2 screenspace)
@@ -208,7 +222,7 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
         }
     }
 
-    return vec3(Iterations / 256.0f);
+    return vec3(Iterations / 256.0f) * 2.;
 
     if (ClosestIntersect.x > 0.0f) {
          return ClosestIntersect;
@@ -216,6 +230,161 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
     }
 
     return vec3(Iterations / 1024.0f);
+}
+
+
+
+struct StackNode
+{
+	int Node; // <- Node pointer 
+	float Traversal; // <- You can skip nodes if the traversal is > than the max one found 
+};
+
+vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
+
+	vec3 InverseDirection = 1.0f / RayDirection;
+
+    // Work stack 
+	StackNode Stack[64];
+	int StackPointer = 0;
+
+    // Intersections 
+    float TMax = 100000.0f;
+    vec3 Intersection = vec3(-1.);
+
+    // Start at first node, traverse down the tree 
+    Stack[StackPointer].Node = 0; 
+    Stack[StackPointer].Traversal = -1.0f;
+
+    // Misc 
+	int Iterations = 0;
+    int CloserNode = -1;
+    int Deferred = -1;
+
+	while (Iterations < 5000 && StackPointer >= 0) {
+            
+        if (StackPointer >= 64) {
+            return vec3(0.,0.,1.);
+        }
+
+        Iterations++;
+
+        int CurrentNodeIndex = Stack[StackPointer].Node;
+
+        float CurrentNodeTraversal = Stack[StackPointer].Traversal;
+
+        StackPointer--;
+
+        //if (CurrentNodeTraversal < TMax)
+        {
+
+            Node CurrentNode = BVHNodes[CurrentNodeIndex];
+
+            // Intersect triangles if leaf node 
+            if (IsLeafNode(CurrentNode)) {
+
+                return vec3(1.,0.,0.);
+
+                int Packed = floatBitsToInt(CurrentNode.Min.w);
+                
+                int Length = Packed & 0xF;
+                
+                for (int Idx = Packed >> 4 ; Idx < (Packed >> 4) + Length ; Idx++) {
+                    Triangle triangle = BVHTris[Idx];
+
+                    const int Offset = 0;
+                    
+                    vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
+                    vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
+                    vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+
+                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                    
+                    if (Intersect.x > 0.0f && Intersect.x < TMax)
+                    {
+                        TMax = Intersect.x;
+                        Intersection = Intersect;
+                        return vec3(1.,0.,0.);
+                    }
+                }
+
+            }
+
+            // Internal node 
+            else {
+                
+                vec2 Traversals = vec2(-1.0f);
+                bvec2 HitFlags = bvec2(false);
+
+                int RightPointer = floatBitsToInt(CurrentNode.Max.w);
+                
+                Node LeftNode = BVHNodes[CurrentNodeIndex + 1]; 
+                Node RightNode = BVHNodes[RightPointer];
+
+                HitFlags.x = RayBoundsP(LeftNode.Min.xyz, LeftNode.Max.xyz, RayOrigin, InverseDirection, 0.00001f, TMax, Traversals.x);
+                HitFlags.y = RayBoundsP(RightNode.Min.xyz, RightNode.Max.xyz, RayOrigin, InverseDirection, 0.00001f, TMax, Traversals.y);
+
+                StackNode Push;
+
+                // Did we hit both nodes? 
+                // If we did, traverse the closest one first 
+                if (HitFlags.x && HitFlags.y) {
+
+                    CloserNode = CurrentNodeIndex + 1;
+                    Deferred = RightPointer;
+
+                    // Right node closer?
+                    if (Traversals.y < Traversals.x) {
+                        
+                        // Swap  
+                        float Temp = Traversals.x;
+                        Traversals.x = Traversals.y;
+                        Traversals.y = Temp;
+
+                        int Temp_ = CloserNode;
+                        CloserNode = Deferred;
+                        Deferred = Temp_;
+                    }
+
+                    // Push to work stack
+
+                    Push.Node = Deferred;
+                    Push.Traversal = Traversals.y;
+                    Stack[++StackPointer] = Push;
+
+                    Push.Node = CloserNode;
+                    Push.Traversal = Traversals.x;
+                    Stack[++StackPointer] = Push;
+                }
+
+                // Hit Left node?
+                else if (HitFlags.x) {
+                    Push.Node = CurrentNodeIndex + 1;
+                    Push.Traversal = Traversals.x;
+                    Stack[++StackPointer] = Push;
+                }
+
+                // Hit Right node?
+                else if (HitFlags.y) {
+
+                    Push.Node = RightPointer;
+                    Push.Traversal = Traversals.y;
+                    Stack[++StackPointer] = Push;
+                }
+
+            }
+
+        }
+        
+	}
+
+    return vec3(Iterations / 256.0f) * 6.;
+
+	if (Intersection.x < 0.0f) {
+        return vec3(0.0f, 1.0f, 0.0f);
+    }
+
+    return vec3(1.,0.,0.);
 }
 
 void main() {
@@ -228,6 +397,6 @@ void main() {
 
 	float s = 1.0f;
 	
-	vec3 o_Color = IntersectBVH(rO, rD);
+	vec3 o_Color = IntersectBVHStack(rO, rD);
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }
