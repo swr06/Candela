@@ -343,6 +343,10 @@ namespace Lumen {
 
 			bool DEBUG_BVH = false;
 
+			srand(10238);
+			rand();
+			rand();
+			rand();
 
 			uint TriangleCountTotal = OriginalIndices.size() / 3;
 
@@ -552,6 +556,14 @@ namespace Lumen {
 				// Set bounds 
 				LeftNode.NodeBounds = Bounds(LeftMin, LeftMax);
 				RightNode.NodeBounds = Bounds(RightMin, RightMax);
+
+				//int RandomShuffle = rand() % 4;
+				//
+				//if (RandomShuffle <= 2) {
+				//	auto* Temp = LeftNodePtr;
+				//	LeftNodePtr = RightNodePtr;
+				//	RightNodePtr = Temp;
+				//}
 
 				// Since node is not a leaf node, make length 0
 				BuildNode->Length = 0;

@@ -228,7 +228,7 @@ vec3 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection) {
         }
     }
 
-    return vec3(Iterations / 256.0f) * 2.;
+   // return vec3(Iterations / 256.0f) * 2.;
 
     if (ClosestIntersect.x > 0.0f) {
          return ClosestIntersect;
@@ -396,6 +396,6 @@ void main() {
 
 	float s = 1.0f;
 	
-	vec3 o_Color = IntersectBVHStack(rO, rD);
+	vec3 o_Color = IntersectBVHStackless(rO, rD);
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }
