@@ -13,8 +13,7 @@ namespace Lumen {
 		const bool BINNED_SAH = true;
 		
 		// Number of bins used to determine the optimal split position
-		// Recommended : 16 - 24
-		const int BIN_COUNT = 16; 
+		const int BIN_COUNT = 64; 
 
 		// Max primitives each leaf can hold 
 		// Recommended : 2 - 3

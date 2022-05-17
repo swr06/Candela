@@ -310,9 +310,6 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
         // Internal node 
         else {
 
-            //if (Iterations == 3) 
-            //    return vec3(0.,1.,0.);
-
             vec2 Traversals = vec2(-1.0f);
             bvec2 HitFlags = bvec2(false);
 
@@ -389,9 +386,6 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
 }
 
 
-
-
-
 void main() {
 
 	ivec2 Pixel = ivec2(gl_GlobalInvocationID.xy);
@@ -402,7 +396,6 @@ void main() {
 
 	float s = 1.0f;
 	
-	vec3 o_Color = IntersectBVHStackless(rO, rD);
-	//vec3 o_Color = IntersectBVHStack(rO, rD);
+	vec3 o_Color = IntersectBVHStack(rO, rD);
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }
