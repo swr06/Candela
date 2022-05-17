@@ -214,8 +214,8 @@ void Lumen::StartPipeline()
 	//FileLoader::LoadModelFile(&Sponza,  "Models/cornell/CornellBox-Sphere.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
-	FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
+	FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
 
 
 	// BVH ->

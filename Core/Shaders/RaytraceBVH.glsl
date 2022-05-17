@@ -39,6 +39,12 @@ struct Node {
     vec4 Max; // W component contains packed leaf data 
 };
 
+// Struct used by the intersection stack
+struct StackNode {
+	int Node; // <- Node pointer 
+	float Traversal; // <- You can skip nodes if the traversal is > than the max one found 
+};
+
 // SSBOs
 layout (std430, binding = 0) buffer SSBO_BVHVertices {
 	Vertex BVHVertices[];
@@ -98,7 +104,7 @@ float RayBounds(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t
 
 // Outputs traversal to the `Traversal` out variable 
 // Returns if a ray hit the box or not.
-bool RayBoundsP(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t_min, float t_max, out float Traversal)
+bool RayBoundsP(vec3 min_, vec3 max_, vec3 ray_origin, vec3 ray_inv_dir, float t_min, float t_max, inout float Traversal)
 {
     vec3 aabb_min = min_;
     vec3 aabb_max = max_;
@@ -150,7 +156,7 @@ bool IntersectTriangleP(vec3 r0, vec3 rD, in vec3 v1, in vec3 v2, in vec3 v3, fl
     }
 }
 
-vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
+vec3 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection) {
 
     vec3 InverseDirection = 1.0f / RayDirection;
 
@@ -233,35 +239,30 @@ vec3 IntersectBVH(vec3 RayOrigin, vec3 RayDirection) {
 }
 
 
-
-struct StackNode
-{
-	int Node; // <- Node pointer 
-	float Traversal; // <- You can skip nodes if the traversal is > than the max one found 
-};
-
 vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
 
 	vec3 InverseDirection = 1.0f / RayDirection;
 
     // Work stack 
-	StackNode Stack[64];
+	int Stack[64];
 	int StackPointer = 0;
 
     // Intersections 
     float TMax = 100000.0f;
     vec3 Intersection = vec3(-1.);
 
-    // Start at first node, traverse down the tree 
-    Stack[StackPointer].Node = 0; 
-    Stack[StackPointer].Traversal = -1.0f;
-
     // Misc 
 	int Iterations = 0;
-    int CloserNode = -1;
-    int Deferred = -1;
 
-	while (Iterations < 5000 && StackPointer >= 0) {
+    int CurrentNodeIndex = 0;
+
+    Node FirstNode = BVHNodes[0];
+
+    if (RayBounds(FirstNode.Min.xyz, FirstNode.Max.xyz, RayOrigin, InverseDirection, 0.001f, TMax) < 0.0f) {
+        return vec3(0.0f);
+    }
+
+	while (Iterations < 4096 && StackPointer >= 0) {
             
         if (StackPointer >= 64) {
             return vec3(0.,0.,1.);
@@ -269,116 +270,116 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
 
         Iterations++;
 
-        int CurrentNodeIndex = Stack[StackPointer].Node;
+        Node CurrentNode = BVHNodes[CurrentNodeIndex];
 
-        float CurrentNodeTraversal = Stack[StackPointer].Traversal;
+        // Intersect triangles if leaf node 
+        if (IsLeafNode(CurrentNode)) {
 
-        StackPointer--;
-
-        //if (CurrentNodeTraversal < TMax)
-        {
-
-            Node CurrentNode = BVHNodes[CurrentNodeIndex];
-
-            // Intersect triangles if leaf node 
-            if (IsLeafNode(CurrentNode)) {
-
-                return vec3(1.,0.,0.);
-
-                int Packed = floatBitsToInt(CurrentNode.Min.w);
+            int Packed = floatBitsToInt(CurrentNode.Min.w);
                 
-                int Length = Packed & 0xF;
+            int Length = Packed & 0xF;
                 
-                for (int Idx = Packed >> 4 ; Idx < (Packed >> 4) + Length ; Idx++) {
-                    Triangle triangle = BVHTris[Idx];
+            for (int Idx = Packed >> 4 ; Idx < (Packed >> 4) + Length ; Idx++) {
+                Triangle triangle = BVHTris[Idx];
 
-                    const int Offset = 0;
+                const int Offset = 0;
                     
-                    vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
-                    vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
-                    vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+                vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
+                vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
+                vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
 
-                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
                     
-                    if (Intersect.x > 0.0f && Intersect.x < TMax)
-                    {
-                        TMax = Intersect.x;
-                        Intersection = Intersect;
-                        return vec3(1.,0.,0.);
-                    }
+                if (Intersect.x > 0.0f && Intersect.x < TMax)
+                {
+                    TMax = Intersect.x;
+                    Intersection = Intersect;
+                    return vec3(1.,0.,0.);
                 }
-
             }
 
-            // Internal node 
-            else {
-                
-                vec2 Traversals = vec2(-1.0f);
-                bvec2 HitFlags = bvec2(false);
-
-                int RightPointer = floatBitsToInt(CurrentNode.Max.w);
-                
-                Node LeftNode = BVHNodes[CurrentNodeIndex + 1]; 
-                Node RightNode = BVHNodes[RightPointer];
-
-                HitFlags.x = RayBoundsP(LeftNode.Min.xyz, LeftNode.Max.xyz, RayOrigin, InverseDirection, 0.00001f, TMax, Traversals.x);
-                HitFlags.y = RayBoundsP(RightNode.Min.xyz, RightNode.Max.xyz, RayOrigin, InverseDirection, 0.00001f, TMax, Traversals.y);
-
-                StackNode Push;
-
-                // Did we hit both nodes? 
-                // If we did, traverse the closest one first 
-                if (HitFlags.x && HitFlags.y) {
-
-                    CloserNode = CurrentNodeIndex + 1;
-                    Deferred = RightPointer;
-
-                    // Right node closer?
-                    if (Traversals.y < Traversals.x) {
-                        
-                        // Swap  
-                        float Temp = Traversals.x;
-                        Traversals.x = Traversals.y;
-                        Traversals.y = Temp;
-
-                        int Temp_ = CloserNode;
-                        CloserNode = Deferred;
-                        Deferred = Temp_;
-                    }
-
-                    // Push to work stack
-
-                    Push.Node = Deferred;
-                    Push.Traversal = Traversals.y;
-                    Stack[++StackPointer] = Push;
-
-                    Push.Node = CloserNode;
-                    Push.Traversal = Traversals.x;
-                    Stack[++StackPointer] = Push;
-                }
-
-                // Hit Left node?
-                else if (HitFlags.x) {
-                    Push.Node = CurrentNodeIndex + 1;
-                    Push.Traversal = Traversals.x;
-                    Stack[++StackPointer] = Push;
-                }
-
-                // Hit Right node?
-                else if (HitFlags.y) {
-
-                    Push.Node = RightPointer;
-                    Push.Traversal = Traversals.y;
-                    Stack[++StackPointer] = Push;
-                }
-
+            if (StackPointer <= 0) {
+                break;
             }
 
+            CurrentNodeIndex = Stack[--StackPointer];
+
+            continue;
         }
+
+        // Internal node 
+        else {
+
+            //if (Iterations == 3) 
+            //    return vec3(0.,1.,0.);
+
+            vec2 Traversals = vec2(-1.0f);
+            bvec2 HitFlags = bvec2(false);
+
+            int RightPointer = floatBitsToInt(CurrentNode.Max.w);
+                
+            const Node LeftNode = BVHNodes[CurrentNodeIndex + 1]; 
+            const Node RightNode = BVHNodes[RightPointer];
+
+            HitFlags.x = RayBoundsP(LeftNode.Min.xyz, LeftNode.Max.xyz, RayOrigin, InverseDirection, 0.001f, TMax, Traversals.x);
+            HitFlags.y = RayBoundsP(RightNode.Min.xyz, RightNode.Max.xyz, RayOrigin, InverseDirection, 0.001f, TMax, Traversals.y);
+
+            // Did we hit both nodes? 
+            // If we did, traverse the closest one first 
+            if (HitFlags.x && HitFlags.y) {
+
+                int CloserNode = 0;
+                int Deferred = 0;
+
+                CloserNode = CurrentNodeIndex + 1;
+                Deferred = RightPointer;
+
+                // Right node closer?
+                if (Traversals.y < Traversals.x) {
+                        
+                    // Swap  
+                    float Temp = Traversals.x;
+                    Traversals.x = Traversals.y;
+                    Traversals.y = Temp;
+
+                    int Temp_ = CloserNode;
+                    CloserNode = Deferred;
+                    Deferred = Temp_;
+                }
+
+                // Push to work stack
+                Stack[StackPointer++] = Deferred;
+                CurrentNodeIndex = CloserNode;
+                continue;
+            }
+
+            // Hit Left node?
+            else if (HitFlags.x) {
+                CurrentNodeIndex++;
+            }
+
+            // Hit Right node?
+            else if (HitFlags.y) {
+                CurrentNodeIndex = RightPointer;
+            }
+
+            else {
+
+                // Explore pushed nodes 
+                if (StackPointer <= 0) {
+                    break;
+                }
+
+                CurrentNodeIndex = Stack[--StackPointer];
+                continue;
+            }
+        }
+
+        
         
 	}
 
-    return vec3(Iterations / 256.0f) * 6.;
+    return vec3(Iterations / 256.0f) * 10.;
 
 	if (Intersection.x < 0.0f) {
         return vec3(0.0f, 1.0f, 0.0f);
@@ -386,6 +387,10 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
 
     return vec3(1.,0.,0.);
 }
+
+
+
+
 
 void main() {
 
@@ -397,6 +402,7 @@ void main() {
 
 	float s = 1.0f;
 	
-	vec3 o_Color = IntersectBVHStack(rO, rD);
+	vec3 o_Color = IntersectBVHStackless(rO, rD);
+	//vec3 o_Color = IntersectBVHStack(rO, rD);
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }
