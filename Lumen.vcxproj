@@ -240,7 +240,6 @@
     <None Include="Core\Shaders\GeometryVert.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
-    <None Include="Core\Shaders\RaytraceBVH.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

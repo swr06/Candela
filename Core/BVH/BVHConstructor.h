@@ -77,6 +77,13 @@ namespace Lumen {
 			glm::vec4 Max;
 		};
 
+		struct FlattenedStackNode
+		{
+			// w components of the vec4s contain packed data
+			FBounds LBounds;
+			FBounds RBounds;
+		};
+
 		struct Triangle {
 			// 0, 1, 2 indices 
 			// 3 mesh ID
@@ -84,5 +91,6 @@ namespace Lumen {
 		};
 
 		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris);
+		Node* BuildBVH(const Object& object, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris);
 	}
 };

@@ -213,28 +213,16 @@ void Lumen::StartPipeline()
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
 	//FileLoader::LoadModelFile(&Sponza,  "Models/cornell/CornellBox-Sphere.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
-	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
+	FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
 
 
 	// BVH ->
-	std::vector<FlattenedNode> BVHNodes;
+	std::vector<FlattenedStackNode> BVHNodes;
 	std::vector<Vertex> BVHVertices;
 	std::vector<BVH::Triangle> BVHTriangles;
 	Node* RootNode = BuildBVH(Sponza, BVHNodes, BVHVertices, BVHTriangles);
-
-	//for (int i = 0; i < 200; i++) {
-	//	if (BVHNodes[i].TriangleCount > 0) {
-	//		std::cout << "\nLEAF | " << BVHNodes[i].StartIdx << "  |  " << BVHNodes[i].SecondChildOffset;
-	//	}
-	//	
-	//	else {
-	//		std::cout << "\nINTERIOR | " << BVHNodes[i].StartIdx << "  |  " << BVHNodes[i].SecondChildOffset;
-	//	}
-	//
-	//	std::cout << "  | i : " << i;
-	//}
 
 	// SSBOs
 	GLuint BVHTriSSBO = 0;
@@ -248,7 +236,8 @@ void Lumen::StartPipeline()
 
 	glGenBuffers(1, &BVHNodeSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHNodeSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
+	//glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedStackNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glGenBuffers(1, &BVHVerticesSSBO);
@@ -312,9 +301,8 @@ void Lumen::StartPipeline()
 	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
 	RayTraceOutput.CreateFramebuffer();
 
-	TraceShader.CreateComputeShader("Core/Shaders/RaytraceBVH.glsl");
+	TraceShader.CreateComputeShader("Core/Shaders/Intersectors/TraverseBVHStack.glsl");
 	TraceShader.Compile();
-
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
