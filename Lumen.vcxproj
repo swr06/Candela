@@ -151,6 +151,7 @@
     <ClInclude Include="Core\Application\Application.h" />
     <ClInclude Include="Core\Application\Logger.h" />
     <ClInclude Include="Core\BVH\BVHConstructor.h" />
+    <ClInclude Include="Core\BVH\Intersector.h" />
     <ClInclude Include="Core\Entity.h" />
     <ClInclude Include="Core\FpsCamera.h" />
     <ClInclude Include="Core\GLClasses\ComputeShader.h" />
@@ -192,6 +193,7 @@
     <ClCompile Include="Core\Application\Application.cpp" />
     <ClCompile Include="Core\Application\Logger.cpp" />
     <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
+    <ClCompile Include="Core\BVH\Intersector.cpp" />
     <ClCompile Include="Core\FpsCamera.cpp" />
     <ClCompile Include="Core\GLClasses\ComputeShader.cpp" />
     <ClCompile Include="Core\GLClasses\CubeTextureMap.cpp" />
@@ -238,6 +240,8 @@
     <None Include="Core\Shaders\FBOVert.glsl" />
     <None Include="Core\Shaders\GeometryFrag.glsl" />
     <None Include="Core\Shaders\GeometryVert.glsl" />
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStack.glsl" />
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStackless.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
   </ItemGroup>

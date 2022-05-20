@@ -19,6 +19,9 @@
 #include <string>
 #include "BVH/BVHConstructor.h"
 
+#include "BVH/Intersector.h"
+
+Lumen::RayIntersector Intersector;
 
 Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f);
 
@@ -27,7 +30,9 @@ static bool mode = true;
 static float SunTick = 50.0f;
 static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 static int x = 0;
-GLClasses::ComputeShader TraceShader;
+
+static glm::vec3 Position = glm::vec3(0.f);
+
 
 class RayTracerApp : public Lumen::Application
 {
@@ -88,6 +93,7 @@ public:
 		ImGui::Text("Debuuug : %d", x);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &SunDirection[0], -1.0f, 1.0f);
+		ImGui::SliderFloat3("Position ", &Position[0], -24.f, 24.);
 		
 		if (ImGui::Button("BENCH")) {
 			Camera.SetPosition(glm::vec3(10.0f, 2.0f, 0.125f));
@@ -119,7 +125,7 @@ public:
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F2 && this->GetCurrentFrame() > 5)
 		{
 			Lumen::ShaderManager::RecompileShaders();
-			TraceShader.Recompile();
+			Intersector.Recompile();
 		}
 
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
@@ -209,49 +215,34 @@ void Lumen::StartPipeline()
 	app.SetCursorLocked(true);
 
 	// Scene setup 
-	Object Sponza;
+	//Object Sponza;
+	Object Mitsuba;
+	Object Dragon;
+
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
 	//FileLoader::LoadModelFile(&Sponza,  "Models/cornell/CornellBox-Sphere.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
+
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/dragon/dragon.obj");
-	FileLoader::LoadModelFile(&Sponza, "Models/knob/mitsuba.obj");
+	FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
+	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
 
-	// BVH ->
-	std::vector<FlattenedStackNode> BVHNodes;
-	std::vector<Vertex> BVHVertices;
-	std::vector<BVH::Triangle> BVHTriangles;
-	Node* RootNode = BuildBVH(Sponza, BVHNodes, BVHVertices, BVHTriangles);
+	Intersector.Initialize();
 
-	// SSBOs
-	GLuint BVHTriSSBO = 0;
-	GLuint BVHNodeSSBO = 0;
-	GLuint BVHVerticesSSBO = 0;
+	//Intersector.AddObject(Sponza);
+	Intersector.AddObject(Mitsuba);
+	Intersector.AddObject(Dragon);
 
-	glGenBuffers(1, &BVHTriSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHTriSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BVH::Triangle) * BVHTriangles.size(), BVHTriangles.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glGenBuffers(1, &BVHNodeSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHNodeSSBO);
-	//glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FlattenedStackNode) * BVHNodes.size(), BVHNodes.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glGenBuffers(1, &BVHVerticesSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, BVHVerticesSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Vertex) * BVHVertices.size(), BVHVertices.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	Intersector.BufferData();
 
 
+	//Entity SponzaEntity(&Sponza);
+	Entity MitsubaEntity(&Mitsuba);
+	Entity DragonEntity(&Dragon);
 
-	Entity MainModel(&Sponza);
-	//MainModel.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
-	MainModel.m_Model = glm::translate(MainModel.m_Model, glm::vec3(0.0f));
-	std::vector<Entity*> EntityRenderList = { &MainModel };
-	auto& EntityList = EntityRenderList;
+
+	std::vector<Entity*> EntityRenderList = { &DragonEntity, &MitsubaEntity };
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
@@ -301,8 +292,6 @@ void Lumen::StartPipeline()
 	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
 	RayTraceOutput.CreateFramebuffer();
 
-	TraceShader.CreateComputeShader("Core/Shaders/Intersectors/TraverseBVHStack.glsl");
-	TraceShader.Compile();
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -321,6 +310,7 @@ void Lumen::StartPipeline()
 			RenderShadowMap(Shadowmap, SunDirection, EntityRenderList, Camera.GetViewProjection());
 		}
 
+		DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
 
 		// Render GBuffer
 		glEnable(GL_CULL_FACE);
@@ -343,32 +333,10 @@ void Lumen::StartPipeline()
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
 
-		// Raytracjesad
-
-		TraceShader.Use();
-
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, BVHVerticesSSBO);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BVHTriSSBO);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, BVHNodeSSBO);
-
-		glBindImageTexture(0, RayTraceOutput.GetTexture(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
-		
-		TraceShader.SetInteger("u_NodeCount", BVHNodes.size());
-		TraceShader.SetVector2f("u_Dimensions", glm::vec2(RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight()));
-		TraceShader.SetMatrix4("u_View", Camera.GetViewMatrix());
-		TraceShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
-		TraceShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
-		TraceShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
-		TraceShader.SetInteger("u_Counter", x);
-		TraceShader.SetInteger("u_NodeCount", BVHNodes.size());
-
-		TraceShader.SetMatrix4("u_LightVP", GetLightViewProjection(SunDirection));
-		TraceShader.SetVector2f("u_Dims", glm::vec2(app.GetWidth(), app.GetHeight()));
-		TraceShader.SetVector3f("u_LightDirection", SunDirection);
-		TraceShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
-
-		glDispatchCompute((int)floor(float(RayTraceOutput.GetWidth()) / 16.0f), (int)floor(float(RayTraceOutput.GetHeight())) / 16.0f, 1);
-
+		// Raytrace
+		Intersector.PushEntities(EntityRenderList);
+		Intersector.BufferEntities();
+		Intersector.Intersect(RayTraceOutput.GetTexture(), RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight(), Camera);
 
 		// Lighting pass : 
 
@@ -420,10 +388,6 @@ void Lumen::StartPipeline()
 		
 		glActiveTexture(GL_TEXTURE7);
 		glBindTexture(GL_TEXTURE_2D, RayTraceOutput.GetTexture());
-
-		// Bind bvh test buffers
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BVHTriSSBO);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, BVHNodeSSBO);
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

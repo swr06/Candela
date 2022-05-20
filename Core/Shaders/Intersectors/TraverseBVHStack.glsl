@@ -1,27 +1,25 @@
 #version 450 core
 
+#extension GL_ARB_bindless_texture : enable
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 
-uniform vec3 u_ViewerPosition;
-uniform vec3 u_LightDirection;
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
 uniform mat4 u_Projection;
 uniform mat4 u_View;
-uniform mat4 u_LightVP;
+
 uniform vec2 u_Dims;
 
-uniform int u_NodeCount;
+uniform int u_EntityCount; 
+
+uniform int u_TotalNodes;
 
 const float INFINITY = 1.0f / 0.0f;
 const float INF = INFINITY;
 const float EPS = 0.001f;
-
-uniform int u_Counter;
-
-vec3 DEBUG_COLOR = vec3(0.,1.,0.);
 
 // 32 bytes 
 struct Vertex {
@@ -31,7 +29,7 @@ struct Vertex {
 
 // 16 bytes 
 struct Triangle {
-    ivec4 Packed; // Contains packed indices and triangle index
+    int Packed[8]; // Contains packed indices and triangle index
 };
 
 // W Component contains packed data
@@ -47,6 +45,13 @@ struct Node
     Bounds RightChildData;
 };
 
+struct BVHEntity {
+	mat4 ModelMatrix; // 64
+	mat4 InverseMatrix; // 64
+	int NodeOffset;
+	int NodeCount;
+    int Padding[14];
+};
 
 // SSBOs
 layout (std430, binding = 0) buffer SSBO_BVHVertices {
@@ -60,6 +65,11 @@ layout (std430, binding = 1) buffer SSBO_BVHTris {
 layout (std430, binding = 2) buffer SSBO_BVHNodes {
 	Node BVHNodes[];
 };
+
+layout (std430, binding = 3) buffer SSBO_Entities {
+	BVHEntity BVHEntities[];
+};
+
 
 float max3(vec3 val) 
 {
@@ -145,9 +155,13 @@ bool IsLeaf(in Bounds x) {
     return floatBitsToInt(x.Min.w) != -1;
 }
 
-vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
+vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix) {
 
-    const bool DoTriangleIntersections = false;
+    const bool IntersectTriangles = true;
+
+    // Ray  
+    RayOrigin = vec3(InverseMatrix * vec4(RayOrigin.xyz, 1.0f));
+    RayDirection = vec3(InverseMatrix * vec4(RayDirection.xyz, 0.0f));
 
 	vec3 InverseDirection = 1.0f / RayDirection;
 
@@ -162,9 +176,7 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
     // Misc 
 	int Iterations = 0;
 
-    int CurrentNodeIndex = 0;
-
-    Node FirstNode = BVHNodes[0];
+    int CurrentNodeIndex = NodeStartIndex;
 
     bool LeftLeaf = false;
     bool RightLeaf = false;
@@ -175,7 +187,9 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
 
 	while (Iterations < 1024) {
             
-        if (StackPointer >= 64 || StackPointer < 0 || CurrentNodeIndex < 0 || CurrentNodeIndex > u_NodeCount) {
+        if (StackPointer >= 64 || StackPointer < 0 || CurrentNodeIndex < NodeStartIndex 
+         || CurrentNodeIndex > NodeStartIndex+NodeCount || CurrentNodeIndex < 0 || CurrentNodeIndex > u_TotalNodes)
+        {
             break;
         }
 
@@ -193,60 +207,56 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
         // Intersect triangles if leaf node
         
         // Left child 
-        if (LeftLeaf) {
+        if (LeftLeaf && IntersectTriangles) {
 
-            if (DoTriangleIntersections) {
-                int Packed = GetStartIdx(CurrentNode.LeftChildData);
-                int StartIdx = Packed >> 4;
+            int Packed = GetStartIdx(CurrentNode.LeftChildData);
+            int StartIdx = Packed >> 4;
                     
-                int Length = Packed & 0xF;
+            int Length = Packed & 0xF;
                     
-                for (int Idx = 0; Idx < Length ; Idx++) {
-                    Triangle triangle = BVHTris[Idx + StartIdx];
+            for (int Idx = 0; Idx < Length ; Idx++) {
+                Triangle triangle = BVHTris[Idx + StartIdx];
                 
-                    const int Offset = 0;
+                const int Offset = 0;
                         
-                    vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
-                    vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
-                    vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+                vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
+                vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
+                vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
                 
-                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
                         
-                    if (Intersect.x > 0.0f && Intersect.x < TMax)
-                    {
-                        TMax = Intersect.x;
-                        Intersection = Intersect;
-                    }
+                if (Intersect.x > 0.0f && Intersect.x < TMax)
+                {
+                    TMax = Intersect.x;
+                    Intersection = Intersect;
                 }
             }
 
         }
 
         // Right 
-        if (RightLeaf) {
+        if (RightLeaf && IntersectTriangles) {
              
-            if (DoTriangleIntersections) {
-                int Packed = GetStartIdx(CurrentNode.RightChildData);
-                int StartIdx = Packed >> 4;
+            int Packed = GetStartIdx(CurrentNode.RightChildData);
+            int StartIdx = Packed >> 4;
                     
-                int Length = Packed & 0xF;
+            int Length = Packed & 0xF;
                     
-                for (int Idx = 0; Idx < Length ; Idx++) {
-                    Triangle triangle = BVHTris[Idx + StartIdx];
+            for (int Idx = 0; Idx < Length ; Idx++) {
+                Triangle triangle = BVHTris[Idx + StartIdx];
                 
-                    const int Offset = 0;
+                const int Offset = 0;
                         
-                    vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
-                    vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
-                    vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+                vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
+                vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
+                vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
                 
-                    vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
+                vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
                         
-                    if (Intersect.x > 0.0f && Intersect.x < TMax)
-                    {
-                        TMax = Intersect.x;
-                        Intersection = Intersect;
-                    }
+                if (Intersect.x > 0.0f && Intersect.x < TMax)
+                {
+                    TMax = Intersect.x;
+                    Intersection = Intersect;
                 }
             }
         }
@@ -254,8 +264,8 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
         // If we intersected both nodes we traverse the closer one first
         if (LeftTraversal > 0.0f && RightTraversal > 0.0f) {
 
-            CurrentNodeIndex = floatBitsToInt(CurrentNode.LeftChildData.Max.w);
-            Postponed = floatBitsToInt(CurrentNode.RightChildData.Max.w);
+            CurrentNodeIndex = floatBitsToInt(CurrentNode.LeftChildData.Max.w) + NodeStartIndex;
+            Postponed = floatBitsToInt(CurrentNode.RightChildData.Max.w) + NodeStartIndex;
 
             // Was the right node closer? if so then swap.
             if (RightTraversal < LeftTraversal)
@@ -274,12 +284,12 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
         }
 
         else if (LeftTraversal > 0.0f) {
-            CurrentNodeIndex = floatBitsToInt(CurrentNode.LeftChildData.Max.w);
+            CurrentNodeIndex = floatBitsToInt(CurrentNode.LeftChildData.Max.w) + NodeStartIndex;
             continue;
         }
 
          else if (RightTraversal > 0.0f) {
-            CurrentNodeIndex = floatBitsToInt(CurrentNode.RightChildData.Max.w);
+            CurrentNodeIndex = floatBitsToInt(CurrentNode.RightChildData.Max.w) + NodeStartIndex;
             continue;
         }
 
@@ -291,13 +301,31 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection) {
         CurrentNodeIndex = Stack[--StackPointer];
 	}
 
-    if (DoTriangleIntersections) 
-        return max(Intersection, 0.0f);
-        
+    if (Intersection.x > 0.) {
+        return Intersection;
+    }
 
-    return vec3(Iterations / 256.0f);
+    return vec3(-1.);
+}
 
-     return vec3(1.,0.,0.);
+vec3 IntersectScene(vec3 RayOrigin, vec3 RayDirection) {
+
+    vec3 FinalIntersect = vec3(-1.0f);
+
+    float TMax = 1000000.0f;
+
+    for (int i = 0 ; i < u_EntityCount ; i++)
+    {
+        vec3 Intersect = IntersectBVHStack(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix);
+
+        if (Intersect.x > 0.0f && Intersect.x < TMax) {
+            TMax = Intersect.x;
+            FinalIntersect = Intersect;
+        }
+
+    }
+
+    return FinalIntersect;
 }
 
 
@@ -311,8 +339,7 @@ void main() {
 
 	float s = 1.0f;
 	
-	vec3 o_Color = IntersectBVHStack(rO, rD);
-
+	vec3 o_Color = IntersectScene(rO, rD);
     
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }

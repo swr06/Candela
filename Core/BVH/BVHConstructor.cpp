@@ -3,6 +3,8 @@
 
 	Interesting statistics : 
 
+	* Splitting 
+
 	Median split : 17 FPS
 	512 Steps (Basically ground truth SAH) : 45 FPS
 	2 steps : 37 FPS
@@ -11,6 +13,8 @@
 	Binning (64 bins) : 45 FPS
 
 	All hail SAH!
+
+	* Traversal
 
 	Traversal using a stack of size 64 : 34 FPS in Dabrovic Sponza
 	Traversal using a shared stack of size (64 x (Total Workgroups)) : 29 FPS in Dabrovic Sponza
@@ -53,6 +57,8 @@ namespace Lumen {
 		static uint64_t LastNodeIndex = 0;
 		static uint64_t SplitFails = 0;
 		static uint MaxBVHDepth = 0;
+
+		static int TriangleOffset_ = 0;
 
 		// Processing bin
 		class Bin {
@@ -454,7 +460,7 @@ namespace Lumen {
 						SortedTriangleReferences.push_back(data);
 					}
 
-					BuildNode->StartIndex = Finalidx;
+					BuildNode->StartIndex = Finalidx + TriangleOffset_;
 
 					continue;
 				}
@@ -936,10 +942,11 @@ namespace Lumen {
 		}
 
 
-		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris)
+		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris, int t_offset)
 		{
 			TotalIterations = 0;
 			LastNodeIndex = 0;
+			TriangleOffset_ = t_offset;
 				
 			// First, generate triangles from vertices to make everything easier to work with 
 
@@ -990,10 +997,11 @@ namespace Lumen {
 
 
 		
-		Node* BuildBVH(const Object& object, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris)
+		Node* BuildBVH(const Object& object, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris, int t_offset)
 		{
 			TotalIterations = 0;
 			LastNodeIndex = 0;
+			TriangleOffset_ = t_offset;
 
 			// First, generate triangles from vertices to make everything easier to work with 
 

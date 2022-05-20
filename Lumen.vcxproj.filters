@@ -46,6 +46,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\BVH">
       <UniqueIdentifier>{bc875e6e-3a33-4d2c-ab88-fd23d352174d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors">
+      <UniqueIdentifier>{fc4e0e8f-77da-4800-b338-6c75823c8100}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -165,6 +168,9 @@
     <ClInclude Include="Core\BVH\BVHConstructor.h">
       <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
     </ClInclude>
+    <ClInclude Include="Core\BVH\Intersector.h">
+      <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -272,6 +278,9 @@
     <ClCompile Include="Core\BVH\BVHConstructor.cpp">
       <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
     </ClCompile>
+    <ClCompile Include="Core\BVH\Intersector.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl">
@@ -306,6 +315,12 @@
     </None>
     <None Include="Core\Shaders\ProbeForwardVert.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStack.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors</Filter>
+    </None>
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStackless.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors</Filter>
     </None>
   </ItemGroup>
 </Project>

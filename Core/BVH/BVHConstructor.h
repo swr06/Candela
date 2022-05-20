@@ -86,11 +86,12 @@ namespace Lumen {
 
 		struct Triangle {
 			// 0, 1, 2 indices 
-			// 3 mesh ID
-			int Packed[4];
+			// 3 triangle ID
+			// 4 mesh id
+			int Packed[8];
 		};
 
-		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris);
-		Node* BuildBVH(const Object& object, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris);
+		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris, int);
+		Node* BuildBVH(const Object& object, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris, int);
 	}
 };
