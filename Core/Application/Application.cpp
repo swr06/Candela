@@ -140,7 +140,7 @@ namespace Lumen
 	{
 		glfwInit();
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 
@@ -192,6 +192,20 @@ namespace Lumen
 		//glClearColor(0.25f, 0.30f, 0.25f, 1.0f);
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+		GLint Extensions = 0;
+
+		glGetIntegerv(GL_NUM_EXTENSIONS, &Extensions);
+
+		for (int i = 0; i < Extensions; i++)
+		{
+			std::string extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
+			if (extension == "GL_ARB_bindless_texture")
+			{
+
+			}
+
+		}
+
 		char* renderer = (char*)glGetString(GL_RENDERER);
 		char* vendor = (char*)glGetString(GL_VENDOR);
 		char* version = (char*)glGetString(GL_VERSION);
@@ -208,7 +222,17 @@ namespace Lumen
 
 		else
 		{
-			std::cout << "\tDEBUG : THE OPENGL SYNCHRONOUS DEBUG EXTENSION IS UN AVAILABLE\n";
+			std::cout << "\tDEBUG : THE OPENGL SYNCHRONOUS DEBUG EXTENSION IS *NOT* AVAILABLE\n";
+		}
+
+		if (glfwExtensionSupported("GL_ARB_bindless_texture"))
+		{
+			std::cout << "\t\nTHE OPENGL BINDLESS TEXTURE EXTENSION IS AVAILABLE\n";
+		}
+
+		else
+		{
+			std::cout << "\t\nTHE OPENGL BINDLESS TEXTURE EXTENSION IS *NOT* AVAILABLE\n";
 		}
 
 		glfwMaximizeWindow(m_Window);

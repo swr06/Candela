@@ -58,6 +58,13 @@ namespace GLClasses
 
 		void Recompile();
 
+		GLuint FetchUniformLocation(const std::string& name)
+		{
+			return GetUniformLocation(name);
+		}
+
+		GLuint GetProgram() { return m_ID; }
+
 	private :
 
 		std::unordered_map<std::string, GLint> Location_map; // To avoid unnecessary calls to glGetUniformLocation()

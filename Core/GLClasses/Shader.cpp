@@ -325,6 +325,11 @@ namespace GLClasses
 		return;
 	}
 
+	GLuint Shader::FetchUniformLocation(const std::string& name)
+	{
+		return GetUniformLocation(name);
+	}
+
 	void Shader::SetVector2f(const std::string& name, GLfloat x, GLfloat y, GLboolean useShader)
 	{
 		if (useShader)

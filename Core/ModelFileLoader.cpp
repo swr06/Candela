@@ -21,7 +21,10 @@ namespace Lumen
 {
 	namespace FileLoader
 	{
-		bool is_gltf = false;
+		static int GlobalMeshCounter = 0;
+		static bool is_gltf = false;
+
+		std::vector<_TexturePaths> MeshTextureReferences;
 
 		void LoadMaterialTextures(aiMesh* mesh, aiMaterial* mat, Mesh* _mesh, const std::string& path)
 		{
@@ -81,11 +84,18 @@ namespace Lumen
 				std::string pth = texture_path + "/" + ao_texture.C_Str();
 				_mesh->TexturePaths[4] = pth;
 			}
+
+			_TexturePaths texpaths;
+			texpaths.Albedo = _mesh->TexturePaths[0];
+			texpaths.Normal = _mesh->TexturePaths[1];
+			MeshTextureReferences.push_back(texpaths);
 		}
 
 		void ProcessAssimpMesh(aiMesh* mesh, const aiScene* scene, Object* object, const std::string& pth, const glm::vec4& col, const glm::vec3& reflectivity)
 		{
 			Mesh& _mesh = object->GenerateMesh();
+			_mesh.GlobalMeshNumber = GlobalMeshCounter;
+			GlobalMeshCounter++;
 			std::vector<Vertex>& vertices = _mesh.m_Vertices;
 			std::vector<GLuint>& indices = _mesh.m_Indices;
 
@@ -207,6 +217,7 @@ namespace Lumen
 
 		void LoadModelFile(Object* object, const std::string& filepath)
 		{
+
 			if (filepath.find("glb") != std::string::npos || filepath.find("gltf") != std::string::npos)
 			{
 				is_gltf = true;
@@ -258,6 +269,13 @@ namespace Lumen
 			is_gltf = false;
 
 			return;
+
+		}
+
+
+		std::vector<_TexturePaths> GetMeshTexturePaths()
+		{
+			return MeshTextureReferences;
 		}
 	}
 }

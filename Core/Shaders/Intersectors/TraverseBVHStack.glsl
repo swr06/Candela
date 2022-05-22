@@ -1,10 +1,17 @@
 #version 450 core
 
+#extension GL_ARB_bindless_texture : require
+
+
 #extension GL_ARB_bindless_texture : enable
+
+
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
+
+layout(bindless_sampler) uniform sampler2D Textures[32];
 
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
@@ -29,7 +36,7 @@ struct Vertex {
 
 // 16 bytes 
 struct Triangle {
-    int Packed[8]; // Contains packed indices and triangle index
+    int Packed[8]; // Contains packed data 
 };
 
 // W Component contains packed data
@@ -53,6 +60,11 @@ struct BVHEntity {
     int Padding[14];
 };
 
+struct TextureReferences {
+    int Albedo;
+    int Normal;
+};
+
 // SSBOs
 layout (std430, binding = 0) buffer SSBO_BVHVertices {
 	Vertex BVHVertices[];
@@ -68,6 +80,10 @@ layout (std430, binding = 2) buffer SSBO_BVHNodes {
 
 layout (std430, binding = 3) buffer SSBO_Entities {
 	BVHEntity BVHEntities[];
+};
+
+layout (std430, binding = 4) buffer SSBO_TextureReferences {
+    TextureReferences BVHTextureReferences[];
 };
 
 
@@ -155,7 +171,7 @@ bool IsLeaf(in Bounds x) {
     return floatBitsToInt(x.Min.w) != -1;
 }
 
-vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix) {
+vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix) {
 
     const bool IntersectTriangles = true;
 
@@ -172,6 +188,7 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
     // Intersections 
     float TMax = 100000.0f;
     vec3 Intersection = vec3(-1.0f);
+    int IntersectMesh = -1;
 
     // Misc 
 	int Iterations = 0;
@@ -229,6 +246,7 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 {
                     TMax = Intersect.x;
                     Intersection = Intersect;
+                    IntersectMesh = triangle.Packed[4];
                 }
             }
 
@@ -257,6 +275,7 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 {
                     TMax = Intersect.x;
                     Intersection = Intersect;
+                    IntersectMesh = triangle.Packed[4];
                 }
             }
         }
@@ -302,21 +321,21 @@ vec3 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
 	}
 
     if (Intersection.x > 0.) {
-        return Intersection;
+        return vec4(Intersection.xyz, intBitsToFloat(IntersectMesh));
     }
 
-    return vec3(-1.);
+    return vec4(vec3(-1.), intBitsToFloat(IntersectMesh));
 }
 
-vec3 IntersectScene(vec3 RayOrigin, vec3 RayDirection) {
+vec3 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh) {
 
-    vec3 FinalIntersect = vec3(-1.0f);
+    vec4 FinalIntersect = vec4(vec3(-1.0f), intBitsToFloat(-1));
 
     float TMax = 1000000.0f;
 
     for (int i = 0 ; i < u_EntityCount ; i++)
     {
-        vec3 Intersect = IntersectBVHStack(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix);
+        vec4 Intersect = IntersectBVHStack(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix);
 
         if (Intersect.x > 0.0f && Intersect.x < TMax) {
             TMax = Intersect.x;
@@ -325,9 +344,21 @@ vec3 IntersectScene(vec3 RayOrigin, vec3 RayDirection) {
 
     }
 
-    return FinalIntersect;
+    Mesh = floatBitsToInt(FinalIntersect.w);
+
+    return FinalIntersect.yzx;
 }
 
+vec3 GetAlbedo(in const vec3 UVT, in const int Mesh) {
+
+    int Ref = BVHTextureReferences[Mesh].Albedo;
+
+    if (Ref > -1 && Mesh > -1) {
+        return texture(Textures[Ref], UVT.xy).xyz; 
+    }
+
+    return vec3(0.0f);
+}
 
 void main() {
 
@@ -338,8 +369,12 @@ void main() {
 	vec3 rO = u_InverseView[3].xyz;
 
 	float s = 1.0f;
+
+    int IntersectedMesh = -1;
 	
-	vec3 o_Color = IntersectScene(rO, rD);
+	vec3 UVW = IntersectScene(rO, rD, IntersectedMesh);
     
+    vec3 o_Color = GetAlbedo(UVW, IntersectedMesh);
+
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }

@@ -619,7 +619,7 @@ namespace Lumen {
 		}
 
 
-		void GenerateTriangles(const std::vector<int>& TriangleIndices, const std::vector<GLuint>& OriginalIndices, std::vector<Triangle>& oTriangles) {
+		void GenerateTriangles(const std::vector<int>& TriangleIndices, const std::vector<GLuint>& OriginalIndices, std::vector<Triangle>& oTriangles, const std::vector<int>& MeshIDs) {
 			
 
 
@@ -638,13 +638,16 @@ namespace Lumen {
 				CurrentTriangle.Packed[1] = OriginalIndices[CurrentIndexRef + 1];
 				CurrentTriangle.Packed[2] = OriginalIndices[CurrentIndexRef + 2];
 				CurrentTriangle.Packed[3] = TriangleIndex;
-
+				CurrentTriangle.Packed[4] = MeshIDs[TriangleIndex];
+				CurrentTriangle.Packed[5] = 0;
+				CurrentTriangle.Packed[6] = 0;
+				CurrentTriangle.Packed[7] = 0;
 			}
 		}
 
 
 
-		void ConstructHierarchyLinear(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
+		void ConstructHierarchyLinear(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, const std::vector<int>& MeshIDs, Node* RootNode) {
 
 			bool DEBUG_BVH = false;
 
@@ -688,11 +691,11 @@ namespace Lumen {
 			}
 
 
-			GenerateTriangles(SortedReferences, OriginalIndices, oTriangles);
+			GenerateTriangles(SortedReferences, OriginalIndices, oTriangles, MeshIDs);
 		}
 
 
-		void ConstructHierarchy(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
+		void ConstructHierarchy(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, const std::vector<int>& MeshIDs, Node* RootNode) {
 
 			bool DEBUG_BVH = false;
 
@@ -735,10 +738,10 @@ namespace Lumen {
 				}
 			}
 
-			GenerateTriangles(SortedReferences, OriginalIndices, oTriangles);
+			GenerateTriangles(SortedReferences, OriginalIndices, oTriangles, MeshIDs);
 		}
 
-		void ConstructHierarchy_StackBVH(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, Node* RootNode) {
+		void ConstructHierarchy_StackBVH(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Triangle>& oTriangles, const std::vector<int>& MeshIDs, Node* RootNode) {
 
 			bool DEBUG_BVH = false;
 
@@ -756,7 +759,7 @@ namespace Lumen {
 			FlattenedNodes.resize(LastNodeIndex + 1);
 
 			FlattenStackBVH(FlattenedNodes, RootNode);
-			GenerateTriangles(SortedReferences, OriginalIndices, oTriangles);
+			GenerateTriangles(SortedReferences, OriginalIndices, oTriangles, MeshIDs);
 		}
 
 
@@ -954,6 +957,7 @@ namespace Lumen {
 
 			// Combined vertices and indices  
 			std::vector<GLuint> MeshIndices; 
+			std::vector<int> MeshReferences; 
 
 			uint IndexOffset = 0;
 
@@ -965,6 +969,11 @@ namespace Lumen {
 				for (int x = 0; x < Indices.size(); x += 1)
 				{
 					MeshIndices.push_back(Indices.at(x) + IndexOffset);
+
+					if (x % 3 == 0)
+					{
+						MeshReferences.push_back(Mesh.GlobalMeshNumber);
+					}
 				}
 
 				for (int x = 0; x < Vertices.size(); x += 1) 
@@ -989,7 +998,7 @@ namespace Lumen {
 			RootNode.Length = Triangles - 1;
 			RootNode.IsLeftNode = false;
 
-			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, &RootNode);
+			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);
 			PrintShit(object, FlattenedNodes.size(), MeshVertices, FlattenedTris);
 
 			return RootNodePtr;
@@ -1009,6 +1018,7 @@ namespace Lumen {
 
 			// Combined vertices and indices  
 			std::vector<GLuint> MeshIndices;
+			std::vector<int> MeshReferences;
 
 			uint IndexOffset = 0;
 
@@ -1020,6 +1030,10 @@ namespace Lumen {
 				for (int x = 0; x < Indices.size(); x += 1)
 				{
 					MeshIndices.push_back(Indices.at(x) + IndexOffset);
+
+					if (x % 3 == 0) {
+						MeshReferences.push_back(Mesh.GlobalMeshNumber);
+					}
 				}
 
 				for (int x = 0; x < Vertices.size(); x += 1)
@@ -1044,16 +1058,13 @@ namespace Lumen {
 			RootNode.Length = Triangles - 1;
 			RootNode.IsLeftNode = false;
 
-			ConstructHierarchy_StackBVH(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, &RootNode);
+			ConstructHierarchy_StackBVH(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);
 			PrintShit(object, FlattenedNodes.size(), MeshVertices, FlattenedTris);
 
 			return RootNodePtr;
 		}
 
-
-
-
-
+		 
 		/*
 
 		// Flattening from PBRT

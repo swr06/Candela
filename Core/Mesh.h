@@ -50,6 +50,7 @@ namespace Lumen
 		glm::vec4 m_Color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 		std::string m_Name = std::string("");
 		const uint32_t m_MeshNumber;
+		int GlobalMeshNumber = 0;
 
 
 		bool Deleted = false;

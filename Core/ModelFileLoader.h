@@ -16,6 +16,12 @@ namespace Lumen
 {
 	namespace FileLoader
 	{
+		struct _TexturePaths {
+			std::string Albedo;
+			std::string Normal;
+		};
+
 		void LoadModelFile(Object* object, const std::string& filepath);
+		std::vector<_TexturePaths> GetMeshTexturePaths();
 	}
 }

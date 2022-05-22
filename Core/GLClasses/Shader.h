@@ -69,6 +69,9 @@ namespace GLClasses
 		void SetIntegerArray(const std::string& name, const GLint* value, GLsizei count, GLboolean useShader = GL_FALSE);
 		void SetTextureArray(const std::string& name, const GLuint first, const GLuint count, GLboolean useShader = GL_FALSE);
 		void BindUBOToBindingPoint(const std::string& name, int idx);
+		GLuint FetchUniformLocation(const std::string& name);
+
+		GLuint GetProgram() { return m_Program; }
 
 	 private:
 

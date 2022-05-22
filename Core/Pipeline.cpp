@@ -215,34 +215,31 @@ void Lumen::StartPipeline()
 	app.SetCursorLocked(true);
 
 	// Scene setup 
-	//Object Sponza;
+	Object Sponza;
 	Object Mitsuba;
-	Object Dragon;
+	//Object Dragon;
 
-	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
-	//FileLoader::LoadModelFile(&Sponza,  "Models/cornell/CornellBox-Sphere.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/cornell/CornellBox.obj");
-
-	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
-	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+	//FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
 
 	Intersector.Initialize();
 
-	//Intersector.AddObject(Sponza);
+	Intersector.AddObject(Sponza);
 	Intersector.AddObject(Mitsuba);
-	Intersector.AddObject(Dragon);
-
+	//Intersector.AddObject(Dragon);
+	
 	Intersector.BufferData();
 
+	Intersector.GenerateMeshTextureReferences();
 
-	//Entity SponzaEntity(&Sponza);
+
+	Entity SponzaEntity(&Sponza);
 	Entity MitsubaEntity(&Mitsuba);
-	Entity DragonEntity(&Dragon);
+	//Entity DragonEntity(&Dragon);
 
-
-	std::vector<Entity*> EntityRenderList = { &DragonEntity, &MitsubaEntity };
+	std::vector<Entity*> EntityRenderList = { &SponzaEntity, &MitsubaEntity };
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
@@ -310,7 +307,7 @@ void Lumen::StartPipeline()
 			RenderShadowMap(Shadowmap, SunDirection, EntityRenderList, Camera.GetViewProjection());
 		}
 
-		DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
+		//DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
 
 		// Render GBuffer
 		glEnable(GL_CULL_FACE);

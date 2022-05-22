@@ -11,6 +11,21 @@ namespace GLClasses
 {
 	using namespace std;
 
+	struct _TextureCacheEntry
+	{
+		std::string path;
+		GLuint id;
+		GLuint64 handle;
+
+		int width;
+		int height;
+		int bpp;
+		GLenum intformat;
+		GLenum type;
+
+		int id_;
+	};
+
 	struct ExtractedImageData
 	{
 		unsigned char* image_data;
@@ -122,7 +137,11 @@ namespace GLClasses
 		GLuint m_Texture = 0;
 		GLenum m_type;
 		string m_path;
+		GLuint64 m_TextureHandle = 0;
 	};
 
 	ExtractedImageData ExtractTextureData(const std::string& path);
+
+	GLuint GetTextureIDForPath(const std::string& path);
+	_TextureCacheEntry GetTextureCachedDataForPath(const std::string& path, bool&);
 }

@@ -2,21 +2,14 @@
 
 #include <fstream>
 
+#include <iostream>
+
 namespace GLClasses
 {
-	struct TextureMapData
-	{
-		std::string path;
-		GLuint id;
+	static int LastID = 0;
 
-		int width;
-		int height;
-		int bpp;
-		GLenum intformat; 
-		GLenum type;
-	};
-
-	std::unordered_map<std::string, TextureMapData> CreatedTextures;
+	std::unordered_map<std::string, _TextureCacheEntry> CreatedTextures;
+	std::vector<_TextureCacheEntry> CreatedTexturesArray;
 
 	static bool FileExists(const std::string& str) {
 		std::ifstream file(str);
@@ -65,6 +58,7 @@ namespace GLClasses
 
 			glTexParameteri(type, GL_TEXTURE_MIN_FILTER, mipmap ? GL_LINEAR_MIPMAP_LINEAR : min_filter);
 			glTexParameteri(type, GL_TEXTURE_MAG_FILTER, mag_filter);
+			
 
 			if (mipmap) {
 				GLfloat value, max_anisotropy = 8.0f; 
@@ -95,20 +89,18 @@ namespace GLClasses
 
 			if (image)
 			{
+				_TextureCacheEntry data =
 				{
-					TextureMapData data =
-					{
-						path,
-						m_Texture,
-						m_width,
-						m_height,
-						m_BPP,
-						internalformat,
-						type,
-					};
+					path,
+					m_Texture, m_TextureHandle,
+					m_width,
+					m_height,
+					m_BPP,
+					internalformat,
+					type, LastID
+				};
 
-					CreatedTextures[path] = data;
-				}
+				LastID += 1;
 
 				glTexImage2D(type, 0, _internalformat, m_width, m_height, 0, internalformat, GL_UNSIGNED_BYTE, image);
 				
@@ -121,19 +113,32 @@ namespace GLClasses
 				{
 					stbi_image_free(image);
 				}
+
+				// texture handle generate mado
+				m_TextureHandle = glGetTextureHandleARB(m_Texture);
+				glMakeTextureHandleResidentARB(m_TextureHandle);
+				
+				data.handle = m_TextureHandle;
+
+				CreatedTextures[path] = data;
+
+				CreatedTexturesArray.push_back(data);
 			}
 		}
 
 		else
 		{
-			const TextureMapData& tex = CreatedTextures.at(path);
+			const _TextureCacheEntry& tex = CreatedTextures.at(path);
 			m_Texture = tex.id;
 			m_BPP = tex.bpp;
 			m_path = tex.path;
 			m_width = tex.width;
 			m_height = tex.height;
 			m_intformat = tex.intformat;
+			m_TextureHandle = tex.handle;
 		}
+
+		
 	}
 
 	ExtractedImageData ExtractTextureData(const std::string& path)
@@ -142,5 +147,40 @@ namespace GLClasses
 
 		return_val.image_data = stbi_load(path.c_str(), &return_val.width, &return_val.height, &return_val.channels, 0);
 		return return_val;
+	}
+
+	GLuint GetTextureIDForPath(const std::string& path)
+	{
+		auto exists = CreatedTextures.find(path);
+
+		if (exists == CreatedTextures.end()) {
+			return 0;
+		}
+
+		const _TextureCacheEntry& tex = CreatedTextures.at(path);
+
+		return tex.id;
+	}
+
+	_TextureCacheEntry GetTextureCachedDataForPath(const std::string& path, bool& valid)
+	{
+		valid = true;
+
+		auto exists = CreatedTextures.find(path);
+
+		if (exists == CreatedTextures.end()) {
+			//throw "wtf";
+
+			valid = false;
+
+			for (auto& e : CreatedTextures) {
+				return e.second;
+			}
+
+		}
+
+		const _TextureCacheEntry& tex = CreatedTextures.at(path);
+
+		return tex;
 	}
 }

@@ -14,7 +14,20 @@
 
 #include "../GLClasses/ComputeShader.h"
 
+#include "../ModelFileLoader.h"
+
+#include "../GLClasses/Texture.h"
+
+#include <map>
+
 namespace Lumen {
+
+	namespace BVH {
+		struct TextureReferences {
+			int Albedo;
+			int Normal;
+		};
+	}
 
 	struct BVHEntity {
 		glm::mat4 ModelMatrix; // 64
@@ -47,12 +60,20 @@ namespace Lumen {
 		void BufferData();
 		void Recompile();
 
+		void GenerateMeshTextureReferences();
+
+
 		GLuint m_BVHTriSSBO = 0;
 		GLuint m_BVHNodeSSBO = 0;
 		GLuint m_BVHVerticesSSBO = 0;
 		GLuint m_BVHEntitiesSSBO = 0;
+		GLuint m_BVHTextureReferencesSSBO = 0;
+
+
 
 	private : 
+
+		GLuint m_TextureReferences = 0;
 
 		std::vector<BVH::FlattenedStackNode> m_BVHNodes;
 		std::vector<Vertex> m_BVHVertices;
@@ -69,6 +90,9 @@ namespace Lumen {
 		int m_EntityPushed = 0;
 
 		int m_NodeCountBuffered = 0;
+
+		std::vector<BVH::TextureReferences> m_MeshTextureReferences;
+		std::map<GLuint64, int> m_TextureHandleReferenceMap;
 	};
 
 
