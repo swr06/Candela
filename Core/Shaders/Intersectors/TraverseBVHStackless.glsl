@@ -1,25 +1,32 @@
-#version 430 core
+#version 450 core
+
+#extension GL_ARB_bindless_texture : require
+
+
+#extension GL_ARB_bindless_texture : enable
+
+
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 
-uniform vec3 u_ViewerPosition;
-uniform vec3 u_LightDirection;
+layout(bindless_sampler) uniform sampler2D Textures[32];
+
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
 uniform mat4 u_Projection;
 uniform mat4 u_View;
-uniform mat4 u_LightVP;
+
 uniform vec2 u_Dims;
 
-uniform int u_NodeCount;
+uniform int u_EntityCount; 
+
+uniform int u_TotalNodes;
 
 const float INFINITY = 1.0f / 0.0f;
 const float INF = INFINITY;
 const float EPS = 0.001f;
-
-vec3 DEBUG_COLOR = vec3(0.,1.,0.);
 
 // 32 bytes 
 struct Vertex {
@@ -29,20 +36,25 @@ struct Vertex {
 
 // 16 bytes 
 struct Triangle {
-    ivec4 Packed; // Contains packed indices and triangle index
+    int Packed[8]; // Contains packed data 
 };
 
-// 32 bytes 
-// W Component has packed data 
 struct Node {
     vec4 Min; // W component contains packed links
     vec4 Max; // W component contains packed leaf data 
 };
 
-// Struct used by the intersection stack
-struct StackNode {
-	int Node; // <- Node pointer 
-	float Traversal; // <- You can skip nodes if the traversal is > than the max one found 
+struct BVHEntity {
+	mat4 ModelMatrix; // 64
+	mat4 InverseMatrix; // 64
+	int NodeOffset;
+	int NodeCount;
+    int Padding[14];
+};
+
+struct TextureReferences {
+    int Albedo;
+    int Normal;
 };
 
 // SSBOs
@@ -56,6 +68,14 @@ layout (std430, binding = 1) buffer SSBO_BVHTris {
 
 layout (std430, binding = 2) buffer SSBO_BVHNodes {
 	Node BVHNodes[];
+};
+
+layout (std430, binding = 3) buffer SSBO_Entities {
+	BVHEntity BVHEntities[];
+};
+
+layout (std430, binding = 4) buffer SSBO_TextureReferences {
+    TextureReferences BVHTextureReferences[];
 };
 
 float max3(vec3 val) 
@@ -156,7 +176,7 @@ bool IntersectTriangleP(vec3 r0, vec3 rD, in vec3 v1, in vec3 v2, in vec3 v3, fl
     }
 }
 
-vec3 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection) {
+vec4 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, float TMax) {
 
     vec3 InverseDirection = 1.0f / RayDirection;
 
@@ -164,13 +184,18 @@ vec3 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection) {
 
     const int MaxIterations = 1024;
 
-    int Pointer = 0;
-
-    float TMax = 1000000.0f;
+    int Pointer = NodeStartIndex;
 
     vec3 ClosestIntersect = vec3(-1.0f);
 
-    while (Pointer >= 0 && Iterations < MaxIterations && Pointer < u_NodeCount) {
+    int Mesh = -1;
+
+    while (Pointer >= 0 && Iterations < MaxIterations) {
+
+        if (Pointer < NodeStartIndex || Pointer > NodeStartIndex+NodeCount || Pointer < 0 || Pointer > u_TotalNodes)
+        {
+            break;
+        }
 
         Iterations++;
 
@@ -201,11 +226,18 @@ vec3 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection) {
                     {
                         TMax = Intersect.x;
                         ClosestIntersect = Intersect;
+                        Mesh = triangle.Packed[4];
                     }
                 }
                 
 
                 Pointer = (floatBitsToInt(CurrentNode.Max.w));
+
+                if (Pointer < 0) {
+                   break;
+                }
+
+                Pointer += NodeStartIndex;
                 continue;
             }
 
@@ -220,6 +252,13 @@ vec3 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection) {
         else {
 
              Pointer = (floatBitsToInt(CurrentNode.Max.w));
+
+             if (Pointer < 0) {
+                break;
+             }
+
+             Pointer += NodeStartIndex;
+
              continue;
         }
 
@@ -228,14 +267,44 @@ vec3 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection) {
         }
     }
 
-    return vec3(Iterations / 512.0f) * 2.;
-
     if (ClosestIntersect.x > 0.0f) {
-         return ClosestIntersect;
-         //return vec3(Iterations / 512.0f);
+         return vec4(ClosestIntersect, intBitsToFloat(Mesh));
     }
 
-    return vec3(Iterations / 1024.0f);
+    return vec4(vec3(-1.), intBitsToFloat(-1));
+}
+
+vec3 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh) {
+
+    vec4 FinalIntersect = vec4(vec3(-1.0f), intBitsToFloat(-1));
+
+    float TMax = 10000000.0f;
+
+    for (int i = 0 ; i < u_EntityCount ; i++)
+    {
+        vec4 Intersect = IntersectBVHStackless(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax);
+
+        if (Intersect.x > 0.0f && Intersect.x < TMax) {
+            TMax = Intersect.x;
+            FinalIntersect = Intersect;
+        }
+
+    }
+
+    Mesh = floatBitsToInt(FinalIntersect.w);
+
+    return FinalIntersect.yzx;
+}
+
+vec3 GetAlbedo(in const vec3 UVT, in const int Mesh) {
+
+    int Ref = BVHTextureReferences[Mesh].Albedo;
+
+    if (Ref > -1 && Mesh > -1) {
+        return texture(Textures[Ref], UVT.xy).xyz; 
+    }
+
+    return vec3(0.0f);
 }
 
 void main() {
@@ -247,7 +316,12 @@ void main() {
 	vec3 rO = u_InverseView[3].xyz;
 
 	float s = 1.0f;
+
+    int IntersectedMesh = -1;
 	
-	vec3 o_Color = IntersectBVHStackless(rO, rD);
+	vec3 UVW = IntersectScene(rO, rD, IntersectedMesh);
+    
+    vec3 o_Color = GetAlbedo(UVW, IntersectedMesh);
+
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }

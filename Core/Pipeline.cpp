@@ -21,7 +21,7 @@
 
 #include "BVH/Intersector.h"
 
-Lumen::RayIntersector Intersector;
+Lumen::RayIntersector<Lumen::BVH::FlattenedNode> Intersector;
 
 Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f);
 

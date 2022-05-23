@@ -171,7 +171,7 @@ bool IsLeaf(in Bounds x) {
     return floatBitsToInt(x.Min.w) != -1;
 }
 
-vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix) {
+vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, float TMax) {
 
     const bool IntersectTriangles = true;
 
@@ -186,7 +186,6 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
 	int StackPointer = 0;
 
     // Intersections 
-    float TMax = 100000.0f;
     vec3 Intersection = vec3(-1.0f);
     int IntersectMesh = -1;
 
@@ -335,7 +334,7 @@ vec3 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh) {
 
     for (int i = 0 ; i < u_EntityCount ; i++)
     {
-        vec4 Intersect = IntersectBVHStack(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix);
+        vec4 Intersect = IntersectBVHStack(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax);
 
         if (Intersect.x > 0.0f && Intersect.x < TMax) {
             TMax = Intersect.x;
