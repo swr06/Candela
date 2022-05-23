@@ -1,11 +1,5 @@
 #pragma once
 
-/*
-
-VERY WIP !
-
-*/
-
 #include <iostream>
 #include <vector>
 
