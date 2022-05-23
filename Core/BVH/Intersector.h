@@ -96,6 +96,9 @@ namespace Lumen {
 
 		std::vector<BVH::TextureReferences> m_MeshTextureReferences;
 		std::map<GLuint64, int> m_TextureHandleReferenceMap;
+
+
+		void _BindTextures();
 	};
 
 }
@@ -173,6 +176,10 @@ void Lumen::RayIntersector<T>::AddObject(const Object& object)
 template<typename T>
 void Lumen::RayIntersector<T>::PushEntity(const Entity& entity)
 {
+	if (m_ObjectData.find((int)entity.m_Object->m_ObjectID) == m_ObjectData.end()) {
+		throw "Trying to push entity whose parent object hasn't been added to global BVH";
+	}
+
 	BVHEntity push;
 	push.ModelMatrix = entity.m_Model;
 	push.InverseMatrix = glm::inverse(entity.m_Model);
@@ -217,7 +224,6 @@ void Lumen::RayIntersector<T>::Intersect(GLuint OutputBuffer, int Width, int Hei
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_BVHEntitiesSSBO);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_BVHTextureReferencesSSBO);
 
-
 	glBindImageTexture(0, OutputBuffer, 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 
 	TraceShader.SetVector2f("u_Dims", glm::vec2(Width, Height));
@@ -225,13 +231,6 @@ void Lumen::RayIntersector<T>::Intersect(GLuint OutputBuffer, int Width, int Hei
 	TraceShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
 	TraceShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
 	TraceShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
-
-	// Bind, bindless textures (ironic, I know.)
-	for (auto& e : m_TextureHandleReferenceMap)
-	{
-		std::string Name = "Textures[" + std::to_string(e.second) + "]";
-		glProgramUniformHandleui64ARB(TraceShader.GetProgram(), TraceShader.FetchUniformLocation(Name), e.first);
-	}
 
 	// verify
 	TraceShader.SetInteger("u_EntityCount", m_EntityPushed);
@@ -296,7 +295,6 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 
 	for (int i = 0; i < Paths.size(); i++) {
 
-
 		GLuint64 a = GLClasses::GetTextureCachedDataForPath(Paths[i].Albedo, Valid[0]).handle;
 		GLuint64 b = GLClasses::GetTextureCachedDataForPath(Paths[i].Normal, Valid[1]).handle;
 
@@ -314,7 +312,6 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 		m_MeshTextureReferences.push_back({ Write[0], Write[1] });
 	}
 
-
 	glDeleteBuffers(1, &m_BVHTextureReferencesSSBO);
 
 	glGenBuffers(1, &m_BVHTextureReferencesSSBO);
@@ -322,4 +319,21 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BVH::TextureReferences) * m_MeshTextureReferences.size(), m_MeshTextureReferences.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	_BindTextures();
+
+}
+
+template<typename T>
+inline void Lumen::RayIntersector<T>::_BindTextures()
+{
+	TraceShader.Use();
+	
+	// Bind, bindless textures (ironic, I know.)
+	for (auto& e : m_TextureHandleReferenceMap)
+	{
+		std::string Name = "Textures[" + std::to_string(e.second) + "]";
+		glProgramUniformHandleui64ARB(TraceShader.GetProgram(), TraceShader.FetchUniformLocation(Name), e.first);
+	}
+
+	glUseProgram(0);
 }

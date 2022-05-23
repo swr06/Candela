@@ -995,7 +995,7 @@ namespace Lumen {
 			RootNode.LeftChildPtr = nullptr;
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;
-			RootNode.Length = Triangles - 1;
+			RootNode.Length = Triangles;
 			RootNode.IsLeftNode = false;
 
 			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);
@@ -1055,7 +1055,7 @@ namespace Lumen {
 			RootNode.LeftChildPtr = nullptr;
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;
-			RootNode.Length = Triangles - 1;
+			RootNode.Length = Triangles;
 			RootNode.IsLeftNode = false;
 
 			ConstructHierarchy_StackBVH(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);

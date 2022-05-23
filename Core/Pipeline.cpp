@@ -21,7 +21,7 @@
 
 #include "BVH/Intersector.h"
 
-Lumen::RayIntersector<Lumen::BVH::FlattenedNode> Intersector;
+Lumen::RayIntersector<Lumen::BVH::FlattenedStackNode> Intersector;
 
 Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f);
 
@@ -216,19 +216,19 @@ void Lumen::StartPipeline()
 
 	// Scene setup 
 	Object Sponza;
-	Object Mitsuba;
-	//Object Dragon;
+	//Object Mitsuba;
+	Object Dragon;
 
 	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
-	FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
-	//FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+	//FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
+	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
 
 	Intersector.Initialize();
 
 	Intersector.AddObject(Sponza);
-	Intersector.AddObject(Mitsuba);
-	//Intersector.AddObject(Dragon);
+	//Intersector.AddObject(Mitsuba);
+	Intersector.AddObject(Dragon);
 	
 	Intersector.BufferData();
 
@@ -236,10 +236,10 @@ void Lumen::StartPipeline()
 
 
 	Entity SponzaEntity(&Sponza);
-	Entity MitsubaEntity(&Mitsuba);
-	//Entity DragonEntity(&Dragon);
+	//Entity MitsubaEntity(&Mitsuba);
+	Entity DragonEntity(&Dragon);
 
-	std::vector<Entity*> EntityRenderList = { &SponzaEntity, &MitsubaEntity };
+	std::vector<Entity*> EntityRenderList = { &DragonEntity, &SponzaEntity };
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
@@ -307,7 +307,7 @@ void Lumen::StartPipeline()
 			RenderShadowMap(Shadowmap, SunDirection, EntityRenderList, Camera.GetViewProjection());
 		}
 
-		//DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
+		DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
 
 		// Render GBuffer
 		glEnable(GL_CULL_FACE);

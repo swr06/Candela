@@ -171,7 +171,25 @@ bool IsLeaf(in Bounds x) {
     return floatBitsToInt(x.Min.w) != -1;
 }
 
-vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, float TMax) {
+vec3 ComputeBarycentrics(vec3 p, vec3 a, vec3 b, vec3 c)
+{
+    float u, v, w;
+
+	vec3 v0 = b - a, v1 = c - a, v2 = p - a;
+	float d00 = dot(v0, v0);
+	float d01 = dot(v0, v1);
+	float d11 = dot(v1, v1);
+	float d20 = dot(v2, v0);
+	float d21 = dot(v2, v1);
+	float denom = d00 * d11 - d01 * d01;
+	v = (d11 * d20 - d01 * d21) / denom;
+	w = (d00 * d21 - d01 * d20) / denom;
+	u = 1.0f - v - w;
+
+    return vec3(u,v,w);
+}
+
+vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, float TMax, out int oMesh, out int oTriangleIndex) {
 
     const bool IntersectTriangles = true;
 
@@ -186,8 +204,9 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
 	int StackPointer = 0;
 
     // Intersections 
-    vec3 Intersection = vec3(-1.0f);
+    float ClosestTraversal = -1.0f;
     int IntersectMesh = -1;
+    int IntersectTriangleIdx = -1;
 
     // Misc 
 	int Iterations = 0;
@@ -244,8 +263,9 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 if (Intersect.x > 0.0f && Intersect.x < TMax)
                 {
                     TMax = Intersect.x;
-                    Intersection = Intersect;
+                    ClosestTraversal = Intersect.x;
                     IntersectMesh = triangle.Packed[4];
+                    IntersectTriangleIdx = Idx + StartIdx;
                 }
             }
 
@@ -273,8 +293,9 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 if (Intersect.x > 0.0f && Intersect.x < TMax)
                 {
                     TMax = Intersect.x;
-                    Intersection = Intersect;
+                    ClosestTraversal = Intersect.x;
                     IntersectMesh = triangle.Packed[4];
+                    IntersectTriangleIdx = Idx + StartIdx;
                 }
             }
         }
@@ -319,41 +340,68 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
         CurrentNodeIndex = Stack[--StackPointer];
 	}
 
-    if (Intersection.x > 0.) {
-        return vec4(Intersection.xyz, intBitsToFloat(IntersectMesh));
+    oMesh = IntersectMesh;
+    oTriangleIndex = IntersectTriangleIdx;
+
+    if (ClosestTraversal > 0.0f && IntersectTriangleIdx > 0) {
+
+         Triangle triangle = BVHTris[IntersectTriangleIdx];
+         
+         const vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
+         const vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
+         const vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+
+         return vec4(ClosestTraversal, ComputeBarycentrics(RayOrigin + RayDirection * ClosestTraversal, VertexA, VertexB, VertexC));
     }
 
-    return vec4(vec3(-1.), intBitsToFloat(IntersectMesh));
+    return vec4(vec3(-1.), -1.);
 }
 
-vec3 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh) {
+vec4 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh, out int TriangleIdx) {
 
     vec4 FinalIntersect = vec4(vec3(-1.0f), intBitsToFloat(-1));
 
     float TMax = 1000000.0f;
 
+    int Mesh_ = -1;
+    int Tri_ = -1;
+
     for (int i = 0 ; i < u_EntityCount ; i++)
     {
-        vec4 Intersect = IntersectBVHStack(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax);
+        vec4 Intersect = IntersectBVHStack(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax, Mesh_, Tri_);
 
         if (Intersect.x > 0.0f && Intersect.x < TMax) {
             TMax = Intersect.x;
             FinalIntersect = Intersect;
+            Mesh = Mesh_;
+            TriangleIdx = Tri_;
         }
 
     }
 
-    Mesh = floatBitsToInt(FinalIntersect.w);
-
-    return FinalIntersect.yzx;
+    return FinalIntersect;
 }
 
-vec3 GetAlbedo(in const vec3 UVT, in const int Mesh) {
+vec3 UnpackNormal(in const uvec2 Packed) {
+    
+    return vec3(unpackHalf2x16(Packed.x).xy, unpackHalf2x16(Packed.y).x);
+}
+
+vec3 GetAlbedo(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex) {
+
+    Triangle triangle = BVHTris[TriangleIndex];
+
+    Vertex A = BVHVertices[triangle.Packed[0]];
+    Vertex B = BVHVertices[triangle.Packed[1]];
+    Vertex C = BVHVertices[triangle.Packed[2]];
+
+    vec2 UV = (unpackHalf2x16(A.PackedData.w) * TUVW.y) + (unpackHalf2x16(B.PackedData.w) * TUVW.z) + (unpackHalf2x16(C.PackedData.w) * TUVW.w);
+    vec3 MeshNormal = normalize((UnpackNormal(A.PackedData.xy) * TUVW.y) + (UnpackNormal(B.PackedData.xy) * TUVW.z) + (UnpackNormal(C.PackedData.xy) * TUVW.w));
 
     int Ref = BVHTextureReferences[Mesh].Albedo;
 
-    if (Ref > -1 && Mesh > -1) {
-        return texture(Textures[Ref], UVT.xy).xyz; 
+    if (Ref > -1 && Mesh > -1 && TUVW.x > 0.) {
+        return texture(Textures[Ref], UV.xy).xyz; 
     }
 
     return vec3(0.0f);
@@ -370,10 +418,11 @@ void main() {
 	float s = 1.0f;
 
     int IntersectedMesh = -1;
+    int TriIdx = -1;
 	
-	vec3 UVW = IntersectScene(rO, rD, IntersectedMesh);
+	vec4 TUVW = IntersectScene(rO, rD, IntersectedMesh, TriIdx);
     
-    vec3 o_Color = GetAlbedo(UVW, IntersectedMesh);
+    vec3 o_Color = GetAlbedo(TUVW, IntersectedMesh, TriIdx);
 
 	imageStore(o_OutputData, Pixel, vec4(o_Color, 1.0f));
 }
