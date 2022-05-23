@@ -25,10 +25,15 @@
 namespace Lumen {
 
 	namespace BVH {
+
+
 		struct TextureReferences {
 			int Albedo;
 			int Normal;
 		};
+
+		typedef FlattenedNode StacklessTraversalNode;
+		typedef FlattenedStackNode StackTraversalNode;
 	}
 
 	struct BVHEntity {

@@ -440,7 +440,7 @@ namespace Lumen {
 
 				TotalIterations++;
 
-				if (TotalIterations % 64 == 0) {
+				if (TotalIterations % 256 == 0) {
 					std::cout << "\nBVH Iteration : " << TotalIterations;
 				}
 
