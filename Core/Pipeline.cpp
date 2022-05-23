@@ -221,6 +221,7 @@ void Lumen::StartPipeline()
 
 	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	//FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
 
@@ -239,7 +240,7 @@ void Lumen::StartPipeline()
 	//Entity MitsubaEntity(&Mitsuba);
 	Entity DragonEntity(&Dragon);
 
-	std::vector<Entity*> EntityRenderList = { &DragonEntity, &SponzaEntity };
+	std::vector<Entity*> EntityRenderList = { &SponzaEntity };
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;

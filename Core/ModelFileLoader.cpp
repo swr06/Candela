@@ -218,6 +218,8 @@ namespace Lumen
 		void LoadModelFile(Object* object, const std::string& filepath)
 		{
 
+			object->Path = filepath;
+
 			if (filepath.find("glb") != std::string::npos || filepath.find("gltf") != std::string::npos)
 			{
 				is_gltf = true;

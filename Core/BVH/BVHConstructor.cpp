@@ -29,6 +29,9 @@
 #include <stack>
 #include <iostream>
 #include <queue>
+#include <chrono>
+
+#include <random>
 
 namespace Lumen {
 	namespace BVH {
@@ -59,6 +62,8 @@ namespace Lumen {
 		static uint MaxBVHDepth = 0;
 
 		static int TriangleOffset_ = 0;
+
+		static bool UsesStackless = false;
 
 		// Processing bin
 		class Bin {
@@ -379,10 +384,11 @@ namespace Lumen {
 
 		void ConstructTree(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<Triangle>& oTriangles, Node* RootNode, std::vector<int>& TriangleReferences, std::vector<int>& SortedTriangleReferences) {
 
-			srand(10238);
-			rand();
-			rand();
-			rand();
+			int StatusFrequency = (OriginalIndices.size()) / 192;
+
+			std::random_device dev;
+			std::mt19937 rng(dev());
+			std::uniform_int_distribution<std::mt19937::result_type> Distribution(1, 4);
 
 			uint TriangleCountTotal = OriginalIndices.size() / 3;
 
@@ -440,7 +446,7 @@ namespace Lumen {
 
 				TotalIterations++;
 
-				if (TotalIterations % 256 == 0) {
+				if (TotalIterations % StatusFrequency == 0) {
 					std::cout << "\nBVH Iteration : " << TotalIterations;
 				}
 
@@ -590,13 +596,15 @@ namespace Lumen {
 				LeftNode.NodeBounds = Bounds(LeftMin, LeftMax);
 				RightNode.NodeBounds = Bounds(RightMin, RightMax);
 
-				if (OPTIMIZE_FOR_AVERAGE_CASE) {
-					int RandomShuffle = rand() % 4;
+				if (OPTIMIZE_FOR_AVERAGE_CASE && UsesStackless) {
 
-					if (RandomShuffle < 2) {
-						auto* Temp = LeftNodePtr;
+					uint32_t Hash = static_cast<uint32_t>(Distribution(rng));
+
+					// Swap left and right children randomly
+					if (Hash <= 2) {
+						Node* TempPtr = LeftNodePtr;
 						LeftNodePtr = RightNodePtr;
-						RightNodePtr = Temp;
+						RightNodePtr = TempPtr;
 					}
 				}
 
@@ -940,20 +948,33 @@ namespace Lumen {
 			std::cout << "\nMax Depth : " << MaxBVHDepth;
 			std::cout << "\nNode Array Length : " << FlattenedArraySize;
 			std::cout << "\nVertices Array Length : " << MeshVertices.size();
-			std::cout << "\n\n\n";
 
 		}
 
 
 		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris, int t_offset)
 		{
+			auto start = std::chrono::system_clock::now();
+
 			TotalIterations = 0;
 			LastNodeIndex = 0;
+			LeafNodeCount = 0;
+			SplitFails = 0;
+			MaxBVHDepth = 0;
 			TriangleOffset_ = t_offset;
-				
-			// First, generate triangles from vertices to make everything easier to work with 
+			UsesStackless = true;
 
-			std::cout << "\nGenerating Combined Mesh Vertices/Indices..";
+			// Model path
+			std::string filename = object.Path;
+			size_t Idx = filename.find_last_of("\\/");
+			if (std::string::npos != Idx)
+			{
+				filename.erase(0, Idx + 1);
+			}
+
+			std::cout << "\n--------";
+			std::cout << "\n\nGenerating BVH for Object : " << object.m_ObjectID << "    Model filename : " << filename << "\n";
+
 
 			// Combined vertices and indices  
 			std::vector<GLuint> MeshIndices; 
@@ -984,7 +1005,6 @@ namespace Lumen {
 				IndexOffset += Vertices.size();
 			}
 
-			std::cout << "\nGenerated!";
 
 			uint Triangles = MeshIndices.size() / 3;
 
@@ -1001,6 +1021,14 @@ namespace Lumen {
 			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);
 			PrintShit(object, FlattenedNodes.size(), MeshVertices, FlattenedTris);
 
+			auto end = std::chrono::system_clock::now();
+			auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+			auto elapsseds = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+
+			std::cout << "\n" << "Time Taken : " << elapsed.count() << " ms or " << float(elapsed.count()) / 1000.0f << " s" << "\n";
+			std::cout << "\n--------";
+			std::cout << "\n\n\n";
+
 			return RootNodePtr;
 		}
 
@@ -1008,13 +1036,27 @@ namespace Lumen {
 		
 		Node* BuildBVH(const Object& object, std::vector<FlattenedStackNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris, int t_offset)
 		{
+			auto start = std::chrono::system_clock::now();
+
 			TotalIterations = 0;
 			LastNodeIndex = 0;
+			LeafNodeCount = 0;
+			SplitFails = 0;
+			MaxBVHDepth = 0;
 			TriangleOffset_ = t_offset;
+			UsesStackless = false;
 
-			// First, generate triangles from vertices to make everything easier to work with 
+			// Model path
+			std::string filename = object.Path;
+			size_t Idx = filename.find_last_of("\\/");
+			if (std::string::npos != Idx)
+			{
+				filename.erase(0, Idx + 1);
+			}
 
-			std::cout << "\nGenerating Combined Mesh Vertices/Indices..";
+			std::cout << "\n--------";
+			std::cout << "\n\nGenerating BVH for Object : " << object.m_ObjectID << "    Model filename : " << filename << "\n";
+
 
 			// Combined vertices and indices  
 			std::vector<GLuint> MeshIndices;
@@ -1044,7 +1086,6 @@ namespace Lumen {
 				IndexOffset += Vertices.size();
 			}
 
-			std::cout << "\nGenerated!";
 
 			uint Triangles = MeshIndices.size() / 3;
 
@@ -1060,6 +1101,14 @@ namespace Lumen {
 
 			ConstructHierarchy_StackBVH(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);
 			PrintShit(object, FlattenedNodes.size(), MeshVertices, FlattenedTris);
+
+			auto end = std::chrono::system_clock::now();
+			auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+			auto elapsseds = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+
+			std::cout << "\n" << "Time Taken : " << elapsed.count() << " ms or " << float(elapsed.count())/1000.0f << " s" << "\n";
+			std::cout << "\n--------";
+			std::cout << "\n\n\n";
 
 			return RootNodePtr;
 		}

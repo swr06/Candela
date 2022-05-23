@@ -322,5 +322,11 @@
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackless.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors</Filter>
     </None>
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStacklessShadow.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors</Filter>
+    </None>
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStackShadow.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors</Filter>
+    </None>
   </ItemGroup>
 </Project>

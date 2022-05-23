@@ -242,6 +242,8 @@
     <None Include="Core\Shaders\GeometryVert.glsl" />
     <None Include="Core\Shaders\Intersectors\TraverseBVHStack.glsl" />
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackless.glsl" />
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStacklessShadow.glsl" />
+    <None Include="Core\Shaders\Intersectors\TraverseBVHStackShadow.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
   </ItemGroup>

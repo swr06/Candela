@@ -328,6 +328,8 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 
 }
 
+// TODO : Remove limit for textures 
+
 template<typename T>
 inline void Lumen::RayIntersector<T>::_BindTextures()
 {
