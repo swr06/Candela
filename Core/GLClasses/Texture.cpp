@@ -67,7 +67,9 @@ namespace GLClasses
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, value);
 			}
 
-			unsigned char* image = stbi_load(path.c_str(), &m_width, &m_height, &m_BPP, 0);
+			// Force 4 bytes per pixel 
+			unsigned char* image = stbi_load(path.c_str(), &m_width, &m_height, &m_BPP, 4);
+			m_BPP = 4;
 
 			if (m_BPP == 1)
 			{
