@@ -107,6 +107,7 @@ namespace Lumen {
 		std::vector<BVH::TextureReferences> m_MeshTextureReferences;
 		std::map<GLuint64, int> m_TextureHandleReferenceMap;
 
+		GLClasses::Texture m_MiscTex;
 
 		void _BindTextures();
 	};
@@ -141,6 +142,8 @@ Lumen::RayIntersector<T>::RayIntersector()
 template<typename T>
 void Lumen::RayIntersector<T>::Initialize()
 {
+	m_MiscTex.CreateTexture("Res/misc.png");
+
 	if (m_Stackless) {
 		TraceShader.CreateComputeShader("Core/Shaders/Intersectors/TraverseBVHStackless.glsl");
 	}
@@ -325,6 +328,7 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 	bool Valid[2];
 	int Write[2];
 
+	
 	for (int i = 0; i < Paths.size(); i++) {
 
 		GLuint64 a = GLClasses::GetTextureCachedDataForPath(Paths[i].Albedo, Valid[0]).handle;
@@ -351,7 +355,7 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BVH::TextureReferences) * m_MeshTextureReferences.size(), m_MeshTextureReferences.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	_BindTextures();
+	//_BindTextures();
 
 }
 
@@ -376,6 +380,15 @@ template<typename T>
 inline void Lumen::RayIntersector<T>::_BindTextures(GLClasses::ComputeShader& Shader)
 {
 	Shader.Use();
+
+	for (int i = 0; i < 512; i++) {
+
+		std::string Name = "Textures[" + std::to_string(i) + "]";
+		glProgramUniformHandleui64ARB(Shader.GetProgram(), Shader.FetchUniformLocation(Name), m_MiscTex.GetTextureID());
+
+	}
+
+
 
 	// Bind, bindless textures (ironic, I know.)
 	for (auto& e : m_TextureHandleReferenceMap)

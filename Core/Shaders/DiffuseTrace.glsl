@@ -13,6 +13,7 @@ uniform vec2 u_Dims;
 
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_NormalTexture;
+uniform samplerCube u_Skymap;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -46,7 +47,16 @@ void main() {
 
 	float Depth = texture(u_DepthTexture, TexCoords).x;
 
+	if (Depth > 0.999999f) {
+		imageStore(o_OutputData, Pixel, vec4(texture(u_Skymap, rD).xyz, 1.0f));
+		return;
+	}
+
 	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords);
+
+	vec3 Normal = normalize(texture(u_NormalTexture, TexCoords).xyz);
+
+	vec3 Reflected = reflect(rD, Normal);
 
 	float s = 1.0f;
 
@@ -54,9 +64,13 @@ void main() {
     int IntersectedTri = -1;
 	vec4 TUVW = vec4(-1.0f);
 	vec3 Albedo = vec3(0.0f);
-	vec3 Normal = vec3(-1.0f);
+	vec3 iNormal = vec3(-1.0f);
 	
-	IntersectRay(rO, rD, TUVW, IntersectedMesh, IntersectedTri, Albedo, Normal);
+	IntersectRay(WorldPosition + Normal * 0.1, Reflected, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
+
+	if (TUVW.x < 0.0f) {
+		Albedo = texture(u_Skymap,-Reflected).xyz;
+	}
 
 	imageStore(o_OutputData, Pixel, vec4(Albedo, 1.0f));
 }

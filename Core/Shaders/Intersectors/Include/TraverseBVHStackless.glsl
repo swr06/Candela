@@ -3,7 +3,7 @@
 #extension GL_ARB_bindless_texture : require
 #extension GL_ARB_bindless_texture : enable
 
-layout(bindless_sampler) uniform sampler2D Textures[32];
+layout(bindless_sampler) uniform sampler2D Textures[512];
 
 uniform int u_EntityCount; 
 uniform int u_TotalNodes;
@@ -174,6 +174,8 @@ vec4 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeS
 
     RayOrigin = vec3(InverseMatrix * vec4(RayOrigin.xyz, 1.0f));
     RayDirection = vec3(InverseMatrix * vec4(RayDirection.xyz, 0.0f));
+
+    RayDirection = normalize(RayDirection);
 
     vec3 InverseDirection = 1.0f / RayDirection;
 

@@ -23,16 +23,18 @@
 
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
-Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f);
+Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f, 0.2f, 4000.0f);
 
 static bool vsync = false;
 static bool mode = true;
 static float SunTick = 50.0f;
 static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
-static int x = 0;
 
 static glm::vec3 Position = glm::vec3(0.f);
 
+float Speed = 1.0f;
+
+GLClasses::ComputeShader DiffuseShader;
 
 class RayTracerApp : public Lumen::Application
 {
@@ -54,7 +56,7 @@ public:
 		glfwSwapInterval((int)vsync);
 
 		GLFWwindow* window = GetWindow();
-		float camera_speed = 0.25f * (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f);
+		float camera_speed = 0.25f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f) * Speed);
 
 		if (GetCursorLocked()) {
 			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -75,14 +77,6 @@ public:
 			if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 				Camera.ChangePosition(-(Camera.GetUp() * camera_speed));
 
-			if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-				x+= 4;
-
-			if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
-				x -= 4;
-				x = glm::max(0, x);
-			}
-
 		}
 	}
 
@@ -90,7 +84,7 @@ public:
 	{
 		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
-		ImGui::Text("Debuuug : %d", x);
+		ImGui::Text("Speed : %f", Speed);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &SunDirection[0], -1.0f, 1.0f);
 		ImGui::SliderFloat3("Position ", &Position[0], -24.f, 24.);
@@ -126,6 +120,7 @@ public:
 		{
 			Lumen::ShaderManager::RecompileShaders();
 			Intersector.Recompile();
+			DiffuseShader.Recompile();
 		}
 
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
@@ -140,13 +135,12 @@ public:
 
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_K && this->GetCurrentFrame() > 5)
 		{
-			x--;
-			x = glm::max(x, 0);
+			Speed += 0.1f;
 		}
 
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_L && this->GetCurrentFrame() > 5)
 		{
-			x++;
+			Speed -= 0.1f;
 		}
 
 	}
@@ -217,19 +211,19 @@ void Lumen::StartPipeline()
 	// Scene setup 
 	Object Sponza;
 	//Object Mitsuba;
-	Object Dragon;
+	//Object Dragon;
 
-	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	//FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
-	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+	FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
+	//FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
 
 	Intersector.Initialize();
 
 	Intersector.AddObject(Sponza);
 	//Intersector.AddObject(Mitsuba);
-	Intersector.AddObject(Dragon);
+	//Intersector.AddObject(Dragon);
 	
 	Intersector.BufferData();
 
@@ -237,8 +231,11 @@ void Lumen::StartPipeline()
 
 
 	Entity SponzaEntity(&Sponza);
+
+	SponzaEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+
 	//Entity MitsubaEntity(&Mitsuba);
-	Entity DragonEntity(&Dragon);
+	//Entity DragonEntity(&Dragon);
 
 	std::vector<Entity*> EntityRenderList = { &SponzaEntity };
 
@@ -287,7 +284,6 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
 	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE_FORWARD");
 
-	GLClasses::ComputeShader DiffuseShader;
 	DiffuseShader.CreateComputeShader("Core/Shaders/DiffuseTrace.glsl");
 	DiffuseShader.Compile();
 
@@ -312,10 +308,10 @@ void Lumen::StartPipeline()
 			RenderShadowMap(Shadowmap, SunDirection, EntityRenderList, Camera.GetViewProjection());
 		}
 
-		DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
+		//DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
 
 		// Render GBuffer
-		glEnable(GL_CULL_FACE);
+		glDisable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
 
 		GBuffer.Bind();
@@ -351,6 +347,7 @@ void Lumen::StartPipeline()
 
 		DiffuseShader.SetInteger("u_DepthTexture", 1);
 		DiffuseShader.SetInteger("u_NormalTexture", 2);
+		DiffuseShader.SetInteger("u_Skymap", 3);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -358,9 +355,13 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(1));
 
-		Intersector.BindEverything(DiffuseShader);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
 
+		Intersector.BindEverything(DiffuseShader);
 		glBindImageTexture(0, RayTraceOutput.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+
+
 		glDispatchCompute((int)floor(float(RayTraceOutput.GetWidth()) / 16.0f), (int)floor(float(RayTraceOutput.GetHeight())) / 16.0f, 1);
 
 
@@ -379,7 +380,6 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_BlueNoise", 5);
 		LightingShader.SetInteger("u_Skymap", 6);
 		LightingShader.SetInteger("u_Trace", 7);
-		LightingShader.SetInteger("u_x", x);
 		LightingShader.SetBool("u_Mode", mode);
 
 		LightingShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
