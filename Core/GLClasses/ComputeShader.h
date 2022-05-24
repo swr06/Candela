@@ -17,6 +17,8 @@
 
 #include "../Application/Logger.h"
 
+#include "stb_include.h"
+
 namespace GLClasses
 {
 	class ComputeShader

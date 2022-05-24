@@ -49,6 +49,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors">
       <UniqueIdentifier>{fc4e0e8f-77da-4800-b338-6c75823c8100}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\Include">
+      <UniqueIdentifier>{c8744664-ed5a-4686-b703-1b1b61ce5695}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -171,6 +174,9 @@
     <ClInclude Include="Core\BVH\Intersector.h">
       <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
     </ClInclude>
+    <ClInclude Include="Core\GLClasses\stb_include.h">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -281,6 +287,9 @@
     <ClCompile Include="Core\BVH\Intersector.cpp">
       <Filter>Source Files\Lumen\Lumen-Core\BVH</Filter>
     </ClCompile>
+    <ClCompile Include="Core\GLClasses\stb_include.cpp">
+      <Filter>Source Files\Lumen\GLClasses</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl">
@@ -315,6 +324,18 @@
     </None>
     <None Include="Core\Shaders\ProbeForwardVert.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\DiffuseTrace.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\TraverseBVH.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStack.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStackless.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\Include</Filter>
     </None>
     <None Include="Core\Shaders\Intersectors\TraverseBVHStack.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors</Filter>

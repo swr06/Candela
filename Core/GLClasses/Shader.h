@@ -44,7 +44,6 @@ namespace GLClasses
 
 		void CompileShaders();
 		void CreateShaderProgramFromFile(const std::string& vertex_pth, const std::string& fragment_pth, const std::string& geometry_path = "");
-		void CreateShaderProgramFromString(const std::string& vertex_data, const std::string& fragment_data, const std::string& geometry_data = "");
 		inline GLuint GetProgramID() const { return m_Program; };
 		
 		inline void Use() 

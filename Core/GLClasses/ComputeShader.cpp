@@ -36,6 +36,11 @@ namespace GLClasses
 			}
 
 			file.close();
+
+			char error[256];
+			char* ccode = stb_include_file((char*)path.c_str(), (char*)"", (char*)"Core/Shaders/", error);
+			m_ShaderContents = ccode;
+
 		}
 	}
 

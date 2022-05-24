@@ -20,7 +20,7 @@ in mat3 v_TBNMatrix;
 void main()
 {
 	o_Albedo = texture(u_AlbedoMap, v_TexCoords).xyz;
-	o_Normal = v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f);
+	o_Normal = v_Normal; v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f);
 
 	if (u_UsesGLTFPBR) {
 		o_PBR = vec3(texture(u_MetalnessRoughnessMap, v_TexCoords).yx, 1.0f);

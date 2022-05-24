@@ -287,6 +287,10 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
 	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE_FORWARD");
 
+	GLClasses::ComputeShader DiffuseShader;
+	DiffuseShader.CreateComputeShader("Core/Shaders/DiffuseTrace.glsl");
+	DiffuseShader.Compile();
+
 	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
 	RayTraceOutput.CreateFramebuffer();
 
@@ -334,7 +338,33 @@ void Lumen::StartPipeline()
 		// Raytrace
 		Intersector.PushEntities(EntityRenderList);
 		Intersector.BufferEntities();
-		Intersector.Intersect(RayTraceOutput.GetTexture(), RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight(), Camera);
+
+
+		DiffuseShader.Use();
+		RayTraceOutput.Bind();
+
+		DiffuseShader.SetVector2f("u_Dims", glm::vec2(RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight()));
+		DiffuseShader.SetMatrix4("u_View", Camera.GetViewMatrix());
+		DiffuseShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
+		DiffuseShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
+		DiffuseShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
+
+		DiffuseShader.SetInteger("u_DepthTexture", 1);
+		DiffuseShader.SetInteger("u_NormalTexture", 2);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(1));
+
+		Intersector.BindEverything(DiffuseShader);
+
+		glBindImageTexture(0, RayTraceOutput.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+		glDispatchCompute((int)floor(float(RayTraceOutput.GetWidth()) / 16.0f), (int)floor(float(RayTraceOutput.GetHeight())) / 16.0f, 1);
+
+
+		//Intersector.IntersectPrimary(RayTraceOutput.GetTexture(), RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight(), Camera);
 
 		// Lighting pass : 
 

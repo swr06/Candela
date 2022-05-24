@@ -51,6 +51,8 @@ namespace Lumen {
 		int NodeCount;
 	};
 
+
+	// The template passed to this class can either be Lumen::BVH::StacklessTraversalNode or Lumen::BVH::StackTraversalNode
 	template<typename T> 
 	class RayIntersector {
 
@@ -63,7 +65,8 @@ namespace Lumen {
 		void PushEntity(const Entity& entity);
 		void PushEntities(const std::vector<Entity*>& Entities);
 		void BufferEntities();
-		void Intersect(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera);
+		void IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera);
+		void BindEverything(GLClasses::ComputeShader& Shader);
 
 		void BufferData();
 		void Recompile();
@@ -80,6 +83,8 @@ namespace Lumen {
 
 
 	private : 
+
+		void _BindTextures(GLClasses::ComputeShader& Shader);
 
 		GLuint m_TextureReferences = 0;
 
@@ -139,11 +144,11 @@ void Lumen::RayIntersector<T>::Initialize()
 	if (m_Stackless) {
 		TraceShader.CreateComputeShader("Core/Shaders/Intersectors/TraverseBVHStackless.glsl");
 	}
-
+	
 	else {
 		TraceShader.CreateComputeShader("Core/Shaders/Intersectors/TraverseBVHStack.glsl");
 	}
-
+	
 	TraceShader.Compile();
 }
 
@@ -217,31 +222,53 @@ void Lumen::RayIntersector<T>::BufferEntities()
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::Intersect(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera)
+void Lumen::RayIntersector<T>::IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera)
 {
 	const std::vector<FileLoader::_TexturePaths>& Paths = FileLoader::GetMeshTexturePaths();
-
+	
 	TraceShader.Use();
-
+	
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_BVHVerticesSSBO);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_BVHTriSSBO);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_BVHNodeSSBO);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_BVHEntitiesSSBO);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_BVHTextureReferencesSSBO);
-
+	
 	glBindImageTexture(0, OutputBuffer, 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
-
+	
 	TraceShader.SetVector2f("u_Dims", glm::vec2(Width, Height));
 	TraceShader.SetMatrix4("u_View", Camera.GetViewMatrix());
 	TraceShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
 	TraceShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
 	TraceShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
-
+	
 	// verify
 	TraceShader.SetInteger("u_EntityCount", m_EntityPushed);
 	TraceShader.SetInteger("u_TotalNodes", m_NodeCountBuffered);
-
+	
 	glDispatchCompute((int)floor(float(Width) / 16.0f), (int)floor(float(Height)) / 16.0f, 1);
+}
+
+template<typename T>
+void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader)
+{
+	const std::vector<FileLoader::_TexturePaths>& Paths = FileLoader::GetMeshTexturePaths();
+
+	Shader.Use();
+
+	int StartIdx = 16;
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 0, m_BVHVerticesSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 1, m_BVHTriSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 2, m_BVHNodeSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 3, m_BVHEntitiesSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 4, m_BVHTextureReferencesSSBO);
+
+	// verify
+	Shader.SetInteger("u_EntityCount", m_EntityPushed);
+	Shader.SetInteger("u_TotalNodes", m_NodeCountBuffered);
+
+	_BindTextures(Shader);
 }
 
 template<typename T>
@@ -277,7 +304,7 @@ void Lumen::RayIntersector<T>::BufferData()
 template<typename T>
 void Lumen::RayIntersector<T>::Recompile()
 {
-	TraceShader.Recompile();
+	//TraceShader.Recompile();
 }
 
 template<typename T>
@@ -341,6 +368,19 @@ inline void Lumen::RayIntersector<T>::_BindTextures()
 		std::string Name = "Textures[" + std::to_string(e.second) + "]";
 		glProgramUniformHandleui64ARB(TraceShader.GetProgram(), TraceShader.FetchUniformLocation(Name), e.first);
 	}
-
+	
 	glUseProgram(0);
+}
+
+template<typename T>
+inline void Lumen::RayIntersector<T>::_BindTextures(GLClasses::ComputeShader& Shader)
+{
+	Shader.Use();
+
+	// Bind, bindless textures (ironic, I know.)
+	for (auto& e : m_TextureHandleReferenceMap)
+	{
+		std::string Name = "Textures[" + std::to_string(e.second) + "]";
+		glProgramUniformHandleui64ARB(Shader.GetProgram(), Shader.FetchUniformLocation(Name), e.first);
+	}
 }

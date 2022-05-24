@@ -1,5 +1,8 @@
 #include "Shader.h"
 
+#include "stb_include.h"
+
+
 namespace GLClasses
 {
 	static std::string GetFileName(std::string path)
@@ -200,22 +203,16 @@ namespace GLClasses
 		{
 			v_cont << vertex_file.rdbuf();
 			f_cont << frag_file.rdbuf();
-			m_VertexData = v_cont.str();
-			m_FragmentData = f_cont.str();
-
 			vertex_file.close();
 			frag_file.close();
-		}
-	}
 
-	void Shader::CreateShaderProgramFromString(const std::string& vertex_data, const std::string& fragment_data, const std::string& geometry_data)
-	{
-		m_VertexData = vertex_data;
-		m_FragmentData = fragment_data;
-		m_GeometryData = geometry_data;
-		m_VertexPath = "PASSED_VIA_DATA";
-		m_FragmentPath = "PASSED_VIA_DATA";
-		m_GeometryPath = "PASSED_VIA_DATA";
+			char error[256];
+			char* vcode = stb_include_file((char*)vertex_pth.c_str(), (char*)"", (char*)"Core/Shaders/", error);
+			m_VertexData = vcode;
+
+			char* fcode = stb_include_file((char*)fragment_pth.c_str(), (char*)"", (char*)"Core/Shaders/", error);
+			m_FragmentData = fcode;
+		}
 	}
 
 	void Shader::Destroy()
