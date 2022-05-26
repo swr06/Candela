@@ -234,7 +234,9 @@ namespace Lumen
 				aiProcess_Triangulate |
 				aiProcess_CalcTangentSpace |
 				aiProcess_GenUVCoords |
-				aiProcess_FlipUVs
+				aiProcess_FlipUVs |
+				aiProcess_GenNormals | 
+				aiProcess_GenSmoothNormals
 			);
 
 			if (!Scene || Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !Scene->mRootNode)

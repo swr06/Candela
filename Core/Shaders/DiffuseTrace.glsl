@@ -66,10 +66,10 @@ void main() {
 	vec3 Albedo = vec3(0.0f);
 	vec3 iNormal = vec3(-1.0f);
 	
-	IntersectRay(WorldPosition + Normal * 0.1, Reflected, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
+	IntersectRay(WorldPosition + Normal * 0.05f, Reflected, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
 	if (TUVW.x < 0.0f) {
-		Albedo = texture(u_Skymap,-Reflected).xyz;
+		Albedo = texture(u_Skymap,Reflected).xyz;
 	}
 
 	imageStore(o_OutputData, Pixel, vec4(Albedo, 1.0f));

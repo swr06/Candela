@@ -202,6 +202,9 @@ GLClasses::Framebuffer LightingPass(16, 16, {GL_RGB16F, GL_RGB, GL_FLOAT, true, 
 
 void Lumen::StartPipeline()
 {
+	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
+	const glm::mat4 ZOrientMatrixNegative = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, -1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
+
 	using namespace BVH;
 
 	RayTracerApp app;
@@ -215,7 +218,9 @@ void Lumen::StartPipeline()
 
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	//FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
-	FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
+	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
+	FileLoader::LoadModelFile(&Sponza, "Models/csgo/scene.gltf");
+	//FileLoader::LoadModelFile(&Sponza, "Models/dragon_2/dragon.obj");
 	//FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
 
@@ -232,7 +237,8 @@ void Lumen::StartPipeline()
 
 	Entity SponzaEntity(&Sponza);
 
-	SponzaEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+	//SponzaEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+	SponzaEntity.m_Model = ZOrientMatrixNegative;
 
 	//Entity MitsubaEntity(&Mitsuba);
 	//Entity DragonEntity(&Dragon);

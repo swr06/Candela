@@ -51,5 +51,13 @@ void main()
 	vec3 rD = normalize(GetRayDirectionAt(v_TexCoords).xyz);
 	vec3 rO = u_InverseView[3].xyz;
 
-	o_Color = texture(u_Trace, v_TexCoords).xyz * 0.3f + texture(u_AlbedoTexture, v_TexCoords).xyz;
+	float Depth = texture(u_DepthTexture, v_TexCoords).x;
+
+	if (Depth > 0.999999f) {
+		o_Color = texture(u_Skymap, rD).xyz;
+		return;
+	}
+
+	o_Color = texture(u_Trace, v_TexCoords).xyz * 0.3 + texture(u_AlbedoTexture, v_TexCoords).xyz ;
+	//o_Color = texture(u_Trace, v_TexCoords).xyz;
 }
