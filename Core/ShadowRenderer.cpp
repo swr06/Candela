@@ -5,20 +5,9 @@
 
 namespace Lumen
 {
-	const static float SHADOW_DISTANCE_X = 48.0f;
-	const static float SHADOW_DISTANCE_Y = 48.0f;
-	const static float SHADOW_DISTANCE_Z = 128.0f;
-
-	static glm::mat4 LightProjectionMatrix;
-	static glm::mat4 LightViewMatrix;
 	
-	void InitShadowMapRenderer()
-	{
-	}
-
 	void PrintVec3(std::string s, glm::vec3 x) 
 	{
-		std::cout << "\n" << s << "  :  " << x.x << "  " << x.y << "  " << x.z << "\n";
 	}
 
 	class Bounds {
@@ -75,7 +64,7 @@ namespace Lumen
 		View = glm::mat4(1.0f);
 		View = glm::lookAt(Center, Center + SunDirection, glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)));
 
-		// Points[] are now in light space 
+		// Transform to light space 
 		for (int i = 0; i < 8; i++) {
 			Points[i] = glm::vec3(View * glm::vec4(StartPoints[i], 1.0f));
 		}
@@ -114,25 +103,28 @@ namespace Lumen
 			}
 		}
 
+
+		Projection = glm::mat4(1.0f);
 		Projection = glm::ortho(OrthoMin.x, OrthoMax.x, OrthoMin.y, OrthoMax.y, OrthoMin.z, OrthoMax.z);
 	}
 
-	void RenderShadowMap(GLClasses::DepthBuffer& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*> Entities, float Distance)
+	void RenderShadowMap(Shadowmap& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*>& Entities, float Distance, glm::mat4& Projection, glm::mat4& View)
 	{
+		glm::mat4 LightProjectionMatrix;
+		glm::mat4 LightViewMatrix;
+
 		SunDirection = glm::normalize(SunDirection);
 		GenerateShadowMatrices(Origin, SunDirection, LightProjectionMatrix, LightViewMatrix, Distance);
 
 		GLClasses::Shader& shader = ShaderManager::GetShader("DEPTH");
 
 		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
 		
 		shader.Use();
 		Shadowmap.Bind();
-		Shadowmap.OnUpdate();
+		glClear(GL_DEPTH_BUFFER_BIT);
 
 		shader.SetMatrix4("u_ViewProjection", LightProjectionMatrix * LightViewMatrix);
-		//shader.SetMatrix4("u_ViewProjection", m);
 
 		for (auto& entity : Entities)
 		{
@@ -164,10 +156,9 @@ namespace Lumen
 		}
 
 		Shadowmap.Unbind();
+
+		Projection = LightProjectionMatrix;
+		View = LightViewMatrix;
 	}
 
-	glm::mat4 GetLightViewProjection(const glm::vec3& sun_dir)
-	{
-		return LightProjectionMatrix * LightViewMatrix;
-	}
 }

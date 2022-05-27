@@ -12,8 +12,8 @@
 #include "Object.h"
 #include "Entity.h"
 
+#include "Shadowmap.h"
+
 namespace Lumen {
-	void InitShadowMapRenderer();
-	void RenderShadowMap(GLClasses::DepthBuffer& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*> Entities, float Distance);
-	glm::mat4 GetLightViewProjection(const glm::vec3& sun_dir);
+	void RenderShadowMap(Shadowmap& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*>& Entities, float Distance, glm::mat4&, glm::mat4&);
 }

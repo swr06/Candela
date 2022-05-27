@@ -177,6 +177,7 @@
     <ClInclude Include="Core\Pipeline.h" />
     <ClInclude Include="Core\ProbeMap.h" />
     <ClInclude Include="Core\ShaderManager.h" />
+    <ClInclude Include="Core\Shadowmap.h" />
     <ClInclude Include="Core\ShadowMapHandler.h" />
     <ClInclude Include="Core\ShadowRenderer.h" />
     <ClInclude Include="Core\Threadpool.h" />
@@ -221,6 +222,7 @@
     <ClCompile Include="Core\Pipeline.cpp" />
     <ClCompile Include="Core\ProbeMap.cpp" />
     <ClCompile Include="Core\ShaderManager.cpp" />
+    <ClCompile Include="Core\Shadowmap.cpp" />
     <ClCompile Include="Core\ShadowMapHandler.cpp" />
     <ClCompile Include="Core\ShadowRenderer.cpp" />
     <ClCompile Include="Core\Threadpool.cpp" />

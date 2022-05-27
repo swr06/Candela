@@ -17,23 +17,21 @@
 #include "ProbeMap.h"
 
 #include <string>
-#include "BVH/BVHConstructor.h"
 
+#include "ShadowMapHandler.h"
+
+#include "BVH/BVHConstructor.h"
 #include "BVH/Intersector.h"
+
 
 //Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
-Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f, 0.2f, 4000.0f);
+Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f, 0.05f, 750.0f);
 
 static bool vsync = false;
-static bool mode = true;
 static float SunTick = 50.0f;
 static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
-
-static glm::vec3 Position = glm::vec3(0.f);
-
-float Speed = 1.0f;
 
 GLClasses::ComputeShader DiffuseShader;
 
@@ -57,7 +55,7 @@ public:
 		glfwSwapInterval((int)vsync);
 
 		GLFWwindow* window = GetWindow();
-		float camera_speed = 0.25f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f) * Speed);
+		float camera_speed = 0.25f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f));
 
 		if (GetCursorLocked()) {
 			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -85,10 +83,8 @@ public:
 	{
 		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
-		ImGui::Text("Speed : %f", Speed);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &SunDirection[0], -1.0f, 1.0f);
-		ImGui::SliderFloat3("Position ", &Position[0], -24.f, 24.);
 		
 		if (ImGui::Button("BENCH")) {
 			Camera.SetPosition(glm::vec3(10.0f, 2.0f, 0.125f));
@@ -129,21 +125,6 @@ public:
 			vsync = !vsync;
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_M && this->GetCurrentFrame() > 5)
-		{
-			mode = !mode;
-		}
-
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_K && this->GetCurrentFrame() > 5)
-		{
-			Speed += 0.1f;
-		}
-
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_L && this->GetCurrentFrame() > 5)
-		{
-			Speed -= 0.1f;
-		}
-
 	}
 
 
@@ -160,43 +141,6 @@ void RenderEntityList(const std::vector<Lumen::Entity*> EntityList, GLClasses::S
 	}
 }
 
-void RenderProbe(Lumen::ProbeMap& probe, int face, const glm::vec3& center, const std::vector<Lumen::Entity*> EntityList, GLClasses::Shader& shader) {
-
-	if (face >= 6) {
-		throw "What the fuck";
-	}
-
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
-
-
-	const glm::mat4 projection_matrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 400.0f);
-
-	std::array<glm::mat4, 6> view_matrices =
-	{
-		glm::lookAt(center, center + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(center, center + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(center, center + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-		glm::lookAt(center, center + glm::vec3(0.0f,-1.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-		glm::lookAt(center, center + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(center, center + glm::vec3(0.0f, 0.0f,-1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-	};
-
-	probe.BindFace(face, false);
-	shader.Use();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	shader.SetVector3f("u_CapturePosition", center);
-	shader.SetMatrix4("u_ViewProjection", projection_matrix * view_matrices[face]);
-	shader.SetInteger("u_AlbedoMap", 0);
-	shader.SetInteger("u_NormalMap", 1);
-	shader.SetInteger("u_RoughnessMap", 2);
-	shader.SetInteger("u_MetalnessMap", 3);
-	shader.SetInteger("u_MetalnessRoughnessMap", 5);
-	RenderEntityList(EntityList, shader);
-
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-}
 
 GLClasses::Framebuffer GBuffer(16, 16, { {GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, true, true}, {GL_RGB16F, GL_RGB, GL_FLOAT, true, true}, {GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, false, false} }, false, true);
 GLClasses::Framebuffer LightingPass(16, 16, {GL_RGB16F, GL_RGB, GL_FLOAT, true, true}, false, true);
@@ -248,7 +192,6 @@ void Lumen::StartPipeline()
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
-	GLClasses::DepthBuffer Shadowmap(1024, 1024);
 	GLClasses::Texture BlueNoise;
 	GLClasses::CubeTextureMap Skymap;
 
@@ -297,6 +240,7 @@ void Lumen::StartPipeline()
 	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
 	RayTraceOutput.CreateFramebuffer();
 
+	ShadowHandler::GenerateShadowMaps();
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -308,14 +252,9 @@ void Lumen::StartPipeline()
 		// App update 
 		app.OnUpdate();
 
-
-		if (app.GetCurrentFrame() % 2 == 0)
-		{
-			// Shadow pass 
-			RenderShadowMap(Shadowmap, Camera.GetPosition(), SunDirection, EntityRenderList, 16.0f);
-		}
-
-		//DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));
+		// Render shadow maps
+		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList);
+		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);
@@ -383,22 +322,36 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_NormalTexture", 1);
 		LightingShader.SetInteger("u_PBRTexture", 2);
 		LightingShader.SetInteger("u_DepthTexture", 3);
-		LightingShader.SetInteger("u_ShadowTexture", 4);
 		LightingShader.SetInteger("u_BlueNoise", 5);
 		LightingShader.SetInteger("u_Skymap", 6);
 		LightingShader.SetInteger("u_Trace", 7);
-		LightingShader.SetBool("u_Mode", mode);
 
 		LightingShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
 		LightingShader.SetMatrix4("u_View", Camera.GetViewMatrix());
 		LightingShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
 		LightingShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
-		LightingShader.SetMatrix4("u_LightVP", GetLightViewProjection(SunDirection));
+		LightingShader.SetMatrix4("u_LightVP",ShadowHandler::GetShadowViewProjectionMatrix(0));
 		LightingShader.SetVector2f("u_Dims", glm::vec2(app.GetWidth(), app.GetHeight()));
 
 
 		LightingShader.SetVector3f("u_LightDirection", SunDirection);
 		LightingShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
+
+		for (int i = 0; i < 5; i++) {
+
+			const int BindingPointStart = 8;
+
+			std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+			std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+			std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+
+			LightingShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+			LightingShader.SetInteger(NameTex, i+BindingPointStart);
+			LightingShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+
+			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+		}
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
@@ -411,9 +364,6 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
-
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, Shadowmap.GetDepthTexture());
 
 		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_2D, BlueNoise.GetTextureID());
