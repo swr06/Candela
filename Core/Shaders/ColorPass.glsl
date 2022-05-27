@@ -22,9 +22,9 @@ uniform mat4 u_Projection;
 uniform mat4 u_View;
 uniform vec2 u_Dims;
 
-uniform mat4 u_ShadowMatrices[5];
-uniform sampler2D u_ShadowTextures[5];
-uniform float u_ShadowClipPlanes[5];
+uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
+uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
+uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -34,11 +34,6 @@ vec3 WorldPosFromDepth(float depth, vec2 txc)
     ViewSpacePosition /= ViewSpacePosition.w;
     vec4 WorldPos = u_InverseView * ViewSpacePosition;
     return WorldPos.xyz;
-}
-
-float GradientNoise(vec2 Pixel) 
-{
-	return fract(52.9829189 * fract(dot(Pixel, vec2(0.06711056f, 0.00583715)))); 
 }
 
 vec2 GetVogelDiskSample(int sampleIndex, int sampleCount, float phi) 
@@ -85,28 +80,31 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 {
 	int ClosestCascade = -1;
 	float Shadow = 0.0;
-	float VogelScales[5] = float[5](0.0015f, 0.0025f, 0.003f, 0.0035f, 0.005f);
+	float VogelScales[5] = float[5](0.001f, 0.0015f, 0.002f, 0.00275f, 0.00325f);
 	
-	vec2 Noise = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
+	vec2 Hash = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
 
 	vec2 TexelSize = 1.0 / textureSize(u_ShadowTextures[ClosestCascade], 0);
 
 	vec4 ProjectionCoordinates;
 
-	float Edge =  0.9 - Noise.y * 0.01; 
+	float HashBorder = 0.95f - Hash.y * 0.0125f; 
 
-	float Distance = distance(WorldPosition, u_InverseView[3].xyz);
+	//float Distance = distance(WorldPosition, u_InverseView[3].xyz);
 
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
 		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.025f, 1.0f);
 
-		if (abs(ProjectionCoordinates.x) < Edge && abs(ProjectionCoordinates.y) < Edge && ProjectionCoordinates.z < 1.0f 
+		if (abs(ProjectionCoordinates.x) < HashBorder && abs(ProjectionCoordinates.y) < HashBorder && ProjectionCoordinates.z < 1.0f 
 		    && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
 		{
-			bool BoxCheck = IsInBox(WorldPosition, u_InverseView[3].xyz-u_ShadowClipPlanes[Cascade],u_InverseView[3].xyz+u_ShadowClipPlanes[Cascade]);
+			bool BoxCheck = IsInBox(WorldPosition, 
+									u_InverseView[3].xyz-(u_ShadowClipPlanes[Cascade]-Hash.x*0.55f),
+									u_InverseView[3].xyz+(u_ShadowClipPlanes[Cascade]+Hash.x*0.5f));
 
-			if (BoxCheck) {
+			if (BoxCheck) 
+			{
 				ProjectionCoordinates = ProjectionCoordinates * 0.5f + 0.5f;
 				ClosestCascade = Cascade;
 				break;
@@ -115,19 +113,18 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	}
 
 	if (ClosestCascade < 0) {
-		return 0.0f;
+		return 1.0f;
 	}
 	
-	float Bias = 0.002f;
+	float Bias = 0.0025f;
 
-
-	int SampleCount = 16;
+	int SampleCount = 24;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
-		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Noise.x);
+		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x);
 		
-		if (SampleUV != clamp(SampleUV, 0.00001f, 0.99999f))
+		if (SampleUV != clamp(SampleUV, 0.000001f, 0.999999f))
 		{ 
 			continue;
 		}
@@ -138,7 +135,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	Shadow /= float(SampleCount);
 
-	return 1.0f - clamp(Shadow, 0.0f, 1.0f);
+	return 1.0f - clamp(pow(Shadow, 1.44f), 0.0f, 1.0f);
 }
 
 
@@ -163,5 +160,4 @@ void main()
 	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords).xyz;
 
 	o_Color = (Albedo * 1.5f * FilterShadows(WorldPosition, Normal)) + (Albedo * mix(texture(u_Skymap, vec3(0.,1.,0.)).xyz,vec3(1.),0.5f) * 0.3f) + Reflection * 0.05;
-	//o_Color = texture(u_Trace, v_TexCoords).xyz;
 }
