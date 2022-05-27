@@ -559,14 +559,14 @@ namespace Lumen {
 				LastNodeIndex++;
 				Node* LeftNodePtr = new Node;
 				Node& LeftNode = *LeftNodePtr;
-				LeftNode.NodeIndex = LastNodeIndex;
+				//LeftNode.NodeIndex = LastNodeIndex;
 				LeftNode.StartIndex = BuildNode->StartIndex;
 				LeftNode.Length = SplitIndex - BuildNode->StartIndex;
 
 				LastNodeIndex++;
 				Node* RightNodePtr = new Node;
 				Node& RightNode = *RightNodePtr;
-				RightNode.NodeIndex = LastNodeIndex;
+				//RightNode.NodeIndex = LastNodeIndex;
 				RightNode.StartIndex = SplitIndex; // LeftNode.StartIndex + LeftNode.Length;
 				RightNode.Length = (BuildNode->StartIndex + BuildNode->Length) - SplitIndex;//BuildNode->Length - (SplitIndex - BuildNode->StartIndex);
 
@@ -1007,7 +1007,7 @@ namespace Lumen {
 			Node* RootNodePtr = new Node;
 			Node& RootNode = *RootNodePtr;
 
-			RootNode.NodeIndex = 0;
+			//RootNode.NodeIndex = 0;
 			RootNode.LeftChildPtr = nullptr;
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;
@@ -1087,7 +1087,7 @@ namespace Lumen {
 			Node* RootNodePtr = new Node;
 			Node& RootNode = *RootNodePtr;
 
-			RootNode.NodeIndex = 0;
+			//RootNode.NodeIndex = 0;
 			RootNode.LeftChildPtr = nullptr;
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;

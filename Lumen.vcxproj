@@ -178,6 +178,7 @@
     <ClInclude Include="Core\ProbeMap.h" />
     <ClInclude Include="Core\ShaderManager.h" />
     <ClInclude Include="Core\ShadowRenderer.h" />
+    <ClInclude Include="Core\Threadpool.h" />
     <ClInclude Include="Core\Utils\Random.h" />
     <ClInclude Include="Core\Utils\Timer.h" />
     <ClInclude Include="Core\Utils\Vertex.h" />
@@ -220,6 +221,7 @@
     <ClCompile Include="Core\ProbeMap.cpp" />
     <ClCompile Include="Core\ShaderManager.cpp" />
     <ClCompile Include="Core\ShadowRenderer.cpp" />
+    <ClCompile Include="Core\Threadpool.cpp" />
     <ClCompile Include="Dependencies\glad\src\glad.c" />
     <ClCompile Include="Dependencies\imgui\imgui.cpp" />
     <ClCompile Include="Dependencies\imgui\imgui_demo.cpp">

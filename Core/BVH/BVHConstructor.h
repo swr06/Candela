@@ -11,6 +11,8 @@
 
 #include "../Object.h"
 
+#include "../Threadpool.h"
+
 namespace Lumen {
 	namespace BVH {
 		typedef uint32_t uint;
@@ -48,8 +50,6 @@ namespace Lumen {
 			uint StartIndex;
 			uint Length;
 			
-			uint NodeIndex;
-
 			Node* LeftChildPtr = nullptr;
 			Node* RightChildPtr = nullptr;
 

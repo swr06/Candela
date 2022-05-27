@@ -22,7 +22,7 @@
 #include "BVH/Intersector.h"
 
 //Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
-Lumen::RayIntersector<Lumen::BVH::StackTraversalNode> Intersector;
+Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
 Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f, 0.2f, 4000.0f);
 
