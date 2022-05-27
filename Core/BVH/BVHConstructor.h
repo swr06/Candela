@@ -44,7 +44,6 @@ namespace Lumen {
 
 		struct Node {
 			Bounds NodeBounds;
-			Bounds CentroidBounds;
 
 			uint StartIndex;
 			uint Length;
@@ -54,7 +53,6 @@ namespace Lumen {
 			Node* LeftChildPtr = nullptr;
 			Node* RightChildPtr = nullptr;
 
-			bool IsLeftNode = false;
 			bool IsLeafNode = false;
 
 			uint Axis = 1000;
@@ -82,7 +80,7 @@ namespace Lumen {
 			// 0, 1, 2 indices 
 			// 3 triangle ID
 			// 4 mesh id
-			int Packed[8];
+			int PackedData[4];
 		};
 
 		Node* BuildBVH(const Object& object, std::vector<FlattenedNode>& FlattenedNodes, std::vector<Vertex>& MeshVertices, std::vector<Triangle>& FlattenedTris, int);

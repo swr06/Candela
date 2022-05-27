@@ -28,7 +28,7 @@ struct Vertex {
 
 // 16 bytes 
 struct Triangle {
-    int Packed[8]; // Contains packed data 
+    int Packed[4]; // Contains packed data 
 };
 
 struct Node {

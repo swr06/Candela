@@ -36,7 +36,7 @@ struct Vertex {
 
 // 16 bytes 
 struct Triangle {
-    int Packed[8]; // Contains packed data 
+    int Packed[4]; // Contains packed data 
 };
 
 // W Component contains packed data
@@ -264,7 +264,7 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 {
                     TMax = Intersect.x;
                     ClosestTraversal = Intersect.x;
-                    IntersectMesh = triangle.Packed[4];
+                    IntersectMesh = triangle.Packed[3];
                     IntersectTriangleIdx = Idx + StartIdx;
                 }
             }
@@ -294,7 +294,7 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 {
                     TMax = Intersect.x;
                     ClosestTraversal = Intersect.x;
-                    IntersectMesh = triangle.Packed[4];
+                    IntersectMesh = triangle.Packed[3];
                     IntersectTriangleIdx = Idx + StartIdx;
                 }
             }

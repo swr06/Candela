@@ -642,14 +642,10 @@ namespace Lumen {
 				// 3 indices correspond to a single triangle
 				int CurrentIndexRef = TriangleIndex * 3;
 
-				CurrentTriangle.Packed[0] = OriginalIndices[CurrentIndexRef + 0];
-				CurrentTriangle.Packed[1] = OriginalIndices[CurrentIndexRef + 1];
-				CurrentTriangle.Packed[2] = OriginalIndices[CurrentIndexRef + 2];
-				CurrentTriangle.Packed[3] = TriangleIndex;
-				CurrentTriangle.Packed[4] = MeshIDs[TriangleIndex];
-				CurrentTriangle.Packed[5] = 0;
-				CurrentTriangle.Packed[6] = 0;
-				CurrentTriangle.Packed[7] = 0;
+				CurrentTriangle.PackedData[0] = OriginalIndices[CurrentIndexRef + 0];
+				CurrentTriangle.PackedData[1] = OriginalIndices[CurrentIndexRef + 1];
+				CurrentTriangle.PackedData[2] = OriginalIndices[CurrentIndexRef + 2];
+				CurrentTriangle.PackedData[3] = MeshIDs[TriangleIndex];
 			}
 		}
 
@@ -1016,7 +1012,6 @@ namespace Lumen {
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;
 			RootNode.Length = Triangles;
-			RootNode.IsLeftNode = false;
 
 			ConstructHierarchy(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);
 			PrintShit(object, FlattenedNodes.size(), MeshVertices, FlattenedTris);
@@ -1097,7 +1092,6 @@ namespace Lumen {
 			RootNode.RightChildPtr = nullptr;
 			RootNode.StartIndex = 0;
 			RootNode.Length = Triangles;
-			RootNode.IsLeftNode = false;
 
 			ConstructHierarchy_StackBVH(MeshVertices, MeshIndices, FlattenedNodes, FlattenedTris, MeshReferences, &RootNode);
 			PrintShit(object, FlattenedNodes.size(), MeshVertices, FlattenedTris);

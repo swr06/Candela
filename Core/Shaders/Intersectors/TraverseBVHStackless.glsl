@@ -36,7 +36,7 @@ struct Vertex {
 
 // 16 bytes 
 struct Triangle {
-    int Packed[8]; // Contains packed data 
+    int Packed[4]; // Contains packed data 
 };
 
 struct Node {
@@ -250,7 +250,7 @@ vec4 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeS
                     {
                         TMax = Intersect.x;
                         ClosestTraversal = Intersect.x;
-                        Mesh = triangle.Packed[4];
+                        Mesh = triangle.Packed[3];
                         TriangleIndex = Idx;
                     }
                 }

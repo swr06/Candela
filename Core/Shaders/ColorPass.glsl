@@ -58,6 +58,6 @@ void main()
 		return;
 	}
 
-	o_Color = texture(u_Trace, v_TexCoords).xyz * 0.3 + texture(u_AlbedoTexture, v_TexCoords).xyz ;
+	o_Color = texture(u_Trace, v_TexCoords).xyz * 0.5+ texture(u_AlbedoTexture, v_TexCoords).xyz ;
 	//o_Color = texture(u_Trace, v_TexCoords).xyz;
 }

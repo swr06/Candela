@@ -177,9 +177,9 @@ void Lumen::RayIntersector<T>::AddObject(const Object& object)
 	m_ObjectData[object.GetID()].NodeCount = Nodes.size();
 
 	for (int i = 0; i < Triangles.size(); i++) {
-		Triangles[i].Packed[0] += m_IndexOffset;
-		Triangles[i].Packed[1] += m_IndexOffset;
-		Triangles[i].Packed[2] += m_IndexOffset;
+		Triangles[i].PackedData[0] += m_IndexOffset;
+		Triangles[i].PackedData[1] += m_IndexOffset;
+		Triangles[i].PackedData[2] += m_IndexOffset;
 		m_BVHTriangles.push_back(Triangles[i]);
 	}
 

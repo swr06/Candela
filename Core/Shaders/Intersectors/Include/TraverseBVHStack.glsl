@@ -20,7 +20,7 @@ struct Vertex {
 
 // 16 bytes 
 struct Triangle {
-    int Packed[8]; // Contains packed data 
+    int PackedData[4]; // Contains packed data 
 };
 
 // W Component contains packed data
@@ -231,9 +231,9 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 
                 const int Offset = 0;
                         
-                vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
-                vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
-                vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+                vec3 VertexA = BVHVertices[triangle.PackedData[0] + Offset].Position.xyz;
+                vec3 VertexB = BVHVertices[triangle.PackedData[1] + Offset].Position.xyz;
+                vec3 VertexC = BVHVertices[triangle.PackedData[2] + Offset].Position.xyz;
                 
                 vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
                         
@@ -241,7 +241,7 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 {
                     TMax = Intersect.x;
                     ClosestTraversal = Intersect.x;
-                    IntersectMesh = triangle.Packed[4];
+                    IntersectMesh = triangle.PackedData[3];
                     IntersectTriangleIdx = Idx + StartIdx;
                 }
             }
@@ -261,9 +261,9 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 
                 const int Offset = 0;
                         
-                vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
-                vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
-                vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+                vec3 VertexA = BVHVertices[triangle.PackedData[0] + Offset].Position.xyz;
+                vec3 VertexB = BVHVertices[triangle.PackedData[1] + Offset].Position.xyz;
+                vec3 VertexC = BVHVertices[triangle.PackedData[2] + Offset].Position.xyz;
                 
                 vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
                         
@@ -271,7 +271,7 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
                 {
                     TMax = Intersect.x;
                     ClosestTraversal = Intersect.x;
-                    IntersectMesh = triangle.Packed[4];
+                    IntersectMesh = triangle.PackedData[3];
                     IntersectTriangleIdx = Idx + StartIdx;
                 }
             }
@@ -324,9 +324,9 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
 
          Triangle triangle = BVHTris[IntersectTriangleIdx];
          
-         const vec3 VertexA = BVHVertices[triangle.Packed[0]].Position.xyz;
-         const vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
-         const vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
+         const vec3 VertexA = BVHVertices[triangle.PackedData[0]].Position.xyz;
+         const vec3 VertexB = BVHVertices[triangle.PackedData[1]].Position.xyz;
+         const vec3 VertexC = BVHVertices[triangle.PackedData[2]].Position.xyz;
 
          return vec4(ClosestTraversal, ComputeBarycentrics(RayOrigin + RayDirection * ClosestTraversal, VertexA, VertexB, VertexC));
     }
@@ -368,9 +368,9 @@ void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, 
 
     Triangle triangle = BVHTris[TriangleIndex];
 
-    Vertex A = BVHVertices[triangle.Packed[0]];
-    Vertex B = BVHVertices[triangle.Packed[1]];
-    Vertex C = BVHVertices[triangle.Packed[2]];
+    Vertex A = BVHVertices[triangle.PackedData[0]];
+    Vertex B = BVHVertices[triangle.PackedData[1]];
+    Vertex C = BVHVertices[triangle.PackedData[2]];
 
     vec2 UV = (unpackHalf2x16(A.PackedData.w) * TUVW.y) + (unpackHalf2x16(B.PackedData.w) * TUVW.z) + (unpackHalf2x16(C.PackedData.w) * TUVW.w);
     vec3 MeshNormal = normalize((UnpackNormal(A.PackedData.xy) * TUVW.y) + (UnpackNormal(B.PackedData.xy) * TUVW.z) + (UnpackNormal(C.PackedData.xy) * TUVW.w));
@@ -457,9 +457,9 @@ float IntersectBVHStackOcclusion(vec3 RayOrigin, vec3 RayDirection, in const int
                 
                 const int Offset = 0;
                         
-                vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
-                vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
-                vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+                vec3 VertexA = BVHVertices[triangle.PackedData[0] + Offset].Position.xyz;
+                vec3 VertexB = BVHVertices[triangle.PackedData[1] + Offset].Position.xyz;
+                vec3 VertexC = BVHVertices[triangle.PackedData[2] + Offset].Position.xyz;
                 
                 vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
                         
@@ -486,9 +486,9 @@ float IntersectBVHStackOcclusion(vec3 RayOrigin, vec3 RayDirection, in const int
                 
                 const int Offset = 0;
                         
-                vec3 VertexA = BVHVertices[triangle.Packed[0] + Offset].Position.xyz;
-                vec3 VertexB = BVHVertices[triangle.Packed[1] + Offset].Position.xyz;
-                vec3 VertexC = BVHVertices[triangle.Packed[2] + Offset].Position.xyz;
+                vec3 VertexA = BVHVertices[triangle.PackedData[0] + Offset].Position.xyz;
+                vec3 VertexB = BVHVertices[triangle.PackedData[1] + Offset].Position.xyz;
+                vec3 VertexC = BVHVertices[triangle.PackedData[2] + Offset].Position.xyz;
                 
                 vec3 Intersect = RayTriangle(RayOrigin, RayDirection, VertexA, VertexB, VertexC);
                         

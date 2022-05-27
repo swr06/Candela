@@ -243,8 +243,12 @@
     <None Include="Core\Shaders\FBOVert.glsl" />
     <None Include="Core\Shaders\GeometryFrag.glsl" />
     <None Include="Core\Shaders\GeometryVert.glsl" />
-    <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStack.glsl" />
-    <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStackless.glsl" />
+    <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStack.glsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStackless.glsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="Core\Shaders\Intersectors\TraverseBVHStack.glsl" />
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackless.glsl" />
     <None Include="Core\Shaders\Intersectors\TraverseBVHStacklessShadow.glsl" />

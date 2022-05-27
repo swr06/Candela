@@ -1,4 +1,4 @@
-#define STACKLESS
+//#define STACKLESS
 
 // If stack-ed traversal is wanted, then undefine the above.
 
