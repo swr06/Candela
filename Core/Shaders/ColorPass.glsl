@@ -159,5 +159,5 @@ void main()
 	vec3 Reflection = texture(u_Trace, v_TexCoords).xyz;;
 	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords).xyz;
 
-	o_Color = (Albedo * 1.5f * FilterShadows(WorldPosition, Normal)) + (Albedo * mix(texture(u_Skymap, vec3(0.,1.,0.)).xyz,vec3(1.),0.5f) * 0.3f) + Reflection * 0.05;
+	o_Color = (Albedo * 8.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal)) + (Albedo * mix(texture(u_Skymap, vec3(0.,1.,0.)).xyz,vec3(1.),0.5f) * 0.3f) + Reflection * 0.05;
 }
