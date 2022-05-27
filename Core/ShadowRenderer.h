@@ -14,6 +14,6 @@
 
 namespace Lumen {
 	void InitShadowMapRenderer();
-	void RenderShadowMap(GLClasses::DepthBuffer& depthbuffer, glm::vec3 sun_dir, std::vector<Entity*> entites, glm::mat4 m);
+	void RenderShadowMap(GLClasses::DepthBuffer& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*> Entities, float Distance);
 	glm::mat4 GetLightViewProjection(const glm::vec3& sun_dir);
 }

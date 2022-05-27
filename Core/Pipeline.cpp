@@ -217,10 +217,10 @@ void Lumen::StartPipeline()
 	//Object Mitsuba;
 	//Object Dragon;
 
-	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
 	//FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
 	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
-	FileLoader::LoadModelFile(&Sponza, "Models/csgo/scene.gltf");
+	//FileLoader::LoadModelFile(&Sponza, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&Sponza, "Models/dragon_2/dragon.obj");
 	//FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
@@ -239,7 +239,7 @@ void Lumen::StartPipeline()
 	Entity SponzaEntity(&Sponza);
 
 	//SponzaEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
-	SponzaEntity.m_Model = ZOrientMatrixNegative;
+	//SponzaEntity.m_Model = ZOrientMatrixNegative;
 
 	//Entity MitsubaEntity(&Mitsuba);
 	//Entity DragonEntity(&Dragon);
@@ -248,7 +248,7 @@ void Lumen::StartPipeline()
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
-	GLClasses::DepthBuffer Shadowmap(4096, 4096);
+	GLClasses::DepthBuffer Shadowmap(1024, 1024);
 	GLClasses::Texture BlueNoise;
 	GLClasses::CubeTextureMap Skymap;
 
@@ -309,10 +309,10 @@ void Lumen::StartPipeline()
 		app.OnUpdate();
 
 
-		if (app.GetCurrentFrame() % 4 == 0)
+		if (app.GetCurrentFrame() % 2 == 0)
 		{
 			// Shadow pass 
-			RenderShadowMap(Shadowmap, SunDirection, EntityRenderList, Camera.GetViewProjection());
+			RenderShadowMap(Shadowmap, Camera.GetPosition(), SunDirection, EntityRenderList, 16.0f);
 		}
 
 		//DragonEntity.m_Model = glm::translate(glm::mat4(1.0), glm::vec3(Position));

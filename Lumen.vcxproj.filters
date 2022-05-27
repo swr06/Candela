@@ -183,6 +183,9 @@
     <ClInclude Include="Core\Threadpool.h">
       <Filter>Source Files\Lumen\Lumen-Core\ThreadPool</Filter>
     </ClInclude>
+    <ClInclude Include="Core\ShadowMapHandler.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -298,6 +301,9 @@
     </ClCompile>
     <ClCompile Include="Core\Threadpool.cpp">
       <Filter>Source Files\Lumen\Lumen-Core\ThreadPool</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ShadowMapHandler.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
