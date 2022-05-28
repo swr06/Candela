@@ -24,7 +24,7 @@ namespace Lumen
 		static int GlobalMeshCounter = 0;
 		static bool is_gltf = false;
 
-		std::vector<_TexturePaths> MeshTextureReferences;
+		std::vector<_MeshMaterialData> MeshTextureReferences;
 
 		void LoadMaterialTextures(aiMesh* mesh, aiMaterial* mat, Mesh* _mesh, const std::string& path)
 		{
@@ -85,10 +85,14 @@ namespace Lumen
 				_mesh->TexturePaths[4] = pth;
 			}
 
-			_TexturePaths texpaths;
-			texpaths.Albedo = _mesh->TexturePaths[0];
-			texpaths.Normal = _mesh->TexturePaths[1];
-			MeshTextureReferences.push_back(texpaths);
+			aiColor4D diffuse_color;
+			aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &diffuse_color);
+
+			_MeshMaterialData meshmat;
+			meshmat.Albedo = _mesh->TexturePaths[0];
+			meshmat.Normal = _mesh->TexturePaths[1];
+			meshmat.ModelColor = glm::vec3(diffuse_color[0], diffuse_color[1], diffuse_color[2]);
+			MeshTextureReferences.push_back(meshmat);
 		}
 
 		void ProcessAssimpMesh(aiMesh* mesh, const aiScene* scene, Object* object, const std::string& pth, const glm::vec4& col, const glm::vec3& reflectivity)
@@ -277,7 +281,7 @@ namespace Lumen
 		}
 
 
-		std::vector<_TexturePaths> GetMeshTexturePaths()
+		std::vector<_MeshMaterialData> GetMeshTexturePaths()
 		{
 			return MeshTextureReferences;
 		}

@@ -37,8 +37,10 @@ struct BVHEntity {
 };
 
 struct TextureReferences {
-    int Albedo;
-    int Normal;
+	vec4 ModelColor;
+	int Albedo;
+	int Normal;
+	int Pad[2];
 };
 
 // SSBOs
@@ -336,6 +338,10 @@ void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, 
 
     if (Ref > -1 && Mesh > -1 && TUVW.x > 0.) {
         Albedo = texture(Textures[Ref], UV.xy).xyz; 
+    }
+
+    else {
+        Albedo = BVHTextureReferences[Mesh].ModelColor.xyz;
     }
 }
 

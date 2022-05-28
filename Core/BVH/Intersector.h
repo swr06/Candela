@@ -28,8 +28,10 @@ namespace Lumen {
 
 
 		struct TextureReferences {
+			glm::vec4 ModelColor;
 			int Albedo;
 			int Normal;
+			int Pad[2];
 		};
 
 		typedef FlattenedNode StacklessTraversalNode;
@@ -255,7 +257,7 @@ void Lumen::RayIntersector<T>::IntersectPrimary(GLuint OutputBuffer, int Width, 
 template<typename T>
 void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader)
 {
-	const std::vector<FileLoader::_TexturePaths>& Paths = FileLoader::GetMeshTexturePaths();
+	const std::vector<FileLoader::_MeshMaterialData>& Paths = FileLoader::GetMeshTexturePaths();
 
 	Shader.Use();
 
@@ -321,7 +323,7 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 
 	int LastIndex = 0;
 
-	const std::vector<FileLoader::_TexturePaths>& Paths = FileLoader::GetMeshTexturePaths();
+	const std::vector<FileLoader::_MeshMaterialData>& MeshMaterials = FileLoader::GetMeshTexturePaths();
 
 	m_MeshTextureReferences.clear();
 
@@ -329,10 +331,10 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 	int Write[2];
 
 	
-	for (int i = 0; i < Paths.size(); i++) {
+	for (int i = 0; i < MeshMaterials.size(); i++) {
 
-		GLuint64 a = GLClasses::GetTextureCachedDataForPath(Paths[i].Albedo, Valid[0]).handle;
-		GLuint64 b = GLClasses::GetTextureCachedDataForPath(Paths[i].Normal, Valid[1]).handle;
+		GLuint64 a = GLClasses::GetTextureCachedDataForPath(MeshMaterials[i].Albedo, Valid[0]).handle;
+		GLuint64 b = GLClasses::GetTextureCachedDataForPath(MeshMaterials[i].Normal, Valid[1]).handle;
 
 		if (DataMap.find(a) == DataMap.end()) {
 			DataMap[a] = LastIndex++;
@@ -345,7 +347,7 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 		Write[0] = Valid[0] ? DataMap[a] : -1;
 		Write[1] = Valid[1] ? DataMap[b] : -1;
 
-		m_MeshTextureReferences.push_back({ Write[0], Write[1] });
+		m_MeshTextureReferences.push_back({ glm::vec4(MeshMaterials[i].ModelColor,1.0f), Write[0], Write[1] });
 	}
 
 	glDeleteBuffers(1, &m_BVHTextureReferencesSSBO);

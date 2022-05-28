@@ -12,16 +12,19 @@
 #include "Mesh.h"
 #include "Object.h"
 
+#include <glm/glm.hpp>
+
 namespace Lumen
 {
 	namespace FileLoader
 	{
-		struct _TexturePaths {
+		struct _MeshMaterialData {
 			std::string Albedo;
 			std::string Normal;
+			glm::vec3 ModelColor;
 		};
 
 		void LoadModelFile(Object* object, const std::string& filepath);
-		std::vector<_TexturePaths> GetMeshTexturePaths();
+		std::vector<_MeshMaterialData> GetMeshTexturePaths();
 	}
 }

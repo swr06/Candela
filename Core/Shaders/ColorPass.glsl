@@ -116,9 +116,9 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 		return 1.0f;
 	}
 	
-	float Bias = 0.0025f;
+	float Bias = 0.001f;
 
-	int SampleCount = 24;
+	int SampleCount = 32;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 

@@ -53,8 +53,10 @@ struct BVHEntity {
 };
 
 struct TextureReferences {
-    int Albedo;
-    int Normal;
+	vec4 ModelColor;
+	int Albedo;
+	int Normal;
+	int Pad[2];
 };
 
 // SSBOs
