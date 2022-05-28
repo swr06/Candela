@@ -122,7 +122,7 @@ namespace Lumen {
 			Border = Centroid[Axis];
 		}
 
-		float GetSAH(Node* Node, int Axis, float Border, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache) {
+		float GetSAH(Node* Node, int Axis, float Border, const std::vector<int>& TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache) {
 
 			Bounds LeftBox;
 			Bounds RightBox;
@@ -163,7 +163,7 @@ namespace Lumen {
 			return Cost;
 		}
 
-		float SearchBestPlaneSAHLinear(Node* node, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
+		float SearchBestPlaneSAHLinear(Node* node, const std::vector<int>& TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
 
 			GetMedianSplit(node, oAxis, oBorder);
 
@@ -204,7 +204,7 @@ namespace Lumen {
 			return BestCost;
 		}
 
-		float SearchBestPlaneSAHBinary(Node* node, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
+		float SearchBestPlaneSAHBinary(Node* node, const std::vector<int>& TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
 
 			const int StepCount = 12;
 			const int BinaryStepCount = 3;
@@ -273,7 +273,7 @@ namespace Lumen {
 		}
 
 
-		float SearchSAHPlaneBinned(Node* node, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
+		float SearchSAHPlaneBinned(Node* node, const std::vector<int>& TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
 
 			float BestCost = INF_COST;
 
@@ -362,7 +362,7 @@ namespace Lumen {
 
 		}
 
-		void GetSplit(Node* node, const std::vector<int> TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
+		void GetSplit(Node* node, const std::vector<int>& TriangleReferences, const std::vector<Bounds>& BoundsCache, const std::vector<glm::vec3>& CentroidCache, int& oAxis, float& oBorder) {
 
 			if (USE_SAH) {
 

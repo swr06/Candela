@@ -157,21 +157,21 @@ void Lumen::StartPipeline()
 	app.SetCursorLocked(true);
 
 	// Scene setup 
-	Object Sponza;
+	Object MainModel;
 	//Object Mitsuba;
 	//Object Dragon;
 
-	FileLoader::LoadModelFile(&Sponza, "Models/sponza-2/sponza.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/Sponza.gltf");
+	FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	
 	//FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/sponza-pbr/Sponza.gltf");
-	//FileLoader::LoadModelFile(&Sponza, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&Sponza, "Models/dragon_2/dragon.obj");
 	//FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 
 
 	Intersector.Initialize();
 
-	Intersector.AddObject(Sponza);
+	Intersector.AddObject(MainModel);
 	//Intersector.AddObject(Mitsuba);
 	//Intersector.AddObject(Dragon);
 	
@@ -180,7 +180,7 @@ void Lumen::StartPipeline()
 	Intersector.GenerateMeshTextureReferences();
 
 
-	Entity SponzaEntity(&Sponza);
+	Entity MainModelEntity(&MainModel);
 
 	//SponzaEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	//SponzaEntity.m_Model = ZOrientMatrixNegative;
@@ -188,7 +188,7 @@ void Lumen::StartPipeline()
 	//Entity MitsubaEntity(&Mitsuba);
 	//Entity DragonEntity(&Dragon);
 
-	std::vector<Entity*> EntityRenderList = { &SponzaEntity };
+	std::vector<Entity*> EntityRenderList = { &MainModelEntity };
 
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
