@@ -1,7 +1,18 @@
 # Lumen-RT
 
+# Done 
+- Custom SAH BVH Constructor
+- Support for Stack/Stackless traversal
+- Cascaded Shadow Mapping
 
 # Todo
-- Use glBufferSubData
-- Find the bottleneck in the BVH (allocations?)
-- Multithread BVH
+- Diffuse GI
+- World Space Probes for infinite bounces (And specular approximation for rough surfaces)
+- Filtering
+- TXAA (+ TAAU)
+- SSR 
+- ReStir GI/DI
+
+- Volumetrics 
+- Clouds
+- Atmosphere
