@@ -32,8 +32,6 @@ static bool vsync = false;
 static float SunTick = 50.0f;
 static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
-GLClasses::ComputeShader DiffuseShader;
-
 class RayTracerApp : public Lumen::Application
 {
 public:
@@ -116,7 +114,6 @@ public:
 		{
 			Lumen::ShaderManager::RecompileShaders();
 			Intersector.Recompile();
-			DiffuseShader.Recompile();
 		}
 
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
@@ -155,57 +152,10 @@ void Lumen::StartPipeline()
 	app.Initialize();
 	app.SetCursorLocked(true);
 
-	// Scene setup 
-	Object MainModel;
-	//Object Mitsuba;
-	//Object Dragon;
-
-	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/Sponza.gltf");
-	FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
-	
-	//FileLoader::LoadModelFile(&Mitsuba, "Models/knob/mitsuba.obj");
-	//FileLoader::LoadModelFile(&Sponza, "Models/dragon_2/dragon.obj");
-	//FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
-
-
-	Intersector.Initialize();
-
-	Intersector.AddObject(MainModel);
-	//Intersector.AddObject(Mitsuba);
-	//Intersector.AddObject(Dragon);
-	
-	Intersector.BufferData();
-
-	Intersector.GenerateMeshTextureReferences();
-
-
-	Entity MainModelEntity(&MainModel);
-
-	//SponzaEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
-	//SponzaEntity.m_Model = ZOrientMatrixNegative;
-
-	//Entity MitsubaEntity(&Mitsuba);
-	//Entity DragonEntity(&Dragon);
-
-	std::vector<Entity*> EntityRenderList = { &MainModelEntity };
-
+	// Create VBO and VAO for drawing the screen-sized quad.
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
-	GLClasses::Texture BlueNoise;
 	GLClasses::CubeTextureMap Skymap;
-
-	Skymap.CreateCubeTextureMap(
-		{
-		"Res/Skymap/right.bmp",
-		"Res/Skymap/left.bmp",
-		"Res/Skymap/top.bmp",
-		"Res/Skymap/bottom.bmp",
-		"Res/Skymap/front.bmp",
-		"Res/Skymap/back.bmp"
-		}, true
-	);
-
-	BlueNoise.CreateTexture("Res/blue_noise.png", false, false);
 
 	// Setup screensized quad for rendering
 	{
@@ -225,6 +175,38 @@ void Lumen::StartPipeline()
 		ScreenQuadVAO.Unbind();
 	}
 
+	// Scene setup 
+	Object MainModel;
+	Object Dragon;
+
+	FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+	
+	// Handle rt stuff 
+	Intersector.Initialize();
+	Intersector.AddObject(MainModel);
+	Intersector.AddObject(Dragon);
+	Intersector.BufferData();
+	Intersector.GenerateMeshTextureReferences();
+
+	// Create entities 
+	Entity MainModelEntity(&MainModel);
+	std::vector<Entity*> EntityRenderList = { &MainModelEntity };
+
+	// Textures
+	Skymap.CreateCubeTextureMap(
+		{
+		"Res/Skymap/right.bmp",
+		"Res/Skymap/left.bmp",
+		"Res/Skymap/top.bmp",
+		"Res/Skymap/bottom.bmp",
+		"Res/Skymap/front.bmp",
+		"Res/Skymap/back.bmp"
+		}, true
+	);
+
+	GLClasses::Texture BlueNoise;
+	BlueNoise.CreateTexture("Res/blue_noise.png", false, false);
 
 	// Create Shaders
 	ShaderManager::CreateShaders();
@@ -232,9 +214,9 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& LightingShader = ShaderManager::GetShader("LIGHTING_PASS");
 	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
 	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE_FORWARD");
+	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 
-	DiffuseShader.CreateComputeShader("Core/Shaders/DiffuseTrace.glsl");
-	DiffuseShader.Compile();
+	
 
 	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
 	RayTraceOutput.CreateFramebuffer();
