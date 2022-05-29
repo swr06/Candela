@@ -132,9 +132,6 @@
     <ClInclude Include="Core\OrthographicCamera.h">
       <Filter>Source Files\Lumen\Misc</Filter>
     </ClInclude>
-    <ClInclude Include="Core\ShaderManager.h">
-      <Filter>Source Files\Lumen\Misc</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Utils\Random.h">
       <Filter>Source Files\Lumen\Utils</Filter>
     </ClInclude>
@@ -193,6 +190,9 @@
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Utility.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ShaderManager.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -266,9 +266,6 @@
     <ClCompile Include="Core\OrthographicCamera.cpp">
       <Filter>Source Files\Lumen\Misc</Filter>
     </ClCompile>
-    <ClCompile Include="Core\ShaderManager.cpp">
-      <Filter>Source Files\Lumen\Misc</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files\Lumen</Filter>
     </ClCompile>
@@ -315,6 +312,9 @@
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
     <ClCompile Include="Core\Shadowmap.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ShaderManager.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
   </ItemGroup>
@@ -381,6 +381,9 @@
     </None>
     <None Include="Core\Shaders\Include\Reservoir.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\CheckerboardReconstruct.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

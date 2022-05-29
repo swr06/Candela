@@ -162,6 +162,9 @@ void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 GLClasses::Framebuffer GBuffer(16, 16, { {GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, true, true}, {GL_RGB16F, GL_RGB, GL_FLOAT, true, true}, {GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, false, false} }, false, true);
 GLClasses::Framebuffer LightingPass(16, 16, {GL_RGB16F, GL_RGB, GL_FLOAT, true, true}, false, true);
 
+GLClasses::Framebuffer DiffuseTraceCheckerboard[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
+GLClasses::Framebuffer DiffuseUpscaled(16, 16, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, false, true);
+
 void Lumen::StartPipeline()
 {
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
@@ -235,13 +238,9 @@ void Lumen::StartPipeline()
 	ShaderManager::CreateShaders();
 	GLClasses::Shader& GBufferShader = ShaderManager::GetShader("GBUFFER");
 	GLClasses::Shader& LightingShader = ShaderManager::GetShader("LIGHTING_PASS");
+	GLClasses::Shader& CheckerReconstructShader = ShaderManager::GetShader("CHECKER_UPSCALE");
 	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
-	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE_FORWARD");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
-
-	// Framebuffers
-	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
-	RayTraceOutput.CreateFramebuffer();
 
 	// Matrices
 	glm::mat4 PreviousView;
@@ -256,12 +255,25 @@ void Lumen::StartPipeline()
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
 		// Prepare 
+		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
+
+		// Prepare Intersector
+		Intersector.PushEntities(EntityRenderList);
+		Intersector.BufferEntities();
 
 		// Resize FBOs
 		GBuffer.SetSize(app.GetWidth(), app.GetHeight());
 		LightingPass.SetSize(app.GetWidth(), app.GetHeight());
-		RayTraceOutput.SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+
+		// Diffuse FBOs
+		DiffuseTraceCheckerboard[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+		DiffuseTraceCheckerboard[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+		DiffuseUpscaled.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+
+		// Set FBO references
+		GLClasses::Framebuffer& DiffuseTrace = FrameMod2 ? DiffuseTraceCheckerboard[0] : DiffuseTraceCheckerboard[1];
+		GLClasses::Framebuffer& PreviousDiffuseTrace = FrameMod2 ? DiffuseTraceCheckerboard[1] : DiffuseTraceCheckerboard[0];
 
 		// App update 
 		PreviousProjection = Camera.GetProjectionMatrix();
@@ -302,15 +314,11 @@ void Lumen::StartPipeline()
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
 
-		// Raytrace
-		Intersector.PushEntities(EntityRenderList);
-		Intersector.BufferEntities();
-
-
+		// Diffuse raytracing
 		DiffuseShader.Use();
-		RayTraceOutput.Bind();
+		DiffuseTrace.Bind();
 
-		DiffuseShader.SetVector2f("u_Dims", glm::vec2(RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight()));
+		DiffuseShader.SetVector2f("u_Dims", glm::vec2(DiffuseTrace.GetWidth(), DiffuseTrace.GetHeight()));
 		DiffuseShader.SetInteger("u_DepthTexture", 0);
 		DiffuseShader.SetInteger("u_NormalTexture", 1);
 		DiffuseShader.SetInteger("u_Skymap", 2);
@@ -343,11 +351,40 @@ void Lumen::StartPipeline()
 		}
 
 		Intersector.BindEverything(DiffuseShader);
-		glBindImageTexture(0, RayTraceOutput.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
-		glDispatchCompute((int)floor(float(RayTraceOutput.GetWidth()) / 16.0f), (int)floor(float(RayTraceOutput.GetHeight())) / 16.0f, 1);
+		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+		glDispatchCompute((int)floor(float(DiffuseTrace.GetWidth()) / 16.0f) + 1, (int)(floor(float(DiffuseTrace.GetHeight())) / 16.0f) + 1, 1);
 
+		// Checker reconstruction
 
-		//Intersector.IntersectPrimary(RayTraceOutput.GetTexture(), RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight(), Camera);
+		DiffuseUpscaled.Bind();
+		CheckerReconstructShader.Use();
+
+		CheckerReconstructShader.SetInteger("u_Depth", 0);
+		CheckerReconstructShader.SetInteger("u_Normals", 1);
+		CheckerReconstructShader.SetInteger("u_CurrentFrameTexture", 2);
+		CheckerReconstructShader.SetInteger("u_PreviousFrameTexture", 3);
+		CheckerReconstructShader.SetVector2f("u_Dimensions", glm::vec2(DiffuseUpscaled.GetWidth(), DiffuseUpscaled.GetHeight()));
+
+		SetCommonUniforms<GLClasses::Shader>(CheckerReconstructShader, UniformBuffer);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(1));
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, DiffuseTrace.GetTexture());
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, PreviousDiffuseTrace.GetTexture());
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		DiffuseUpscaled.Unbind();
+
 
 		// Lighting pass : 
 
@@ -408,7 +445,7 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
 		
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, RayTraceOutput.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, DiffuseUpscaled.GetTexture());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

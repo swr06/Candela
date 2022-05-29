@@ -242,6 +242,7 @@
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl" />
     <None Include="Core\Shaders\BasicVert.glsl" />
+    <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\ColorPass.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
     <None Include="Core\Shaders\DepthVert.glsl" />

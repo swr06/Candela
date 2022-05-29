@@ -129,8 +129,9 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
-void main() {
+const bool CHECKERBOARD = true;
 
+void main() {
 
 	ivec2 Pixel = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 WritePixel = ivec2(gl_GlobalInvocationID.xy);
@@ -140,10 +141,11 @@ void main() {
 	}
 
 	// Handle checkerboard 
-
-    Pixel.x *= 2;
-	bool IsCheckerStep = Pixel.x % 2 == int(Pixel.y % 2 == (u_Frame % 2));
-    Pixel.x += int(IsCheckerStep);
+	if (CHECKERBOARD) {
+		Pixel.x *= 2;
+		bool IsCheckerStep = Pixel.x % 2 == int(Pixel.y % 2 == (u_Frame % 2));
+		Pixel.x += int(IsCheckerStep);
+	}
 
 	// 1/2 res on each axis
     ivec2 HighResPixel = Pixel * 2;
@@ -157,7 +159,6 @@ void main() {
         return;
     }
 
-
 	vec2 TexCoords = HighResUV;
 	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
 
@@ -167,6 +168,7 @@ void main() {
 	vec3 Normal = normalize(texelFetch(u_NormalTexture, HighResPixel, 0).xyz);
 
 	vec3 EyeVector = normalize(WorldPosition - Player);
+	//vec3 Reflected = reflect(EyeVector, Normal);
 
 	vec3 RayOrigin = WorldPosition + Normal * 0.05f;
 	vec3 RayDirection = CosWeightedHemisphere(Normal, hash2());
@@ -178,8 +180,10 @@ void main() {
 	vec3 Albedo = vec3(0.0f);
 	vec3 iNormal = vec3(-1.0f);
 	
+	// Intersect ray 
 	IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
+	// Compute radiance 
 	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
 
 	imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, 1.0f));

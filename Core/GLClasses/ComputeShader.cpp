@@ -89,6 +89,12 @@ namespace GLClasses
 			this->Use();
 		}
 
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
+		}
+
 		glUniform1f(GetUniformLocation(name), value);
 	}
 
@@ -97,6 +103,12 @@ namespace GLClasses
 		if (useShader)
 		{
 			this->Use();
+		}
+
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
 		}
 
 		glUniform1i(GetUniformLocation(name), value);
@@ -111,6 +123,12 @@ namespace GLClasses
 			this->Use();
 		}
 
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
+		}
+
 		glUniform1i(GetUniformLocation(name), val);
 	}
 
@@ -119,6 +137,12 @@ namespace GLClasses
 		if (useShader)
 		{
 			this->Use();
+		}
+
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
 		}
 
 		glUniform1iv(GetUniformLocation(name), count, value);
@@ -134,6 +158,13 @@ namespace GLClasses
 		for (int i = 0; i < count; i++)
 		{
 			std::string uniform_name = name + "[" + std::to_string(i) + "]";
+
+			GLint Loc = GetUniformLocation(uniform_name);
+
+			if (Loc < 0) {
+				continue;
+			}
+
 			glUniform1i(GetUniformLocation(uniform_name), i + first);
 		}
 
@@ -158,6 +189,12 @@ namespace GLClasses
 			this->Use();
 		}
 
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
+		}
+
 		glUniform2f(GetUniformLocation(name), x, y);
 	}
 
@@ -166,6 +203,12 @@ namespace GLClasses
 		if (useShader)
 		{
 			this->Use();
+		}
+
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
 		}
 
 		glUniform2f(GetUniformLocation(name), value.x, value.y);
@@ -178,6 +221,12 @@ namespace GLClasses
 			this->Use();
 		}
 
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
+		}
+
 		glUniform3f(GetUniformLocation(name), x, y, z);
 	}
 
@@ -186,6 +235,12 @@ namespace GLClasses
 		if (useShader)
 		{
 			this->Use();
+		}
+
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
 		}
 
 		glUniform3f(GetUniformLocation(name), value.x, value.y, value.z);
@@ -198,6 +253,12 @@ namespace GLClasses
 			this->Use();
 		}
 
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
+		}
+
 		glUniform4f(GetUniformLocation(name), x, y, z, w);
 	}
 
@@ -206,6 +267,12 @@ namespace GLClasses
 		if (useShader)
 		{
 			this->Use();
+		}
+
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
 		}
 
 		glUniform4f(GetUniformLocation(name), value.x, value.y, value.z, value.w);
@@ -218,6 +285,12 @@ namespace GLClasses
 			this->Use();
 		}
 
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
+		}
+
 		//glUniformMatrix4fv(glGetUniformLocation(this->Program, name), 1, GL_FALSE, glm::value_ptr(matrix));
 		glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix));
 	}
@@ -227,6 +300,12 @@ namespace GLClasses
 		if (useShader)
 		{
 			this->Use();
+		}
+
+		GLint Loc = GetUniformLocation(name);
+
+		if (Loc < 0) {
+			return;
 		}
 
 		glUniformMatrix3fv(GetUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix));
