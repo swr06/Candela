@@ -201,6 +201,10 @@ vec4 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeS
 
     RayOrigin = vec3(InverseMatrix * vec4(RayOrigin.xyz, 1.0f));
     RayDirection = vec3(InverseMatrix * vec4(RayDirection.xyz, 0.0f));
+    
+    float InverseLength = 1.0f / length(RayDirection);
+
+    RayDirection *= InverseLength;
 
     vec3 InverseDirection = 1.0f / RayDirection;
 
@@ -305,7 +309,7 @@ vec4 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeS
          vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
          vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
 
-         return vec4(ClosestTraversal, ComputeBarycentrics(RayOrigin + RayDirection * ClosestTraversal, VertexA, VertexB, VertexC));
+         return vec4(ClosestTraversal * InverseLength, ComputeBarycentrics(RayOrigin + RayDirection * ClosestTraversal, VertexA, VertexB, VertexC));
     }
 
     return vec4(vec3(-1.), (-1));

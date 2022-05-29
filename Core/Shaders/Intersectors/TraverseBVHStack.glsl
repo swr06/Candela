@@ -195,11 +195,12 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
 
     const bool IntersectTriangles = true;
 
-    // Ray  
     RayOrigin = vec3(InverseMatrix * vec4(RayOrigin.xyz, 1.0f));
     RayDirection = vec3(InverseMatrix * vec4(RayDirection.xyz, 0.0f));
+    
+    float InverseLength = 1.0f / length(RayDirection);
 
-	vec3 InverseDirection = 1.0f / RayDirection;
+    RayDirection *= InverseLength;
 
     // Work stack 
 	int Stack[64];
@@ -353,7 +354,7 @@ vec4 IntersectBVHStack(vec3 RayOrigin, vec3 RayDirection, in const int NodeStart
          const vec3 VertexB = BVHVertices[triangle.Packed[1]].Position.xyz;
          const vec3 VertexC = BVHVertices[triangle.Packed[2]].Position.xyz;
 
-         return vec4(ClosestTraversal, ComputeBarycentrics(RayOrigin + RayDirection * ClosestTraversal, VertexA, VertexB, VertexC));
+         return vec4(ClosestTraversal * InverseLength, ComputeBarycentrics(RayOrigin + RayDirection * ClosestTraversal, VertexA, VertexB, VertexC));
     }
 
     return vec4(vec3(-1.), -1.);

@@ -9,11 +9,17 @@ uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
 uniform mat4 u_Projection;
 uniform mat4 u_View;
+
 uniform vec2 u_Dims;
+uniform vec3 u_SunDirection;
 
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_NormalTexture;
 uniform samplerCube u_Skymap;
+
+uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
+uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
+uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -25,14 +31,103 @@ vec3 WorldPosFromDepth(float depth, vec2 txc)
     return WorldPos.xyz;
 }
 
-vec3 GetRayDirectionAt(vec2 screenspace)
+float SampleShadowMap(vec2 SampleUV, int Map) {
+
+	switch (Map) {
+		
+		case 0 :
+			return texture(u_ShadowTextures[0], SampleUV).x; break;
+
+		case 1 :
+			return texture(u_ShadowTextures[1], SampleUV).x; break;
+
+		case 2 :
+			return texture(u_ShadowTextures[2], SampleUV).x; break;
+
+		case 3 :
+			return texture(u_ShadowTextures[3], SampleUV).x; break;
+
+		case 4 :
+			return texture(u_ShadowTextures[4], SampleUV).x; break;
+	}
+
+	return texture(u_ShadowTextures[4], SampleUV).x;
+}
+
+bool IsInBox(vec3 point, vec3 Min, vec3 Max) {
+  return (point.x >= Min.x && point.x <= Max.x) &&
+         (point.y >= Min.y && point.y <= Max.y) &&
+         (point.z >= Min.z && point.z <= Max.z);
+}
+
+float GetDirectShadow(vec3 WorldPosition, vec3 N)
 {
-	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
-	vec4 eye = vec4(vec2(u_InverseProjection * clip), -1.0, 0.0);
-	return vec3(u_InverseView * eye);
+	int ClosestCascade = -1;
+	float Shadow = 0.0;
+	float VogelScales[5] = float[5](0.001f, 0.0015f, 0.002f, 0.00275f, 0.00325f);
+	
+	vec2 TexelSize = 1.0 / textureSize(u_ShadowTextures[ClosestCascade], 0);
+
+	vec4 ProjectionCoordinates;
+
+	float HashBorder = 1.0f; 
+
+	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
+	
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.05f, 1.0f);
+
+		if (ProjectionCoordinates.z < 1.0f && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
+		{
+			bool BoxCheck = IsInBox(WorldPosition, 
+									u_InverseView[3].xyz-(u_ShadowClipPlanes[Cascade]),
+									u_InverseView[3].xyz+(u_ShadowClipPlanes[Cascade]));
+
+			if (BoxCheck) 
+			{
+				ProjectionCoordinates = ProjectionCoordinates * 0.5f + 0.5f;
+				ClosestCascade = Cascade;
+				break;
+			}
+		}
+	}
+
+	if (ClosestCascade < 0) {
+		return 0.0f;
+	}
+	
+	float Bias = 0.001f;
+	vec2 SampleUV = ProjectionCoordinates.xy;
+	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
+	return 1.0f - Shadow;
+}
+
+vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
+
+	float Shadow = GetDirectShadow(WorldPosition, Normal);
+	return vec3(Albedo) * 7.0f * Shadow;
+}
+
+vec3 CosWeightedHemisphere(const vec3 n, vec2 r) 
+{
+	float PI2 = 2.0f * 3.1415926f;
+	vec3  uu = normalize(cross(n, vec3(0.0,1.0,1.0)));
+	vec3  vv = cross(uu, n);
+	float ra = sqrt(r.y);
+	float rx = ra * cos(PI2 * r.x); 
+	float ry = ra * sin(PI2 * r.x);
+	float rz = sqrt(1.0 - r.y);
+	vec3  rr = vec3(rx * uu + ry * vv + rz * n );
+    return normalize(rr);
+}
+
+float HASH2SEED = 0.0f;
+vec2 hash2() 
+{
+	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
 void main() {
+
 
 	ivec2 Pixel = ivec2(gl_GlobalInvocationID.xy);
 
@@ -40,37 +135,40 @@ void main() {
 		return;
 	}
 
-	vec2 TexCoords = vec2(Pixel) / u_Dims;
+	vec2 TexCoord = vec2(Pixel) / vec2(u_Dims);
+	HASH2SEED = (TexCoord.x * TexCoord.y) * 64.0;
 
-	vec3 rO = u_InverseView[3].xyz;
-	vec3 rD = normalize(GetRayDirectionAt(TexCoords).xyz);
+	vec2 TexCoords = vec2(Pixel) / u_Dims;
 
 	float Depth = texture(u_DepthTexture, TexCoords).x;
 
 	if (Depth > 0.999999f) {
-		imageStore(o_OutputData, Pixel, vec4(texture(u_Skymap, rD).xyz, 1.0f));
+		imageStore(o_OutputData, Pixel, vec4(0.0f));
 		return;
 	}
 
-	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords);
 
+	const vec3 Player = u_InverseView[3].xyz;
+
+	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords);
 	vec3 Normal = normalize(texture(u_NormalTexture, TexCoords).xyz);
 
-	vec3 Reflected = reflect(rD, Normal);
+	vec3 EyeVector = normalize(WorldPosition - Player);
+	vec3 Reflected = reflect(EyeVector, Normal);
 
-	float s = 1.0f;
-
+	vec3 RayOrigin = WorldPosition + Normal * 0.05f;
+	vec3 RayDirection = CosWeightedHemisphere(Normal, hash2());
+	 
+	// Outputs 
     int IntersectedMesh = -1;
     int IntersectedTri = -1;
 	vec4 TUVW = vec4(-1.0f);
 	vec3 Albedo = vec3(0.0f);
 	vec3 iNormal = vec3(-1.0f);
 	
-	IntersectRay(WorldPosition + Normal * 0.05f, Reflected, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
+	IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
-	if (TUVW.x < 0.0f) {
-		Albedo = texture(u_Skymap,Reflected).xyz;
-	}
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
 
-	imageStore(o_OutputData, Pixel, vec4(Albedo, 1.0f));
+	imageStore(o_OutputData, Pixel, vec4(FinalRadiance, 1.0f));
 }

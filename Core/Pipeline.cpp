@@ -30,7 +30,7 @@ Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f, 0.05f, 750.0f);
 
 static bool vsync = false;
 static float SunTick = 50.0f;
-static glm::vec3 SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
+static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 class RayTracerApp : public Lumen::Application
 {
@@ -81,7 +81,7 @@ public:
 		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
-		ImGui::SliderFloat3("Sun Dir : ", &SunDirection[0], -1.0f, 1.0f);
+		ImGui::SliderFloat3("Sun Dir : ", &_SunDirection[0], -1.0f, 1.0f);
 		
 		if (ImGui::Button("BENCH")) {
 			Camera.SetPosition(glm::vec3(10.0f, 2.0f, 0.125f));
@@ -179,7 +179,8 @@ void Lumen::StartPipeline()
 	Object MainModel;
 	Object Dragon;
 
-	FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 	
 	// Handle rt stuff 
@@ -191,6 +192,7 @@ void Lumen::StartPipeline()
 
 	// Create entities 
 	Entity MainModelEntity(&MainModel);
+	MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	std::vector<Entity*> EntityRenderList = { &MainModelEntity };
 
 	// Textures
@@ -225,9 +227,12 @@ void Lumen::StartPipeline()
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
+		// Prepare 
+		glm::vec3 SunDirection = glm::normalize(_SunDirection);
+
+		// Resize FBOs
 		GBuffer.SetSize(app.GetWidth(), app.GetHeight());
 		LightingPass.SetSize(app.GetWidth(), app.GetHeight());
-
 		RayTraceOutput.SetSize(app.GetWidth(), app.GetHeight());
 
 		// App update 
@@ -267,28 +272,43 @@ void Lumen::StartPipeline()
 		RayTraceOutput.Bind();
 
 		DiffuseShader.SetVector2f("u_Dims", glm::vec2(RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight()));
+		DiffuseShader.SetVector3f("u_SunDirection", SunDirection);
 		DiffuseShader.SetMatrix4("u_View", Camera.GetViewMatrix());
 		DiffuseShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
 		DiffuseShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
 		DiffuseShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
 
-		DiffuseShader.SetInteger("u_DepthTexture", 1);
-		DiffuseShader.SetInteger("u_NormalTexture", 2);
-		DiffuseShader.SetInteger("u_Skymap", 3);
+		DiffuseShader.SetInteger("u_DepthTexture", 0);
+		DiffuseShader.SetInteger("u_NormalTexture", 1);
+		DiffuseShader.SetInteger("u_Skymap", 2);
 
-		glActiveTexture(GL_TEXTURE1);
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
-		glActiveTexture(GL_TEXTURE2);
+		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(1));
 
-		glActiveTexture(GL_TEXTURE3);
+		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
+
+		for (int i = 0; i < 5; i++) {
+
+			const int BindingPointStart = 4;
+
+			std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+			std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+			std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+
+			DiffuseShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+			DiffuseShader.SetInteger(NameTex, i + BindingPointStart);
+			DiffuseShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+
+			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+		}
 
 		Intersector.BindEverything(DiffuseShader);
 		glBindImageTexture(0, RayTraceOutput.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
-
-
 		glDispatchCompute((int)floor(float(RayTraceOutput.GetWidth()) / 16.0f), (int)floor(float(RayTraceOutput.GetHeight())) / 16.0f, 1);
 
 
