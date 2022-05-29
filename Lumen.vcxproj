@@ -181,6 +181,7 @@
     <ClInclude Include="Core\ShadowMapHandler.h" />
     <ClInclude Include="Core\ShadowRenderer.h" />
     <ClInclude Include="Core\Threadpool.h" />
+    <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\Utils\Random.h" />
     <ClInclude Include="Core\Utils\Timer.h" />
     <ClInclude Include="Core\Utils\Vertex.h" />
@@ -249,6 +250,8 @@
     <None Include="Core\Shaders\FBOVert.glsl" />
     <None Include="Core\Shaders\GeometryFrag.glsl" />
     <None Include="Core\Shaders\GeometryVert.glsl" />
+    <None Include="Core\Shaders\Include\Octahedral.glsl" />
+    <None Include="Core\Shaders\Include\Reservoir.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStack.glsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>

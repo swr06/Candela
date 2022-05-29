@@ -55,6 +55,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\ThreadPool">
       <UniqueIdentifier>{03801680-f0dd-4842-8ff3-9e849fb2d7ac}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include">
+      <UniqueIdentifier>{132e0dd8-11cc-4f9b-ab0e-f53d0c6b81ab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -187,6 +190,9 @@
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Shadowmap.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Utility.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -369,6 +375,12 @@
     </None>
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackShadow.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors</Filter>
+    </None>
+    <None Include="Core\Shaders\Include\Octahedral.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\Include\Reservoir.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
   </ItemGroup>
 </Project>

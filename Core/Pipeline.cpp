@@ -23,6 +23,8 @@
 #include "BVH/BVHConstructor.h"
 #include "BVH/Intersector.h"
 
+#include "Utility.h"
+
 
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
@@ -126,15 +128,34 @@ public:
 
 };
 
-void UnbindEverything() {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glUseProgram(0);
-}
 
 void RenderEntityList(const std::vector<Lumen::Entity*> EntityList, GLClasses::Shader& shader) {
 	for (auto& e : EntityList) {
 		Lumen::RenderEntity(*e, shader);
 	}
+}
+
+template <typename T>
+void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
+	shader.SetFloat("u_Time", glfwGetTime());
+	shader.SetInteger("u_Frame", uniforms.Frame);
+	shader.SetInteger("u_CurrentFrame", uniforms.Frame);
+	shader.SetMatrix4("u_ViewProjection", Camera.GetViewProjection());
+	shader.SetMatrix4("u_Projection", uniforms.Projection);
+	shader.SetMatrix4("u_View", uniforms.View);
+	shader.SetMatrix4("u_InverseProjection", uniforms.InvProjection);
+	shader.SetMatrix4("u_InverseView", uniforms.InvView);
+	shader.SetMatrix4("u_PrevProjection", uniforms.PrevProj);
+	shader.SetMatrix4("u_PrevView", uniforms.PrevView);
+	shader.SetMatrix4("u_PrevInverseProjection", uniforms.InvPrevProj);
+	shader.SetMatrix4("u_PrevInverseView", uniforms.InvPrevView);
+	shader.SetMatrix4("u_InversePrevProjection", uniforms.InvPrevProj);
+	shader.SetMatrix4("u_InversePrevView", uniforms.InvPrevView);
+	shader.SetVector3f("u_ViewerPosition", glm::vec3(uniforms.InvView[3]));
+	shader.SetVector3f("u_Incident", glm::vec3(uniforms.InvView[3]));
+	shader.SetVector3f("u_SunDirection", uniforms.SunDirection);
+	shader.SetFloat("u_zNear", Camera.GetNearPlane());
+	shader.SetFloat("u_zFar", Camera.GetFarPlane());
 }
 
 
@@ -218,10 +239,17 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE_FORWARD");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 
-	
-
+	// Framebuffers
 	GLClasses::Framebuffer RayTraceOutput(app.GetWidth(), app.GetHeight(), { GL_RGBA16F, GL_RGBA, GL_FLOAT }, true);
 	RayTraceOutput.CreateFramebuffer();
+
+	// Matrices
+	glm::mat4 PreviousView;
+	glm::mat4 PreviousProjection;
+	glm::mat4 View;
+	glm::mat4 Projection;
+	glm::mat4 InverseView;
+	glm::mat4 InverseProjection;
 
 	ShadowHandler::GenerateShadowMaps();
 
@@ -233,10 +261,21 @@ void Lumen::StartPipeline()
 		// Resize FBOs
 		GBuffer.SetSize(app.GetWidth(), app.GetHeight());
 		LightingPass.SetSize(app.GetWidth(), app.GetHeight());
-		RayTraceOutput.SetSize(app.GetWidth(), app.GetHeight());
+		RayTraceOutput.SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 
 		// App update 
+		PreviousProjection = Camera.GetProjectionMatrix();
+		PreviousView = Camera.GetViewMatrix();
+
 		app.OnUpdate();
+
+		// Set matrices
+		Projection = Camera.GetProjectionMatrix();
+		View = Camera.GetViewMatrix();
+		InverseProjection = glm::inverse(Camera.GetProjectionMatrix());
+		InverseView = glm::inverse(Camera.GetViewMatrix());
+
+		CommonUniforms UniformBuffer = { View, Projection, InverseView, InverseProjection, PreviousProjection, PreviousView, glm::inverse(PreviousProjection), glm::inverse(PreviousView), (int)app.GetCurrentFrame(), SunDirection};
 
 		// Render shadow maps
 		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList);
@@ -272,15 +311,11 @@ void Lumen::StartPipeline()
 		RayTraceOutput.Bind();
 
 		DiffuseShader.SetVector2f("u_Dims", glm::vec2(RayTraceOutput.GetWidth(), RayTraceOutput.GetHeight()));
-		DiffuseShader.SetVector3f("u_SunDirection", SunDirection);
-		DiffuseShader.SetMatrix4("u_View", Camera.GetViewMatrix());
-		DiffuseShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
-		DiffuseShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
-		DiffuseShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
-
 		DiffuseShader.SetInteger("u_DepthTexture", 0);
 		DiffuseShader.SetInteger("u_NormalTexture", 1);
 		DiffuseShader.SetInteger("u_Skymap", 2);
+
+		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
