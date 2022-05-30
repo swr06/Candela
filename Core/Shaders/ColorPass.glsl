@@ -80,7 +80,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 {
 	int ClosestCascade = -1;
 	float Shadow = 0.0;
-	float VogelScales[5] = float[5](0.001f, 0.0015f, 0.002f, 0.00275f, 0.00325f);
+	float VogelScales[5] = float[5](0.002f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
 	
 	vec2 Hash = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
 
@@ -88,7 +88,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	vec4 ProjectionCoordinates;
 
-	float HashBorder = 0.95f - Hash.y * 0.0125f; 
+	float HashBorder = 0.95f - Hash.y * 0.03f; 
 
 	//float Distance = distance(WorldPosition, u_InverseView[3].xyz);
 
@@ -103,7 +103,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 									u_InverseView[3].xyz-(u_ShadowClipPlanes[Cascade]-Hash.x*0.55f),
 									u_InverseView[3].xyz+(u_ShadowClipPlanes[Cascade]+Hash.x*0.5f));
 
-			if (BoxCheck) 
+			//if (BoxCheck) 
 			{
 				ProjectionCoordinates = ProjectionCoordinates * 0.5f + 0.5f;
 				ClosestCascade = Cascade;
@@ -116,7 +116,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 		return 1.0f;
 	}
 	
-	float Bias = 0.001f;
+	float Bias = 0.00f;
 
 	int SampleCount = 32;
     
@@ -135,7 +135,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	Shadow /= float(SampleCount);
 
-	return 1.0f - clamp(pow(Shadow, 1.44f), 0.0f, 1.0f);
+	return 1.0f - clamp(pow(Shadow, 1.0f), 0.0f, 1.0f);
 }
 
 

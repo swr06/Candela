@@ -246,8 +246,8 @@
     <None Include="Core\Shaders\BasicVert.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\ColorPass.glsl" />
-    <None Include="Core\Shaders\DDGI\GenerateRays.glsl" />
-    <None Include="Core\Shaders\DDGI\Raytrace.glsl" />
+    <None Include="Core\Shaders\DDGIGenerateRays.glsl" />
+    <None Include="Core\Shaders\DDGIRaytrace.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
     <None Include="Core\Shaders\DepthVert.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />

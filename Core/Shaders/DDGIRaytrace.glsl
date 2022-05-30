@@ -127,4 +127,3 @@ void main() {
 
 	Pixels[WriteIndex] = vec4(FinalRadiance, 1.0f);
 }
-

@@ -105,7 +105,7 @@ namespace Lumen
 
 
 		Projection = glm::mat4(1.0f);
-		Projection = glm::ortho(OrthoMin.x, OrthoMax.x, OrthoMin.y, OrthoMax.y, OrthoMin.z, OrthoMax.z);
+		Projection = glm::ortho(OrthoMin.x, OrthoMax.x, OrthoMin.y, OrthoMax.y, -OrthoMin.z - 1250.0f, OrthoMax.z + 32.0f);
 	}
 
 	void RenderShadowMap(Shadowmap& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*>& Entities, float Distance, glm::mat4& Projection, glm::mat4& View)

@@ -68,7 +68,7 @@ namespace Lumen {
 		void PushEntities(const std::vector<Entity*>& Entities);
 		void BufferEntities();
 		void IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera);
-		void BindEverything(GLClasses::ComputeShader& Shader);
+		void BindEverything(GLClasses::ComputeShader& Shader, bool ShouldBindTextures);
 
 		void BufferData();
 		void Recompile();
@@ -255,7 +255,7 @@ void Lumen::RayIntersector<T>::IntersectPrimary(GLuint OutputBuffer, int Width, 
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader)
+void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader, bool ShouldBindTextures)
 {
 	const std::vector<FileLoader::_MeshMaterialData>& Paths = FileLoader::GetMeshTexturePaths();
 
@@ -389,8 +389,6 @@ inline void Lumen::RayIntersector<T>::_BindTextures(GLClasses::ComputeShader& Sh
 		glProgramUniformHandleui64ARB(Shader.GetProgram(), Shader.FetchUniformLocation(Name), m_MiscTex.GetTextureID());
 
 	}
-
-
 
 	// Bind, bindless textures (ironic, I know.)
 	for (auto& e : m_TextureHandleReferenceMap)

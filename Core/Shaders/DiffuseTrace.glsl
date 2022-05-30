@@ -77,7 +77,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
-		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.05f, 1.0f);
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.0275f, 1.0f);
 
 		if (ProjectionCoordinates.z < 1.0f && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
 		{
@@ -85,7 +85,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 									u_InverseView[3].xyz-(u_ShadowClipPlanes[Cascade]),
 									u_InverseView[3].xyz+(u_ShadowClipPlanes[Cascade]));
 
-			if (BoxCheck) 
+			//if (BoxCheck) 
 			{
 				ProjectionCoordinates = ProjectionCoordinates * 0.5f + 0.5f;
 				ClosestCascade = Cascade;
@@ -98,7 +98,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 		return 0.0f;
 	}
 	
-	float Bias = 0.001f;
+	float Bias = 0.00f;
 	vec2 SampleUV = ProjectionCoordinates.xy;
 	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
 	return 1.0f - Shadow;

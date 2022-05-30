@@ -397,10 +397,10 @@
     <None Include="Core\Shaders\Temporal.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\DDGI\GenerateRays.glsl">
+    <None Include="Core\Shaders\DDGIGenerateRays.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\DDGI</Filter>
     </None>
-    <None Include="Core\Shaders\DDGI\Raytrace.glsl">
+    <None Include="Core\Shaders\DDGIRaytrace.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\DDGI</Filter>
     </None>
   </ItemGroup>

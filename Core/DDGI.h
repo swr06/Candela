@@ -11,7 +11,7 @@ namespace Lumen {
 	namespace DDGI {
 
 		void Initialize();
-		void UpdateProbes();
+		void UpdateProbes(int Frame);
 	}
 
 }

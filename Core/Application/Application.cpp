@@ -312,7 +312,7 @@ namespace Lumen
 	*/
 	uint64_t Application::GetCurrentFrame()
 	{
-		return m_CurrentFrame;
+		return m_CurrentFrame % 2147483620;
 	}
 
 	/*

@@ -13,6 +13,7 @@
 #include "GLClasses/DepthBuffer.h"
 #include "ShadowRenderer.h"
 #include "GLClasses/CubeTextureMap.h"
+#include "DDGI.h"
 
 #include "ProbeMap.h"
 
@@ -255,6 +256,7 @@ void Lumen::StartPipeline()
 	glm::mat4 InverseProjection;
 
 	ShadowHandler::GenerateShadowMaps();
+	DDGI::Initialize();
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -303,6 +305,9 @@ void Lumen::StartPipeline()
 		// Render shadow maps
 		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList);
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
+
+		// DDGI Update 
+		DDGI::UpdateProbes((int)app.GetCurrentFrame());
 
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);
@@ -361,7 +366,7 @@ void Lumen::StartPipeline()
 			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
 		}
 
-		Intersector.BindEverything(DiffuseShader);
+		Intersector.BindEverything(DiffuseShader, app.GetCurrentFrame() < 60);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 		glDispatchCompute((int)floor(float(DiffuseTrace.GetWidth()) / 16.0f) + 1, (int)(floor(float(DiffuseTrace.GetHeight())) / 16.0f) + 1, 1);
 
