@@ -265,6 +265,7 @@
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackShadow.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
+    <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

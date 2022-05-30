@@ -107,7 +107,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return vec3(Albedo) * 7.0f * Shadow;
+	return vec3(Albedo) * 10.0f * Shadow;
 }
 
 vec3 CosWeightedHemisphere(const vec3 n, vec2 r) 
@@ -184,7 +184,9 @@ void main() {
 	IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
 	// Compute radiance 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
 
-	imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, 1.0f));
+	float AO = pow(clamp(TUVW.x / 0.7f, 0.0f, 1.0f), 1.5f);
+
+	imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, AO));
 }

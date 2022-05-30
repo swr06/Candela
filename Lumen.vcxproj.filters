@@ -385,5 +385,8 @@
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
+    <None Include="Core\Shaders\Temporal.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

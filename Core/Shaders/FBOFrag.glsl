@@ -39,4 +39,6 @@ vec4 ACESFitted(vec4 Color, float Exposure)
 void main()
 {
     o_Color.xyz = texture(u_MainTexture, v_TexCoords).xyz;
+    o_Color.xyz = ACESFitted(vec4(o_Color.xyz,1.0f), 2.0f).xyz;
+    o_Color.xyz = pow(o_Color, vec3(1.0f / 2.2f));
 }

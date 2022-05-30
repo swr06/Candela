@@ -38,7 +38,7 @@ void main()
 
 	o_Albedo += o_Albedo * u_EmissiveColor * u_ModelEmission * 8.0f;
 
-	o_HFNormal = v_Normal; //u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) : v_Normal;
+	o_HFNormal = u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) : v_Normal;
 	o_LFNormal = v_Normal;
 
 	// https://www.khronos.org/blog/art-pipeline-for-gltf
@@ -60,4 +60,7 @@ void main()
 	o_PBR.x = clamp(o_PBR.x, 0.02f, 1.0f);
 
 	o_PBR.w = u_ModelEmission;
+
+	o_HFNormal = normalize(o_HFNormal);
+	o_LFNormal = normalize(o_LFNormal);
 }
