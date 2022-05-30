@@ -16,10 +16,20 @@ layout (std430, binding = 0) writeonly buffer OutputRays {
 	Ray Rays[];
 };
 
-uint Probe1DIndexFrom3D(uvec3 index)
+ivec3 Get3DIdx(int idx)
 {
     ivec3 GridSize = ivec3(u_ProbeGridDimensions);
-    return index.x + index.y * GridSize.x + index.z * GridSize.x * GridSize.y;
+	int z = idx / (GridSize.x * GridSize.y);
+	idx -= (z * GridSize.x * GridSize.y);
+	int y = idx / GridSize.x;
+	int x = idx % GridSize.x;
+	return ivec3(x, y, z);
+}
+
+uint Get1DIdx(uvec3 index)
+{
+    ivec3 GridSize = ivec3(u_ProbeGridDimensions);
+    return (index.z * GridSize.x * GridSize.y) + (index.y * GridSize.x) + GridSize.x;
 }
 
 // RNG ->
@@ -81,7 +91,7 @@ void main() {
 
     vec3 Position = vec3(Invocation) - (u_ProbeGridDimensions / 2.0f); 
 
-    int Index1D = int(Probe1DIndexFrom3D(Invocation));
+    int Index1D = int(Get1DIdx(Invocation));
     float FloatBitsIndex = intBitsToFloat(Index1D);
 
     int WriteIndex = Index1D * int(u_Rays);

@@ -350,3 +350,4 @@ MigrationBackup/
 log.txt
 x64/
 .vs/
+imgui.ini
