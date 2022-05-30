@@ -152,6 +152,7 @@
     <ClInclude Include="Core\Application\Logger.h" />
     <ClInclude Include="Core\BVH\BVHConstructor.h" />
     <ClInclude Include="Core\BVH\Intersector.h" />
+    <ClInclude Include="Core\DDGI.h" />
     <ClInclude Include="Core\Entity.h" />
     <ClInclude Include="Core\FpsCamera.h" />
     <ClInclude Include="Core\GLClasses\ComputeShader.h" />
@@ -199,6 +200,7 @@
     <ClCompile Include="Core\Application\Logger.cpp" />
     <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
     <ClCompile Include="Core\BVH\Intersector.cpp" />
+    <ClCompile Include="Core\DDGI.cpp" />
     <ClCompile Include="Core\FpsCamera.cpp" />
     <ClCompile Include="Core\GLClasses\ComputeShader.cpp" />
     <ClCompile Include="Core\GLClasses\CubeTextureMap.cpp" />
@@ -244,6 +246,8 @@
     <None Include="Core\Shaders\BasicVert.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\ColorPass.glsl" />
+    <None Include="Core\Shaders\DDGI\GenerateRays.glsl" />
+    <None Include="Core\Shaders\DDGI\Raytrace.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
     <None Include="Core\Shaders\DepthVert.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
