@@ -257,7 +257,6 @@ void Lumen::StartPipeline()
 	glm::mat4 InverseProjection;
 
 	ShadowHandler::GenerateShadowMaps();
-	DDGI::Initialize();
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -306,9 +305,6 @@ void Lumen::StartPipeline()
 		// Render shadow maps
 		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList);
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
-
-		// DDGI Update 
-		DDGI::UpdateProbes((int)app.GetCurrentFrame(), Intersector);
 
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);

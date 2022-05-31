@@ -14,8 +14,9 @@ void Lumen::ShaderManager::CreateShaders()
 	AddComputeShader("DIFFUSE_TRACE", "Core/Shaders/DiffuseTrace.glsl");
 	AddShader("CHECKER_UPSCALE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/CheckerboardReconstruct.glsl");
 	AddShader("TEMPORAL", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Temporal.glsl");
-	AddComputeShader("DDGI_RAYGEN", "Core/Shaders/DDGIGenerateRays.glsl");
-	AddComputeShader("DDGI_RT", "Core/Shaders/DDGIRaytrace.glsl");
+	
+	AddComputeShader("DDGI_RAYGEN", "Core/Shaders/DDGI/DDGIGenerateRays.glsl");
+	AddComputeShader("DDGI_RT", "Core/Shaders/DDGI/DDGIRaytrace.glsl");
 }
 
 void Lumen::ShaderManager::AddShader(const std::string& name, const std::string& vert, const std::string& frag, const std::string& geo)
