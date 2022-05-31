@@ -22,7 +22,6 @@ uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
-uniform samplerCube u_Skymap;
 uniform int u_RayCount;
 
 float SampleShadowMap(vec2 SampleUV, int Map) {
@@ -82,7 +81,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 		return 0.0f;
 	}
 	
-	float Bias = 0.001f;
+	float Bias = 0.00f;
 	vec2 SampleUV = ProjectionCoordinates.xy;
 	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
 	return 1.0f - Shadow;
@@ -114,14 +113,15 @@ void main() {
 	IntersectRay(ray.RayOrigin.xyz, ray.RayDirection.xyz, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
 	// Compute radiance 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, vec3(0.0f, 1.0f, 0.0f)).xyz * 3.0f : GetDirect((ray.RayOrigin.xyz + ray.RayDirection.xyz * TUVW.x), iNormal, Albedo);
+	vec3 FinalRadiance = TUVW.x < 0.0f ? vec3(0.1f, 0.1f, 1.0f) * 2.0f : GetDirect((ray.RayOrigin.xyz + ray.RayDirection.xyz * TUVW.x), iNormal, Albedo);
 
 	int Probe = floatBitsToInt(ray.RayDirection.w);
 
-	int PixelIndex = Probe * (12 * 12);
+	ivec2 ProbeResolution = ivec2(8, 4);
+	int PixelIndex = Probe * (ProbeResolution.x * ProbeResolution.y);
 	vec2 Octahedral = OctahedralEncode(ray.RayDirection.xyz);
-	ivec2 LocalPixel = ivec2(Octahedral * vec2(11, 11));
-	int Flattened = LocalPixel.x * 12 + LocalPixel.y;
+	ivec2 LocalPixel = ivec2(Octahedral * vec2(ProbeResolution-1));
+	int Flattened = LocalPixel.x * ProbeResolution.x + LocalPixel.y;
 
 	int WriteIndex = PixelIndex + Flattened;
 

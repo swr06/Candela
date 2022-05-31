@@ -107,7 +107,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return vec3(Albedo) * 10.0f * Shadow;
+	return vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
 }
 
 vec3 CosWeightedHemisphere(const vec3 n, vec2 r) 

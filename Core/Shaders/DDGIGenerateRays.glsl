@@ -49,6 +49,8 @@ void InitRNG(vec2 Pixel, vec3 Res)
 {
     RNGSeed = uint(Pixel.y * Res.x + Pixel.x) + uint(u_Frame%512) * uint(Res.x) * uint(Res.y) * uint(Res.z) + uint(Res.z) * 4;
     HashRNG();
+    RNGSeed += uint(Res.z) * 3;
+    HashRNG();
     HashRNG();
     HashRNG();
 }
@@ -102,7 +104,7 @@ void main() {
 
         vec3 SphereDirection = GetSphereDirection(Hash3());
 
-        WriteRay.RayOrigin = vec4(Position, 1.0f);
+        WriteRay.RayOrigin = vec4(Position, intBitsToFloat(i));
         WriteRay.RayDirection = vec4(SphereDirection, FloatBitsIndex);
 
 		Rays[WriteIndex + i] = WriteRay;

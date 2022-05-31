@@ -403,5 +403,8 @@
     <None Include="Core\Shaders\DDGIRaytrace.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\DDGI</Filter>
     </None>
+    <None Include="Core\Shaders\DDGIHitHandler.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\DDGI</Filter>
+    </None>
   </ItemGroup>
 </Project>

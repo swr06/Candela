@@ -247,6 +247,7 @@
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\ColorPass.glsl" />
     <None Include="Core\Shaders\DDGIGenerateRays.glsl" />
+    <None Include="Core\Shaders\DDGIHitHandler.glsl" />
     <None Include="Core\Shaders\DDGIRaytrace.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
     <None Include="Core\Shaders\DepthVert.glsl" />

@@ -208,6 +208,7 @@ void Lumen::StartPipeline()
 	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 	
 	// Handle rt stuff 
@@ -307,7 +308,7 @@ void Lumen::StartPipeline()
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
 		// DDGI Update 
-		DDGI::UpdateProbes((int)app.GetCurrentFrame());
+		DDGI::UpdateProbes((int)app.GetCurrentFrame(), Intersector);
 
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);
