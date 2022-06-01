@@ -26,15 +26,16 @@ uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
+uniform vec3 u_ProbeBoxSize;
+uniform vec3 u_ProbeGridResolution;
+uniform vec3 u_ProbeBoxOrigin;
+uniform sampler3D u_ProbeData;
+
 struct Surfel {
 	vec4 Position; // <- Radius in w 
 	vec4 Normal; // <- Luminance map offset in w
 	vec4 Radiance; // <- Accumulated frames in w
 	vec4 Extra;  // <- Surfel ID, Valid (0 - 1)
-};
-
-layout (std430, binding = 2) buffer SSBO_SurfelBuffer {
-	Surfel SurfelCellVolume[];
 };
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -149,33 +150,6 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	return 1.0f - clamp(pow(Shadow, 1.0f), 0.0f, 1.0f);
 }
 
-float RayDiskIntersection( in vec3 ro, in vec3 rd, vec3 c, vec3 n, float r )
-{
-	vec3  o = ro - c;
-    float t = -dot(n,o)/dot(rd,n);
-    vec3  q = o + rd*t;
-    return (dot(q,q)<r*r) ? t : -1.0;
-}
-
-const int LIST_SIZE = 8;
-
-
-int Get1DIdx(ivec3 index)
-{
-    ivec3 GridSize = ivec3(32, 16, 32);
-    return (index.z * GridSize.x * GridSize.y) + (index.y * GridSize.x) + GridSize.x;
-}
-
-int GetNearestSurfelCell(vec3 Position) {
-
-	Position += vec3(16.,8.,16.);
-	ivec3 Rounded = ivec3(floor(Position));
-
-	int Index1D = Get1DIdx(Rounded) * LIST_SIZE;
-	return Index1D;
-}
-
-
 vec3 SampleIncidentRayDirection(vec2 screenspace)
 {
 	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
@@ -183,41 +157,23 @@ vec3 SampleIncidentRayDirection(vec2 screenspace)
 	return vec3(u_InverseView * eye);
 }
 
-float IntersectSurfels(vec3 Player, vec3 rD, vec3 WorldPosition) {
+vec3 SampleProbes(vec3 WorldPosition) {
+
+	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
+	SamplePoint = SamplePoint * 0.5 + 0.5; 
 	
-	int Index = GetNearestSurfelCell(WorldPosition);
-
-	for (int i = 0 ; i < 8 ; i++) {
-		
-		Surfel surfel = SurfelCellVolume[Index+i];
-
-		if (surfel.Extra.y > 0.01f) {
-
-			float T = RayDiskIntersection(Player, rD, surfel.Position.xyz, surfel.Normal.xyz, 0.2f);
-
-			if (T > 0.0f) {
-
-				return T;
-				
-			}
-
-		}
-
-	}
-
-	return -1.;
+	return texture(u_ProbeData, SamplePoint).xyz;
 }
 
 void main() 
 {	
-	
-
 	vec3 rO = u_InverseView[3].xyz;
+	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 
 	float Depth = texture(u_DepthTexture, v_TexCoords).x;
 
 	if (Depth > 0.999999f) {
-		o_Color = texture(u_Skymap, vec3(0.,1.,0.)).xyz;
+		o_Color = texture(u_Skymap, rD).xyz;
 		return;
 	}
 
@@ -229,13 +185,8 @@ void main()
 
 	vec3 Direct = Albedo * 8.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal);
 
-	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
-	float T = IntersectSurfels(u_InverseView[3].xyz, rD, WorldPosition);
 
-	o_Color = Direct + GI.xyz * Albedo * GI.w;
+	o_Color = SampleProbes(WorldPosition) * Albedo + Direct;//Direct + GI.xyz * Albedo * GI.w;
 
-	//if (T > 0.0f) {
-	//
-	//	o_Color = vec3(1.,0.,0.);
-	//}
+	
 }

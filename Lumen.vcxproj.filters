@@ -204,9 +204,6 @@
     <ClInclude Include="Core\DDGI.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
-    <ClInclude Include="Core\SurfelGI.h">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -332,9 +329,6 @@
     <ClCompile Include="Core\DDGI.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
-    <ClCompile Include="Core\SurfelGI.cpp">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl">
@@ -409,19 +403,8 @@
     <None Include="Core\Shaders\SurfelSpawn.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Surfel GI</Filter>
     </None>
-    <None Include="Core\Shaders\DDGI\DDGIGenerateRays.glsl">
+    <None Include="Core\Shaders\UpdateProbes.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\DDGI</Filter>
     </None>
-    <None Include="Core\Shaders\DDGI\DDGIHitHandler.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\DDGI</Filter>
-    </None>
-    <None Include="Core\Shaders\DDGI\DDGIRaytrace.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\DDGI</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Core\Shaders\DDGI\Readme.txt">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </Text>
   </ItemGroup>
 </Project>

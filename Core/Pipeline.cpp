@@ -26,8 +26,6 @@
 
 #include "Utility.h"
 
-#include "SurfelGI.h"
-
 
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
@@ -269,9 +267,8 @@ void Lumen::StartPipeline()
 	// Generate shadow maps
 	ShadowHandler::GenerateShadowMaps();
 
-	// Initialize surfel gi
-	SurfelGIHandler SurfelHandler;
-	SurfelHandler.Initialize();
+	// Initialize radiance probes
+	DDGI::Initialize();
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -321,8 +318,8 @@ void Lumen::StartPipeline()
 		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList);
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
-		// Update surfels
-		SurfelHandler.UpdateSurfels(static_cast<int>(app.GetCurrentFrame()), GBuffer, UniformBuffer, Camera);
+		// Update probes
+		DDGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer);
 
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);
@@ -471,6 +468,11 @@ void Lumen::StartPipeline()
 		LightingShader.SetVector3f("u_LightDirection", SunDirection);
 		LightingShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 
+		LightingShader.SetVector3f("u_ProbeBoxSize", DDGI::GetProbeGridSize());
+		LightingShader.SetVector3f("u_ProbeGridResolution", DDGI::GetProbeGridRes());
+		LightingShader.SetVector3f("u_ProbeBoxOrigin", DDGI::GetProbeBoxOrigin());
+		LightingShader.SetInteger("u_ProbeData", 14);
+
 		for (int i = 0; i < 5; i++) {
 
 			const int BindingPointStart = 8;
@@ -508,7 +510,10 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE7);
 		glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture());
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, SurfelHandler.m_SurfelCellVolume);
+		// 8 - 13 occupied by shadow textures 
+
+		glActiveTexture(GL_TEXTURE14);
+		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

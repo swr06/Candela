@@ -12,83 +12,107 @@ namespace Lumen {
 			glm::vec4 RayDirection;
 		};
 
-		const int ProbeGridX = 12;
-		const int ProbeGridY = 8;
-		const int ProbeGridZ = 12;
-		
-		// These should multiply to ProbeGridX * ProbeGridY * ProbeGridZ
-		const int FactorPairX = 24;
-		const int FactorPairY = 48;
+		const int ProbeGridX = 48;
+		const int ProbeGridY = 24;
+		const int ProbeGridZ = 48;
 
-		const int RayCount = 32; // <- Number of rays to cast, per probe, per frame
+		const glm::vec3 ProbeBoxSize = glm::vec3(12.0f, 12.0f, 12.0f);
 
-		static GLuint ProbeGridData; // each probe consisting of 12 * 12 pixels 
-		static GLuint RayBuffer; // each probe consisting of 12 * 12 pixels 
+		static GLuint _ProbeDataTexture = 0;
+		static GLuint _PrevProbeDataTexture = 0;
+		static GLuint ProbeDataTexture = 0;
+
+		static glm::vec3 LastOrigin = glm::vec3(0.0f);
 	}
 }
 
 void Lumen::DDGI::Initialize()
 {
-	glGenBuffers(1, &ProbeGridData);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ProbeGridData);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, ProbeGridX * ProbeGridY * ProbeGridZ * sizeof(glm::vec4) * 8 * 4, nullptr, GL_STATIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glGenTextures(1, &_ProbeDataTexture);
+	glBindTexture(GL_TEXTURE_3D, _ProbeDataTexture);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA, GL_FLOAT, nullptr);
 
-	glGenBuffers(1, &RayBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, RayBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, ((ProbeGridX * ProbeGridY * ProbeGridZ)+1) * RayCount * sizeof(Lumen::DDGI::Ray), nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glGenTextures(1, &_PrevProbeDataTexture);
+	glBindTexture(GL_TEXTURE_3D, _PrevProbeDataTexture);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA, GL_FLOAT, nullptr);
 }
 
 
-void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector)
+void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms)
 {
-	glm::vec3 GridDims = glm::vec3(ProbeGridX, ProbeGridY, ProbeGridZ);
+	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 
-	GLClasses::ComputeShader& DDGIRayGen = ShaderManager::GetComputeShader("DDGI_RAYGEN");
-	GLClasses::ComputeShader& DDGIRaytrace = ShaderManager::GetComputeShader("DDGI_RT");
+	GLuint CurrentVolume = (Frame % 2 == 0) ? _ProbeDataTexture : _PrevProbeDataTexture;
+	GLuint PreviousVolume = (Frame % 2 == 0) ? _PrevProbeDataTexture : _ProbeDataTexture;
 
-	// First, generate rays 
-	DDGIRayGen.Use();
-	DDGIRayGen.SetInteger("u_Rays", RayCount);
-	DDGIRayGen.SetInteger("u_Frame", Frame);
-	DDGIRayGen.SetVector3f("u_ProbeGridDimensions", GridDims);
+	ProbeDataTexture = CurrentVolume;
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, RayBuffer);
-	glDispatchCompute(ProbeGridX / 8, ProbeGridY / 4, ProbeGridZ / 8);
+	ProbeUpdate.Use();
 
-	glUseProgram(0);
+	LastOrigin = glm::vec3(0.0f); //glm::vec3(uniforms.InvView[3]);
 
-	// Intersect 
-
-	int TotalRayCount = ProbeGridX * ProbeGridY * ProbeGridZ * RayCount;
-
-	DDGIRaytrace.Use();
-
-	DDGIRaytrace.SetInteger("u_RayCount", TotalRayCount);
+	ProbeUpdate.SetVector3f("u_SunDirection", uniforms.SunDirection);
+	ProbeUpdate.SetVector3f("u_BoxOrigin", LastOrigin);
+	ProbeUpdate.SetVector3f("u_Resolution", glm::vec3(ProbeGridX,ProbeGridY,ProbeGridZ));
+	ProbeUpdate.SetVector3f("u_Size", ProbeBoxSize);
+	ProbeUpdate.SetFloat("u_Time", glfwGetTime());
+	ProbeUpdate.SetInteger("u_History", 3);
 
 	for (int i = 0; i < 5; i++) {
 
-		const int BindingPointStart = 4;
+		const int BindingPointStart = 8;
 
 		std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
 		std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
 		std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
 
-		DDGIRaytrace.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
-		DDGIRaytrace.SetInteger(NameTex, i + BindingPointStart);
-		DDGIRaytrace.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+		ProbeUpdate.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+		ProbeUpdate.SetInteger(NameTex, i + BindingPointStart);
+		ProbeUpdate.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
 		glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
 		glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
 	}
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, RayBuffer);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ProbeGridData);
-	Intersector.BindEverything(DDGIRaytrace, Frame < 60);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_3D, PreviousVolume);
 
-	glDispatchCompute(TotalRayCount / 256, 1, 1);
+	glBindImageTexture(0, CurrentVolume, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-	//u_ProbeGridDimensionsFactors
+	Intersector.BindEverything(ProbeUpdate, uniforms.Frame < 128);
+
+	glDispatchCompute(ProbeGridX / 8, ProbeGridY / 4, ProbeGridZ / 8);
+
+	glUseProgram(0);
+}
+
+glm::vec3 Lumen::DDGI::GetProbeGridSize()
+{
+	return ProbeBoxSize;
+}
+
+glm::vec3 Lumen::DDGI::GetProbeGridRes()
+{
+	return glm::vec3(ProbeGridX, ProbeGridY, ProbeGridZ);
+}
+
+glm::vec3 Lumen::DDGI::GetProbeBoxOrigin()
+{
+	return LastOrigin;
+}
+
+GLuint Lumen::DDGI::GetVolume()
+{
+	return ProbeDataTexture;
 }
 
