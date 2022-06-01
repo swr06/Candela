@@ -26,6 +26,17 @@ uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
+struct Surfel {
+	vec4 Position; // <- Radius in w 
+	vec4 Normal; // <- Luminance map offset in w
+	vec4 Radiance; // <- Accumulated frames in w
+	vec4 Extra;  // <- Surfel ID, Valid (0 - 1)
+};
+
+layout (std430, binding = 2) buffer SSBO_SurfelBuffer {
+	Surfel SurfelCellVolume[];
+};
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -138,7 +149,64 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	return 1.0f - clamp(pow(Shadow, 1.0f), 0.0f, 1.0f);
 }
 
+float RayDiskIntersection( in vec3 ro, in vec3 rd, vec3 c, vec3 n, float r )
+{
+	vec3  o = ro - c;
+    float t = -dot(n,o)/dot(rd,n);
+    vec3  q = o + rd*t;
+    return (dot(q,q)<r*r) ? t : -1.0;
+}
 
+const int LIST_SIZE = 8;
+
+
+int Get1DIdx(ivec3 index)
+{
+    ivec3 GridSize = ivec3(32, 16, 32);
+    return (index.z * GridSize.x * GridSize.y) + (index.y * GridSize.x) + GridSize.x;
+}
+
+int GetNearestSurfelCell(vec3 Position) {
+
+	Position += vec3(16.,8.,16.);
+	ivec3 Rounded = ivec3(floor(Position));
+
+	int Index1D = Get1DIdx(Rounded) * LIST_SIZE;
+	return Index1D;
+}
+
+
+vec3 SampleIncidentRayDirection(vec2 screenspace)
+{
+	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
+	vec4 eye = vec4(vec2(u_InverseProjection * clip), -1.0, 0.0);
+	return vec3(u_InverseView * eye);
+}
+
+float IntersectSurfels(vec3 Player, vec3 rD, vec3 WorldPosition) {
+	
+	int Index = GetNearestSurfelCell(WorldPosition);
+
+	for (int i = 0 ; i < 8 ; i++) {
+		
+		Surfel surfel = SurfelCellVolume[Index+i];
+
+		if (surfel.Extra.y > 0.01f) {
+
+			float T = RayDiskIntersection(Player, rD, surfel.Position.xyz, surfel.Normal.xyz, 0.2f);
+
+			if (T > 0.0f) {
+
+				return T;
+				
+			}
+
+		}
+
+	}
+
+	return -1.;
+}
 
 void main() 
 {	
@@ -161,5 +229,13 @@ void main()
 
 	vec3 Direct = Albedo * 8.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal);
 
+	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
+	float T = IntersectSurfels(u_InverseView[3].xyz, rD, WorldPosition);
+
 	o_Color = Direct + GI.xyz * Albedo * GI.w;
+
+	//if (T > 0.0f) {
+	//
+	//	o_Color = vec3(1.,0.,0.);
+	//}
 }

@@ -17,6 +17,7 @@ void Lumen::ShaderManager::CreateShaders()
 	
 	AddComputeShader("DDGI_RAYGEN", "Core/Shaders/DDGI/DDGIGenerateRays.glsl");
 	AddComputeShader("DDGI_RT", "Core/Shaders/DDGI/DDGIRaytrace.glsl");
+	AddComputeShader("SURFEL_SPAWN", "Core/Shaders/SurfelSpawn.glsl");
 }
 
 void Lumen::ShaderManager::AddShader(const std::string& name, const std::string& vert, const std::string& frag, const std::string& geo)

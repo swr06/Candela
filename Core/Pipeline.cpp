@@ -26,6 +26,8 @@
 
 #include "Utility.h"
 
+#include "SurfelGI.h"
+
 
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
@@ -136,6 +138,11 @@ void RenderEntityList(const std::vector<Lumen::Entity*> EntityList, GLClasses::S
 	}
 }
 
+void UnbindEverything() {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glUseProgram(0);
+}
+
 template <typename T>
 void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 	shader.SetFloat("u_Time", glfwGetTime());
@@ -209,19 +216,22 @@ void Lumen::StartPipeline()
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
-	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/dragon/dragon.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/mc/scene.gltf");
 	
 	// Handle rt stuff 
 	Intersector.Initialize();
 	Intersector.AddObject(MainModel);
-	Intersector.AddObject(Dragon);
+	//Intersector.AddObject(Dragon);
 	Intersector.BufferData();
 	Intersector.GenerateMeshTextureReferences();
 
 	// Create entities 
 	Entity MainModelEntity(&MainModel);
 	MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
-	//MainModelEntity.m_Model = ZOrientMatrixNegative;
+	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.35f));
+	//MainModelEntity.m_Model *= ZOrientMatrix;
+	
 	std::vector<Entity*> EntityRenderList = { &MainModelEntity };
 
 	// Textures
@@ -256,7 +266,12 @@ void Lumen::StartPipeline()
 	glm::mat4 InverseView;
 	glm::mat4 InverseProjection;
 
+	// Generate shadow maps
 	ShadowHandler::GenerateShadowMaps();
+
+	// Initialize surfel gi
+	SurfelGIHandler SurfelHandler;
+	SurfelHandler.Initialize();
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -306,6 +321,9 @@ void Lumen::StartPipeline()
 		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList);
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
+		// Update surfels
+		SurfelHandler.UpdateSurfels(static_cast<int>(app.GetCurrentFrame()), GBuffer, UniformBuffer, Camera);
+
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
@@ -342,7 +360,7 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(1));
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
@@ -489,6 +507,8 @@ void Lumen::StartPipeline()
 		
 		glActiveTexture(GL_TEXTURE7);
 		glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture());
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, SurfelHandler.m_SurfelCellVolume);
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

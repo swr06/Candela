@@ -181,6 +181,7 @@
     <ClInclude Include="Core\Shadowmap.h" />
     <ClInclude Include="Core\ShadowMapHandler.h" />
     <ClInclude Include="Core\ShadowRenderer.h" />
+    <ClInclude Include="Core\SurfelGI.h" />
     <ClInclude Include="Core\Threadpool.h" />
     <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\Utils\Random.h" />
@@ -228,6 +229,7 @@
     <ClCompile Include="Core\Shadowmap.cpp" />
     <ClCompile Include="Core\ShadowMapHandler.cpp" />
     <ClCompile Include="Core\ShadowRenderer.cpp" />
+    <ClCompile Include="Core\SurfelGI.cpp" />
     <ClCompile Include="Core\Threadpool.cpp" />
     <ClCompile Include="Dependencies\glad\src\glad.c" />
     <ClCompile Include="Dependencies\imgui\imgui.cpp" />
@@ -246,9 +248,9 @@
     <None Include="Core\Shaders\BasicVert.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\ColorPass.glsl" />
-    <None Include="Core\Shaders\DDGIGenerateRays.glsl" />
-    <None Include="Core\Shaders\DDGIHitHandler.glsl" />
-    <None Include="Core\Shaders\DDGIRaytrace.glsl" />
+    <None Include="Core\Shaders\DDGI\DDGIGenerateRays.glsl" />
+    <None Include="Core\Shaders\DDGI\DDGIHitHandler.glsl" />
+    <None Include="Core\Shaders\DDGI\DDGIRaytrace.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
     <None Include="Core\Shaders\DepthVert.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
@@ -270,8 +272,12 @@
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackShadow.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
+    <None Include="Core\Shaders\SurfelSpawn.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Core\Shaders\DDGI\Readme.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
