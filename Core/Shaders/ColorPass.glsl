@@ -1,6 +1,8 @@
 #version 430 core
 #define PI 3.14159265359
 
+#include "Include/Octahedral.glsl"
+
 layout (location = 0) out vec3 o_Color;
 
 in vec2 v_TexCoords;
@@ -31,12 +33,31 @@ uniform vec3 u_ProbeGridResolution;
 uniform vec3 u_ProbeBoxOrigin;
 uniform sampler3D u_ProbeData;
 
-struct Surfel {
-	vec4 Position; // <- Radius in w 
-	vec4 Normal; // <- Luminance map offset in w
-	vec4 Radiance; // <- Accumulated frames in w
-	vec4 Extra;  // <- Surfel ID, Valid (0 - 1)
+struct ProbeMapPixel {
+	vec2 Packed;
 };
+
+layout (std430, binding = 4) buffer SSBO_ProbeMaps {
+	ProbeMapPixel MapData[]; // x has luminance data, y has packed depth and depth^2
+};
+
+ivec3 Get3DIdx(int idx, ivec3 GridSize)
+{
+	int z = idx / (GridSize.x * GridSize.y);
+	idx -= (z * GridSize.x * GridSize.y);
+	int y = idx / GridSize.x;
+	int x = idx % GridSize.x;
+	return ivec3(x, y, z);
+}
+
+int Get1DIdx(ivec3 index, ivec3 GridSize)
+{
+    return (index.z * GridSize.x * GridSize.y) + (index.y * GridSize.x) + GridSize.x;
+}
+
+int Get1DIdx(ivec2 Coord, ivec2 GridSize) {
+	return (Coord.x * GridSize.x) + Coord.y;
+}
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -162,6 +183,12 @@ vec3 SampleProbes(vec3 WorldPosition) {
 	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
 
+	if (false) {
+		SamplePoint *= u_ProbeGridResolution;
+		SamplePoint = SamplePoint + 0.5f;
+		SamplePoint /= u_ProbeGridResolution;
+	}
+
 	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
 		return texture(u_ProbeData, SamplePoint).xyz;
 	}
@@ -192,8 +219,6 @@ void main()
 
 	vec3 Direct = Albedo * 16.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal);
 	vec3 DiffuseIndirect = GI.xyz * Albedo * GI.w;
-
-
 
 	o_Color = Direct + DiffuseIndirect;
 	

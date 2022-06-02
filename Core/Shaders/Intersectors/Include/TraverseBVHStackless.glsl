@@ -172,15 +172,11 @@ vec3 ComputeBarycentrics(vec3 p, vec3 a, vec3 b, vec3 c)
 }
 
 
-vec4 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, float TMax, out int oMesh, out int oTriangleIdx) {
+float IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, float TMax, out int oMesh, out int oTriangleIdx) {
 
     RayOrigin = vec3(InverseMatrix * vec4(RayOrigin.xyz, 1.0f));
     RayDirection = vec3(InverseMatrix * vec4(RayDirection.xyz, 0.0f));
     
-    float InverseLength = 1.0f / length(RayDirection);
-
-    RayDirection *= InverseLength;
-
     vec3 InverseDirection = 1.0f / RayDirection;
 
     int Iterations = 0;
@@ -276,43 +272,48 @@ vec4 IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int NodeS
     oMesh = Mesh;
     oTriangleIdx = TriangleIndex;
 
-    if (ClosestTraversal > 0.0f && TriangleIndex > 0) {
-
-         Triangle triangle = BVHTris[TriangleIndex];
-         
-         vec3 VertexA = BVHVertices[triangle.PackedData[0]].Position.xyz;
-         vec3 VertexB = BVHVertices[triangle.PackedData[1]].Position.xyz;
-         vec3 VertexC = BVHVertices[triangle.PackedData[2]].Position.xyz;
-
-         return vec4(ClosestTraversal * InverseLength, ComputeBarycentrics(RayOrigin + RayDirection * ClosestTraversal, VertexA, VertexB, VertexC));
-    }
-
-    return vec4(vec3(-1.), (-1));
+    return ClosestTraversal;
 }
 
 vec4 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh, out int TriangleIdx) {
 
-    vec4 FinalIntersect = vec4(vec3(-1.0f), intBitsToFloat(-1));
+    float ClosestT = -1.0f;
 
     float TMax = 1000000.0f;
 
     int Mesh_ = -1;
     int Tri_ = -1;
+    int Entity_ = -1;
 
     for (int i = 0 ; i < u_EntityCount ; i++)
     {
-        vec4 Intersect = IntersectBVHStackless(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax, Mesh_, Tri_);
+        float T = IntersectBVHStackless(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax, Mesh_, Tri_);
 
-        if (Intersect.x > 0.0f && Intersect.x < TMax) {
-            TMax = Intersect.x;
-            FinalIntersect = Intersect;
+        if (T > 0.0f && T < TMax) {
+            TMax = T;
+            ClosestT = T;
             Mesh = Mesh_;
             TriangleIdx = Tri_;
+            Entity_ = i;
         }
 
     }
 
-    return FinalIntersect;
+    if (ClosestT > 0.0f && TriangleIdx > 0) {
+
+         RayOrigin = vec3(BVHEntities[Entity_].InverseMatrix * vec4(RayOrigin.xyz, 1.0f));
+         RayDirection = vec3(BVHEntities[Entity_].InverseMatrix * vec4(RayDirection.xyz, 0.0f));
+        
+         Triangle triangle = BVHTris[TriangleIdx];
+         
+         vec3 VertexA = BVHVertices[triangle.PackedData[0]].Position.xyz;
+         vec3 VertexB = BVHVertices[triangle.PackedData[1]].Position.xyz;
+         vec3 VertexC = BVHVertices[triangle.PackedData[2]].Position.xyz;
+
+         return vec4(ClosestT, ComputeBarycentrics(RayOrigin + RayDirection * ClosestT, VertexA, VertexB, VertexC));
+    }
+
+    return vec4(-1.);
 }
 
 

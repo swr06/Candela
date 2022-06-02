@@ -233,7 +233,7 @@ vec3 ImportanceSample(int PixelStartOffset) {
 		return LambertSample;
 	}
 
-	float Hash = hash2().x * 4.0f;
+	float Hash = hash2().x * 2.;
 
 	float Sum = 0.0f;
 
@@ -251,7 +251,6 @@ vec3 ImportanceSample(int PixelStartOffset) {
 				vec2 UV = vec2(x,y) / vec2(8.0f);
 
 				vec3 ImportantDirection = normalize(OctahedronToUnitVector(UV));
-
 				return SampleDirectionCone(ImportantDirection);
 			}
 		}
@@ -280,7 +279,7 @@ void main() {
 
 	vec3 Unjittered = RayOrigin;
 
-	RayOrigin += vec3(hash2(), hash2().x) * 0.125f;
+	//RayOrigin += vec3(hash2(), hash2().x) * 0.125f;
 
 	vec4 Reprojected = Reproject(Unjittered);
 	vec4 History = texelFetch(u_History, ivec3(Reprojected.xyz), 0).xyzw;
@@ -313,15 +312,21 @@ void main() {
 	}
 
 	// Write map data 
-	vec2 Octahedral = UnitVectorToHemiOctahedron(DiffuseDirection);
+	vec2 Octahedral = UnitVectorToOctahedron(DiffuseDirection);
 	ivec2 OctahedralMapPixel = ivec2((Octahedral * vec2(7.0f)));
 	int PixelOffset = ProbeMapPixelStartOffset + Get1DIdx(OctahedralMapPixel, ivec2(8));
-	MapData[PixelOffset] = ProbeMapPixel(vec2(Luminance(FinalRadiance.xyz), 1.0f));
 
-	if (Reprojected.w > 1.01f)
-	{
-		FinalRadiance = mix(FinalRadiance, History.xyz, 0.99f);
-	}
+	float Depth = TUVW.x < 0.0f ? 0.0f : TUVW.x;
+	float DepthSqr = Depth * Depth;
+
+	float PackedMoments = uintBitsToFloat(packHalf2x16(vec2(Depth, DepthSqr)));
+
+	float TemporalBlend = Reprojected.w > 1.01f ? 0.99f : 0.0f;
+
+	ProbeMapPixel PrevProbeData = MapData[PixelOffset];
+
+	MapData[PixelOffset] = ProbeMapPixel(vec2(mix(Luminance(FinalRadiance.xyz),PrevProbeData.Packed.x,TemporalBlend), PackedMoments));
+	FinalRadiance = mix(FinalRadiance, History.xyz, TemporalBlend);
 
 	imageStore(o_OutputData, Pixel, vec4(FinalRadiance, 1.0f));
 }

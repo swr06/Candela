@@ -55,7 +55,6 @@ void main() {
 	if (Reprojected.xy == clamp(Reprojected.xy, 0.01f, 0.99f)) 
 	{
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * textureSize(u_DiffuseHistory,0).xy);
-		//vec4 History = texelFetch(u_DiffuseHistory, ReprojectedPixel,0);
 		vec4 History = texture(u_DiffuseHistory, Reprojected.xy);
 		o_Diffuse = mix(Current, History, 0.95f);
 	}

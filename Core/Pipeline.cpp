@@ -35,6 +35,8 @@ static bool vsync = false;
 static float SunTick = 50.0f;
 static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
+static glm::vec3 DragonSlider = glm::vec3(0.);
+
 class RayTracerApp : public Lumen::Application
 {
 public:
@@ -85,6 +87,7 @@ public:
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &_SunDirection[0], -1.0f, 1.0f);
+		ImGui::SliderFloat3("Dragon Slider : ", &DragonSlider[0], -15.0f, 15.0f);
 		
 		if (ImGui::Button("BENCH")) {
 			Camera.SetPosition(glm::vec3(10.0f, 2.0f, 0.125f));
@@ -212,15 +215,15 @@ void Lumen::StartPipeline()
 
 	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
+	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/mc/scene.gltf");
 	
 	// Handle rt stuff 
 	Intersector.Initialize();
 	Intersector.AddObject(MainModel);
-	//Intersector.AddObject(Dragon);
+	Intersector.AddObject(Dragon);
 	Intersector.BufferData();
 	Intersector.GenerateMeshTextureReferences();
 
@@ -229,8 +232,10 @@ void Lumen::StartPipeline()
 	MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.35f));
 	//MainModelEntity.m_Model *= ZOrientMatrix;
-	
-	std::vector<Entity*> EntityRenderList = { &MainModelEntity };
+
+	Entity DragonEntity(&Dragon);
+
+	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity };
 
 	// Textures
 	Skymap.CreateCubeTextureMap(
@@ -275,6 +280,8 @@ void Lumen::StartPipeline()
 		// Prepare 
 		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
+		DragonEntity.m_Model = glm::translate(glm::mat4(1.), DragonSlider);
+		DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.3f));
 
 		// Prepare Intersector
 		Intersector.PushEntities(EntityRenderList);
@@ -523,6 +530,7 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE14);
 		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
 		
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, DDGI::GetProbeDataSSBO());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

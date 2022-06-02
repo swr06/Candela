@@ -146,3 +146,8 @@ GLuint Lumen::DDGI::GetVolume()
 	return ProbeDataTexture;
 }
 
+GLuint Lumen::DDGI::GetProbeDataSSBO()
+{
+	return _ProbeMapSSBO;
+}
+

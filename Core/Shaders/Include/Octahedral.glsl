@@ -1,4 +1,4 @@
-vec2 UnitVectorToHemiOctahedron(vec3 dir) {
+vec2 UnitVectorToHemi_Octahedron(vec3 dir) {
 
 	dir.y = max(dir.y, 0.0001);
 	dir.xz /= dot(abs(dir), vec3(1.0));
@@ -7,7 +7,7 @@ vec2 UnitVectorToHemiOctahedron(vec3 dir) {
 
 }
 
-vec3 HemiOctahedronToUnitVector(vec2 coord) {
+vec3 Hemi_OctahedronToUnitVector(vec2 coord) {
 
 	coord = 2.0 * coord - 1.0;
 	coord = 0.5 * vec2(coord.x + coord.y, coord.x - coord.y);

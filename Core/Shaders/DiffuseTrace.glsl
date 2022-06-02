@@ -190,7 +190,7 @@ void main() {
 	vec3 EyeVector = normalize(WorldPosition - Player);
 	vec3 Reflected = reflect(EyeVector, Normal);
 
-	vec3 RayOrigin = WorldPosition + Normal * 0.05f;
+	vec3 RayOrigin = WorldPosition + Normal * 0.025f;
 	vec3 RayDirection = CosWeightedHemisphere(Normal, hash2());
 	 
 	// Outputs 
@@ -236,7 +236,7 @@ void main() {
 		else {
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.05f);
 			float L = dot(InterpolatedRadiance, vec3(0.3333333f));
-			Bounced = InterpolatedRadiance * 0.5f;
+			Bounced = InterpolatedRadiance * 0.6f;
 		}
 
 		FinalRadiance += Bounced * Albedo;
