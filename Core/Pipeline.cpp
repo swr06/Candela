@@ -351,6 +351,11 @@ void Lumen::StartPipeline()
 		DiffuseShader.SetInteger("u_NormalTexture", 1);
 		DiffuseShader.SetInteger("u_Skymap", 2);
 
+		DiffuseShader.SetVector3f("u_ProbeBoxSize", DDGI::GetProbeGridSize());
+		DiffuseShader.SetVector3f("u_ProbeGridResolution", DDGI::GetProbeGridRes());
+		DiffuseShader.SetVector3f("u_ProbeBoxOrigin", DDGI::GetProbeBoxOrigin());
+		DiffuseShader.SetInteger("u_ProbeData", 14);
+
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
 		glActiveTexture(GL_TEXTURE0);
@@ -377,6 +382,9 @@ void Lumen::StartPipeline()
 			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
 			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
 		}
+
+		glActiveTexture(GL_TEXTURE14);
+		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
 
 		Intersector.BindEverything(DiffuseShader, app.GetCurrentFrame() < 60);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -514,6 +522,7 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE14);
 		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
+		
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

@@ -24,6 +24,12 @@ uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
+uniform vec3 u_ProbeBoxSize;
+uniform vec3 u_ProbeGridResolution;
+uniform vec3 u_ProbeBoxOrigin;
+uniform sampler3D u_ProbeData;
+
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -123,6 +129,18 @@ vec3 CosWeightedHemisphere(const vec3 n, vec2 r)
     return normalize(rr);
 }
 
+vec3 SampleProbes(vec3 WorldPosition) {
+
+	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
+	SamplePoint = SamplePoint * 0.5 + 0.5; 
+
+	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
+		return texture(u_ProbeData, SamplePoint).xyz;
+	}
+
+	return vec3(0.0f);
+}
+
 float HASH2SEED = 0.0f;
 vec2 hash2() 
 {
@@ -130,6 +148,8 @@ vec2 hash2()
 }
 
 const bool CHECKERBOARD = true;
+const bool DO_SECOND_BOUNCE = true;
+const bool RT_SECOND_BOUNCE = false;
 
 void main() {
 
@@ -168,23 +188,52 @@ void main() {
 	vec3 Normal = normalize(texelFetch(u_NormalTexture, HighResPixel, 0).xyz);
 
 	vec3 EyeVector = normalize(WorldPosition - Player);
-	//vec3 Reflected = reflect(EyeVector, Normal);
+	vec3 Reflected = reflect(EyeVector, Normal);
 
 	vec3 RayOrigin = WorldPosition + Normal * 0.05f;
 	vec3 RayDirection = CosWeightedHemisphere(Normal, hash2());
 	 
 	// Outputs 
-    int IntersectedMesh = -1;
-    int IntersectedTri = -1;
+	int IntersectedMesh = -1;
+	int IntersectedTri = -1;
 	vec4 TUVW = vec4(-1.0f);
 	vec3 Albedo = vec3(0.0f);
 	vec3 iNormal = vec3(-1.0f);
-	
+		
 	// Intersect ray 
 	IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
 	// Compute radiance 
 	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
+
+	// Integrate multibounce lighting 
+	if (DO_SECOND_BOUNCE) {
+
+		vec3 Bounced = vec3(0.0f);
+		vec3 HitPosition = RayOrigin + RayDirection * TUVW.x;
+
+		if (RT_SECOND_BOUNCE) {
+			int SecondIntersectedMesh = -1;
+			int SecondIntersectedTri = -1;
+			vec4 SecondTUVW = vec4(-1.0f);
+			vec3 SecondAlbedo = vec3(0.0f);
+			vec3 SecondiNormal = vec3(-1.0f);
+
+			vec3 SecondRayOrigin = HitPosition+iNormal*0.02f;
+			vec3 SecondRayDirection = CosWeightedHemisphere(iNormal,hash2());
+			IntersectRay(SecondRayOrigin, SecondRayDirection, SecondTUVW, SecondIntersectedMesh, SecondIntersectedTri, SecondAlbedo, SecondiNormal);
+			Bounced = TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.0f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo);
+		}
+
+		else {
+			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.05f);
+			float L = dot(InterpolatedRadiance, vec3(0.3333333f));
+			Bounced = InterpolatedRadiance * 0.75f;
+		}
+
+		FinalRadiance += Bounced * Albedo;
+	}
+
 
 	float AO = pow(clamp(TUVW.x / 0.7f, 0.0f, 1.0f), 1.5f);
 

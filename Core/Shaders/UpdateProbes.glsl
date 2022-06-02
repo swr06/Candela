@@ -206,6 +206,19 @@ vec3 SampleDirectionCone(vec3 L) {
 	return normalize(ConeSample);
 }
 
+vec3 CosWeightedHemisphere(const vec3 n, vec2 r) 
+{
+	float PI2 = 2.0f * 3.1415926f;
+	vec3  uu = normalize(cross(n, vec3(0.0,1.0,1.0)));
+	vec3  vv = cross(uu, n);
+	float ra = sqrt(r.y);
+	float rx = ra * cos(PI2 * r.x); 
+	float ry = ra * sin(PI2 * r.x);
+	float rz = sqrt(1.0 - r.y);
+	vec3  rr = vec3(rx * uu + ry * vv + rz * n );
+    return normalize(rr);
+}
+
 vec3 ImportanceSample(int PixelStartOffset) {
 
 	bool ShouldImportanceSample = false;
@@ -222,25 +235,23 @@ vec3 ImportanceSample(int PixelStartOffset) {
 
 	float Sum = 0.0f;
 
-	for (int Sample = 0 ; Sample < 12 ; Sample++) {
+	for (int x = 0 ; x < 8 ; x++) {
 		
-		vec2 HashXY = hash2();
+		for (int y = 0 ; y < 8 ; y++) {
 
-		int x = int(HashXY.x * 7);
-		int y = int(HashXY.y * 7);
+			int SamplePixelOffset = Get1DIdx(ivec2(x,y), ivec2(8)) + PixelStartOffset;
+			vec2 Packed = MapData[SamplePixelOffset].Packed;
 
-		int SamplePixelOffset = Get1DIdx(ivec2(x,y), ivec2(8)) + PixelStartOffset;
-		vec2 Packed = MapData[SamplePixelOffset].Packed;
+			Sum += Packed.x;
 
-		Sum += Packed.x;
+			if (Sum >= Hash) {
+					
+				vec2 UV = vec2(x,y) / vec2(8.0f);
 
-		if (Sum >= Hash) {
-				
-			vec2 UV = vec2(x,y) / vec2(8.0f);
+				vec3 ImportantDirection = normalize(OctahedronToUnitVector(UV));
 
-			vec3 ImportantDirection = normalize(OctahedronToUnitVector(UV));
-
-			return SampleDirectionCone(ImportantDirection);
+				return SampleDirectionCone(ImportantDirection);
+			}
 		}
 
 	}
@@ -258,7 +269,7 @@ void main() {
 
 	vec3 TexCoords = vec3(Pixel) / u_Resolution;
 
-    HASH2SEED = ((TexCoords.x * TexCoords.y * TexCoords.z) * 64.0 * u_Time) + (TexCoords.z * TexCoords.y); hash2();
+    HASH2SEED = ((TexCoords.x * TexCoords.y * TexCoords.z) * 128.0 * u_Time) + (TexCoords.z * TexCoords.y); hash2();
 
 	vec3 Clip = TexCoords * 2.0f - 1.0f;
 	vec3 RayOrigin = u_BoxOrigin + Clip * u_Size;
@@ -292,20 +303,22 @@ void main() {
 
 	float Packed = 1.0f;
 
-	if (TUVW.x > 0.0f && true) {
-		vec3 Bounce = SampleProbes(iWorldPos + iNormal * 0.02f);
-		FinalRadiance += Bounce * 0.75f;
+	if (TUVW.x > 0.0f) {
+		vec3 Dither = vec3(hash2(), hash2().x);
+		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.03f));
+		const float AttenuationBounce = 0.75f; 
+		FinalRadiance += AttenuationBounce * Bounce;
 	}
 
 	// Write map data 
-	vec2 Octahedral = UnitVectorToHemiOctahedron(DiffuseDirection) * 0.5f + 0.5f;
+	vec2 Octahedral = UnitVectorToHemiOctahedron(DiffuseDirection);
 	ivec2 OctahedralMapPixel = ivec2((Octahedral * vec2(7.0f)));
 	int PixelOffset = ProbeMapPixelStartOffset + Get1DIdx(OctahedralMapPixel, ivec2(8));
 	MapData[PixelOffset] = ProbeMapPixel(vec2(Luminance(FinalRadiance.xyz), 1.0f));
 
 	if (Reprojected.w > 1.01f)
 	{
-		FinalRadiance = mix(FinalRadiance, History.xyz, 0.985f);
+		FinalRadiance = mix(FinalRadiance, History.xyz, 0.99f);
 	}
 
 	imageStore(o_OutputData, Pixel, vec4(FinalRadiance, 1.0f));

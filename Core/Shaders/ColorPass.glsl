@@ -169,6 +169,7 @@ vec3 SampleProbes(vec3 WorldPosition) {
 	return vec3(0.0f);
 }
 
+
 void main() 
 {	
 	vec3 rO = u_InverseView[3].xyz;
@@ -189,8 +190,8 @@ void main()
 
 	vec3 Direct = Albedo * 8.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal);
 
+	//GI.xyz = SampleProbes(WorldPosition);
 
-	o_Color = SampleProbes(WorldPosition) * Albedo + Direct;//Direct + GI.xyz * Albedo * GI.w;
-
+	o_Color = Direct + GI.xyz * Albedo * GI.w;
 	
 }
