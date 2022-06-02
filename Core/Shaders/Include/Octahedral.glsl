@@ -1,23 +1,49 @@
-float signNotZero(float f) { return(f >= 0.0) ? 1.0 : -1.0; }
-vec2  signNotZero(vec2  v) { return vec2(signNotZero(v.x), signNotZero(v.y)); }
+vec2 UnitVectorToHemiOctahedron(vec3 dir) {
 
-/** Assumes that v is a unit vector. The result is an octahedral vector on the [-1, +1] square. */
-vec2 OctahedralEncode(in vec3 v) {
-    float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
-    vec2 result = v.xy * (1.0 / l1norm);
-    if (v.z < 0.0) {
-        result = (1.0 - abs(result.yx)) * signNotZero(result.xy);
-    }
-    return result;
+	dir.y = max(dir.y, 0.0001);
+	dir.xz /= dot(abs(dir), vec3(1.0));
+
+	return clamp(0.5 * vec2(dir.x + dir.z, dir.x - dir.z) + 0.5, 0.0f, 1.0f);
+
 }
 
+vec3 HemiOctahedronToUnitVector(vec2 coord) {
 
-/** Returns a unit vector. Argument o is an octahedral vector packed via octEncode,
-    on the [-1, +1] square*/
-vec3 OctahedralDecode(vec2 o) {
-    vec3 v = vec3(o.x, o.y, 1.0 - abs(o.x) - abs(o.y));
-    if (v.z < 0.0) {
-        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
-    }
-    return normalize(v);
+	coord = 2.0 * coord - 1.0;
+	coord = 0.5 * vec2(coord.x + coord.y, coord.x - coord.y);
+
+	float y = 1.0 - dot(vec2(1.0), abs(coord));
+	return normalize(vec3(coord.x, y, coord.y));
+
+}
+
+vec2 UnitVectorToOctahedron(vec3 dir) {
+
+    dir.xz /= dot(abs(dir), vec3(1.0));
+
+	// Lower hemisphere
+	if (dir.y < 0.0) {
+		vec2 orig = dir.xz;
+		dir.x = (orig.x >= 0.0 ? 1.0 : -1.0) * (1.0 - abs(orig.y));
+        dir.z = (orig.y >= 0.0 ? 1.0 : -1.0) * (1.0 - abs(orig.x));
+	}
+
+	return clamp(0.5 * vec2(dir.x, dir.z) + 0.5, 0.0f, 1.0f);
+
+}
+
+vec3 OctahedronToUnitVector(vec2 coord) {
+
+	coord = 2.0 * coord - 1.0;
+	float y = 1.0 - dot(abs(coord), vec2(1.0));
+
+	// Lower hemisphere
+	if (y < 0.0) {
+		vec2 orig = coord;
+		coord.x = (orig.x >= 0.0 ? 1.0 : -1.0) * (1.0 - abs(orig.y));
+		coord.y = (orig.y >= 0.0 ? 1.0 : -1.0) * (1.0 - abs(orig.x));
+	}
+
+	return normalize(vec3(coord.x, y, coord.y));
+
 }

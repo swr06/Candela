@@ -3,6 +3,7 @@
 #define PI 3.1415926535
 
 #include "TraverseBVH.glsl"
+#include "Include/Octahedral.glsl"
 
 layout(local_size_x = 8, local_size_y = 4, local_size_z = 8) in;
 
@@ -20,6 +21,33 @@ uniform vec3 u_SunDirection;
 uniform float u_Time;
 
 uniform sampler3D u_History;
+uniform vec3 u_PreviousOrigin;
+
+struct ProbeMapPixel {
+	vec2 Packed;
+};
+
+layout (std430, binding = 2) buffer SSBO_ProbeMaps {
+	ProbeMapPixel MapData[]; // x has luminance data, y has packed depth and depth^2
+};
+
+ivec3 Get3DIdx(int idx, ivec3 GridSize)
+{
+	int z = idx / (GridSize.x * GridSize.y);
+	idx -= (z * GridSize.x * GridSize.y);
+	int y = idx / GridSize.x;
+	int x = idx % GridSize.x;
+	return ivec3(x, y, z);
+}
+
+int Get1DIdx(ivec3 index, ivec3 GridSize)
+{
+    return (index.z * GridSize.x * GridSize.y) + (index.y * GridSize.x) + GridSize.x;
+}
+
+int Get1DIdx(ivec2 Coord, ivec2 GridSize) {
+	return (Coord.x * GridSize.x) + Coord.y;
+}
 
 float SampleShadowMap(vec2 SampleUV, int Map) {
 
@@ -113,10 +141,115 @@ vec2 hash2()
 
 vec3 SampleProbes(vec3 WorldPosition) {
 
-	vec3 SamplePoint = (WorldPosition - u_BoxOrigin) / u_Size; 
-	SamplePoint = SamplePoint * 0.5 + 0.5; 
+	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
+	SamplePoint = SamplePoint * 0.5 + 0.5;
 	
-	return texture(u_History, SamplePoint).xyz;
+	if (SamplePoint.x > 0.0f && SamplePoint.x < 1.0f &&
+		SamplePoint.y > 0.0f && SamplePoint.y < 1.0f &&
+		SamplePoint.z > 0.0f && SamplePoint.z < 1.0f) {
+	
+		SamplePoint *= u_Resolution;
+		SamplePoint = SamplePoint + 0.5f;
+		SamplePoint /= u_Resolution;
+
+		return texture(u_History, SamplePoint).xyz;
+	}
+
+	return vec3(0.0f);
+	
+}
+
+vec4 Reproject(vec3 WorldPosition) {
+
+	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
+	SamplePoint = SamplePoint * 0.5 + 0.5;
+	
+	if (SamplePoint.x > 0.0f && SamplePoint.x < 1.0f &&
+		SamplePoint.y > 0.0f && SamplePoint.y < 1.0f &&
+		SamplePoint.z > 0.0f && SamplePoint.z < 1.0f) {
+	
+		SamplePoint *= u_Resolution;
+		SamplePoint = SamplePoint + 0.5f;
+
+		return vec4(SamplePoint, 5.0f);
+	}
+
+	return vec4(-10.0f);
+}
+
+float Luminance(vec3 rgb)
+{
+    const vec3 W = vec3(0.2125, 0.7154, 0.0721);
+    return dot(rgb, W);
+}
+
+vec3 SampleCone(vec2 Xi, float CosThetaMax) 
+{
+    float CosTheta = (1.0f - Xi.x) + Xi.x * CosThetaMax;
+    float SinTheta = sqrt(1.0f - CosTheta * CosTheta);
+    float phi = Xi.y * PI * 2.0f;
+    vec3 L;
+    L.x = SinTheta * cos(phi);
+    L.y = SinTheta * sin(phi);
+    L.z = CosTheta;
+    return L;
+}
+
+vec3 SampleDirectionCone(vec3 L) {
+
+	const vec3 Basis = vec3(0.0f, 1.0f, 1.0f);
+	vec3 T = normalize(cross(L, Basis));
+	vec3 B = cross(T, L);
+	mat3 TBN = mat3(T, B, L);
+	const float CosTheta = 0.987525f; 
+	vec3 ConeSample = TBN * SampleCone(hash2(), CosTheta);
+	return normalize(ConeSample);
+}
+
+vec3 ImportanceSample(int PixelStartOffset) {
+
+	bool ShouldImportanceSample = false;
+
+	if (!ShouldImportanceSample) {
+		vec3 HashL = vec3(hash2(), hash2().x);
+		vec3 LambertSample = LambertBRDF(HashL);
+		LambertSample = normalize(LambertSample);
+
+		return LambertSample;
+	}
+
+	float Hash = hash2().x * 4.0f;
+
+	float Sum = 0.0f;
+
+	for (int Sample = 0 ; Sample < 12 ; Sample++) {
+		
+		vec2 HashXY = hash2();
+
+		int x = int(HashXY.x * 7);
+		int y = int(HashXY.y * 7);
+
+		int SamplePixelOffset = Get1DIdx(ivec2(x,y), ivec2(8)) + PixelStartOffset;
+		vec2 Packed = MapData[SamplePixelOffset].Packed;
+
+		Sum += Packed.x;
+
+		if (Sum >= Hash) {
+				
+			vec2 UV = vec2(x,y) / vec2(8.0f);
+
+			vec3 ImportantDirection = normalize(OctahedronToUnitVector(UV));
+
+			return SampleDirectionCone(ImportantDirection);
+		}
+
+	}
+
+	vec3 HashL = vec3(hash2(), hash2().x);
+    vec3 LambertSample = LambertBRDF(HashL);
+    LambertSample = normalize(LambertSample);
+
+	return LambertSample;
 }
 
 void main() {
@@ -129,11 +262,19 @@ void main() {
 
 	vec3 Clip = TexCoords * 2.0f - 1.0f;
 	vec3 RayOrigin = u_BoxOrigin + Clip * u_Size;
+	const int PerProbePixelCount = 8 * 8;
+	int ProbeMapPixelStartOffset = (Get1DIdx(Pixel,ivec3(u_Resolution)) * PerProbePixelCount);
 
-    vec3 Hash = vec3(hash2(), hash2().x);
-    vec3 LambertSample = LambertBRDF(Hash);
+	vec3 Unjittered = RayOrigin;
 
-    LambertSample = normalize(LambertSample);
+	RayOrigin += vec3(hash2(), hash2().x) * 0.125f;
+
+	vec4 Reprojected = Reproject(Unjittered);
+	vec4 History = texelFetch(u_History, ivec3(Reprojected.xyz), 0).xyzw;
+
+	vec3 DiffuseDirection = ImportanceSample(ProbeMapPixelStartOffset);
+    
+	// Intersect ray 
 
     // Outputs 
     int IntersectedMesh = -1;
@@ -142,23 +283,32 @@ void main() {
 	vec3 Albedo = vec3(0.0f);
 	vec3 iNormal = vec3(-1.0f);
 	
-	// Intersect ray 
-	IntersectRay(RayOrigin, LambertSample, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
+	IntersectRay(RayOrigin, DiffuseDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
-	vec3 iWorldPos = (RayOrigin + LambertSample * TUVW.x);
+	// Integrate radiance for point 
+	vec3 iWorldPos = (RayOrigin + DiffuseDirection * TUVW.x);
 
 	vec3 FinalRadiance = TUVW.x < 0.0f ? vec3(0.2f,0.2f,1.0f) * 2.0f : GetDirect(iWorldPos, iNormal, Albedo);
 
 	float Packed = 1.0f;
 
 	if (TUVW.x > 0.0f && true) {
-		vec3 Bounce = SampleProbes(iWorldPos);
-		FinalRadiance += Bounce * 0.7f;
+		vec3 Bounce = SampleProbes(iWorldPos + iNormal * 0.02f);
+		FinalRadiance += Bounce * 0.75f;
 	}
 
-	FinalRadiance = mix(FinalRadiance, texelFetch(u_History, Pixel, 0).xyz, 0.99f);
+	// Write map data 
+	vec2 Octahedral = UnitVectorToHemiOctahedron(DiffuseDirection) * 0.5f + 0.5f;
+	ivec2 OctahedralMapPixel = ivec2((Octahedral * vec2(7.0f)));
+	int PixelOffset = ProbeMapPixelStartOffset + Get1DIdx(OctahedralMapPixel, ivec2(8));
+	MapData[PixelOffset] = ProbeMapPixel(vec2(Luminance(FinalRadiance.xyz), 1.0f));
 
-	imageStore(o_OutputData, Pixel, vec4(FinalRadiance, Packed));
+	if (Reprojected.w > 1.01f)
+	{
+		FinalRadiance = mix(FinalRadiance, History.xyz, 0.985f);
+	}
+
+	imageStore(o_OutputData, Pixel, vec4(FinalRadiance, 1.0f));
 }
 
 

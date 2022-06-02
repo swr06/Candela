@@ -267,10 +267,13 @@
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackShadow.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
-    <None Include="Core\Shaders\SurfelSpawn.glsl" />
+    <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
     <None Include="Core\Shaders\UpdateProbes.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Core\Shaders\Surfel\Readme.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

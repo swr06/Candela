@@ -161,8 +161,12 @@ vec3 SampleProbes(vec3 WorldPosition) {
 
 	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
-	
-	return texture(u_ProbeData, SamplePoint).xyz;
+
+	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
+		return texture(u_ProbeData, SamplePoint).xyz;
+	}
+
+	return vec3(0.0f);
 }
 
 void main() 

@@ -400,11 +400,16 @@
     <None Include="Core\Shaders\Temporal.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\SurfelSpawn.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Surfel GI</Filter>
-    </None>
     <None Include="Core\Shaders\UpdateProbes.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\DDGI</Filter>
     </None>
+    <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Surfel GI</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Core\Shaders\Surfel\Readme.txt">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Surfel GI</Filter>
+    </Text>
   </ItemGroup>
 </Project>
