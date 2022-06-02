@@ -23,6 +23,8 @@ uniform float u_Time;
 uniform sampler3D u_History;
 uniform vec3 u_PreviousOrigin;
 
+uniform samplerCube u_Skymap;
+
 struct ProbeMapPixel {
 	vec2 Packed;
 };
@@ -299,7 +301,7 @@ void main() {
 	// Integrate radiance for point 
 	vec3 iWorldPos = (RayOrigin + DiffuseDirection * TUVW.x);
 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? vec3(0.2f,0.2f,1.0f) * 2.0f : GetDirect(iWorldPos, iNormal, Albedo);
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 2.0f : GetDirect(iWorldPos, iNormal, Albedo);
 
 	float Packed = 1.0f;
 

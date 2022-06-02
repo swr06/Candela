@@ -66,7 +66,7 @@ static float Align(float value, float size)
 	return std::floor(value / size) * size;
 }
 
-void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms)
+void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap)
 {
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 
@@ -91,6 +91,7 @@ void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversal
 	ProbeUpdate.SetVector3f("u_PreviousOrigin", _PreviousOrigin);
 	ProbeUpdate.SetFloat("u_Time", glfwGetTime());
 	ProbeUpdate.SetInteger("u_History", 3);
+	ProbeUpdate.SetInteger("u_Skymap", 4);
 
 	for (int i = 0; i < 5; i++) {
 
@@ -110,6 +111,9 @@ void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversal
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_3D, PreviousVolume);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap);
 
 	glBindImageTexture(0, CurrentVolume, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 

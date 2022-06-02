@@ -213,22 +213,30 @@ void main() {
 		vec3 HitPosition = RayOrigin + RayDirection * TUVW.x;
 
 		if (RT_SECOND_BOUNCE) {
-			int SecondIntersectedMesh = -1;
-			int SecondIntersectedTri = -1;
-			vec4 SecondTUVW = vec4(-1.0f);
-			vec3 SecondAlbedo = vec3(0.0f);
-			vec3 SecondiNormal = vec3(-1.0f);
 
-			vec3 SecondRayOrigin = HitPosition+iNormal*0.02f;
-			vec3 SecondRayDirection = CosWeightedHemisphere(iNormal,hash2());
-			IntersectRay(SecondRayOrigin, SecondRayDirection, SecondTUVW, SecondIntersectedMesh, SecondIntersectedTri, SecondAlbedo, SecondiNormal);
-			Bounced = TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.0f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo);
+			int Samples = 5;
+
+			for (int i = 0 ; i < Samples ; i++) {
+
+				int SecondIntersectedMesh = -1;
+				int SecondIntersectedTri = -1;
+				vec4 SecondTUVW = vec4(-1.0f);
+				vec3 SecondAlbedo = vec3(0.0f);
+				vec3 SecondiNormal = vec3(-1.0f);
+
+				vec3 SecondRayOrigin = HitPosition+iNormal*0.02f;
+				vec3 SecondRayDirection = CosWeightedHemisphere(iNormal,hash2());
+				IntersectRay(SecondRayOrigin, SecondRayDirection, SecondTUVW, SecondIntersectedMesh, SecondIntersectedTri, SecondAlbedo, SecondiNormal);
+				Bounced += TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.0f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo);
+			}
+
+			Bounced /= float(Samples);
 		}
 
 		else {
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.05f);
 			float L = dot(InterpolatedRadiance, vec3(0.3333333f));
-			Bounced = InterpolatedRadiance * 0.75f;
+			Bounced = InterpolatedRadiance * 0.5f;
 		}
 
 		FinalRadiance += Bounced * Albedo;

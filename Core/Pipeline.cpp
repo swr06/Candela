@@ -319,7 +319,7 @@ void Lumen::StartPipeline()
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
 		// Update probes
-		DDGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer);
+		DDGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID());
 
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);
