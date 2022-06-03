@@ -65,7 +65,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 	float Length = length(Vector);
 	Vector /= Length;
 
-	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 2.5f);
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.1f);
 	return Weight;
 }
 

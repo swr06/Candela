@@ -211,7 +211,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 	float Length = length(Vector);
 	Vector /= Length;
 
-	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 4.0f);
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.0f);
 	return Weight;
 }
 
@@ -281,10 +281,11 @@ void main()
 	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords).xyz;
 
 	vec4 GI = texture(u_Trace, v_TexCoords).xyzw; 
+	GI.xyz = SampleProbes(WorldPosition, Normal).xyz;
 
 	vec3 Direct = Albedo * 16.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal);
 	vec3 DiffuseIndirect = GI.xyz * Albedo * GI.w;
 
-	o_Color = DiffuseIndirect + Direct;
+	o_Color =  GI.xyz; //DiffuseIndirect + Direct;
 	
 }
