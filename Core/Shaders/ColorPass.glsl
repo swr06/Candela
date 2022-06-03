@@ -279,14 +279,12 @@ void main()
 	vec3 WorldPosition = WorldPosFromDepth(Depth,v_TexCoords).xyz;
 	vec3 Normal = normalize(texture(u_NormalTexture, v_TexCoords).xyz);
 	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords).xyz;
-	
 
 	vec4 GI = texture(u_Trace, v_TexCoords).xyzw; 
-	GI.xyz = SampleProbes(WorldPosition, Normal);
 
 	vec3 Direct = Albedo * 16.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal);
-	vec3 DiffuseIndirect = GI.xyz * Albedo; // * GI.w;
+	vec3 DiffuseIndirect = GI.xyz * Albedo * GI.w;
 
-	o_Color = DiffuseIndirect;
+	o_Color = DiffuseIndirect + Direct;
 	
 }

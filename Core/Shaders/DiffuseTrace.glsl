@@ -1,5 +1,7 @@
 #version 450 core 
 
+#define PI 3.141592653
+
 layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 
@@ -63,7 +65,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 	float Length = length(Vector);
 	Vector /= Length;
 
-	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 4.5f);
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 2.5f);
 	return Weight;
 }
 
@@ -266,7 +268,7 @@ void main() {
 	vec3 EyeVector = normalize(WorldPosition - Player);
 	vec3 Reflected = reflect(EyeVector, Normal);
 
-	vec3 RayOrigin = WorldPosition + Normal * 0.025f;
+	vec3 RayOrigin = WorldPosition + Normal * 0.05f;
 	vec3 RayDirection = CosWeightedHemisphere(Normal, hash2());
 	 
 	// Outputs 
@@ -290,7 +292,7 @@ void main() {
 
 		if (RT_SECOND_BOUNCE) {
 
-			int Samples = 5;
+			int Samples = 1;
 
 			for (int i = 0 ; i < Samples ; i++) {
 
@@ -311,14 +313,16 @@ void main() {
 
 		else {
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
-			Bounced = InterpolatedRadiance * 0.9f;
+			Bounced = InterpolatedRadiance;
 		}
 
-		FinalRadiance += Albedo * Bounced;
+		const float Strength = 0.725f;
+		float RayProbability = 1.0f / (dot(Normal, RayDirection) / PI); 
+		vec3 Throughput = Albedo * RayProbability * Strength; // <- Lambert throughput
+		FinalRadiance += Bounced * Throughput;
 	}
 
 
-	float AO = pow(clamp(TUVW.x / 0.7f, 0.0f, 1.0f), 1.5f);
-
+	float AO = pow(clamp(TUVW.x / 1.1f, 0.0f, 1.0f), 3.1f);
 	imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, AO));
 }
