@@ -61,7 +61,7 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Surfel GI">
       <UniqueIdentifier>{593c1fa5-731d-44a2-ad22-7412a6139633}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\DDGI">
+    <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Probe GI">
       <UniqueIdentifier>{f3d2fba3-09e5-4392-b8c3-477c4ba5f929}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -201,7 +201,7 @@
     <ClInclude Include="Core\ShaderManager.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
-    <ClInclude Include="Core\DDGI.h">
+    <ClInclude Include="Core\ProbeGI.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -326,7 +326,7 @@
     <ClCompile Include="Core\ShaderManager.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
-    <ClCompile Include="Core\DDGI.cpp">
+    <ClCompile Include="Core\ProbeGI.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
   </ItemGroup>
@@ -401,13 +401,16 @@
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
     <None Include="Core\Shaders\UpdateProbes.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\DDGI</Filter>
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Probe GI</Filter>
     </None>
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Surfel GI</Filter>
     </None>
     <None Include="Core\Shaders\Include\SphericalHarmonics.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\Include\CookTorranceBRDF.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\Include</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

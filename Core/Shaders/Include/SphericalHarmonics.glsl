@@ -1,5 +1,4 @@
-// 1st order spherical harmonic
-
+// 1st level harmonic 
 const float Y00 = 0.28209479177387814347; 
 const float Y11 = -0.48860251190291992159; 
 const float Y10 = 0.48860251190291992159;
@@ -9,6 +8,24 @@ const float Y1_1 = -0.48860251190291992159;
 //const float Y11 = 0.48860251190291992159; 
 //const float Y10 = 0.48860251190291992159;
 //const float Y1_1 = 0.48860251190291992159;
+
+//vec3 RGB2YCoCg(vec3 RGB)
+//{
+//    vec3 o;
+//    o.x =  0.25*RGB.r + 0.5*RGB.g + 0.25*RGB.b;
+//    o.y =  0.5*RGB.r - 0.5*RGB.b;
+//    o.z = -0.25*RGB.r + 0.5*RGB.g - 0.25*RGB.b;
+//    return o;
+//}
+//
+//vec3 YCoCg2RGB(vec3 YCoCg)
+//{
+//    vec3 o;
+//    o.r = YCoCg.x + YCoCg.y - YCoCg.z;
+//    o.g = YCoCg.x + YCoCg.z;
+//    o.b = YCoCg.x - YCoCg.y - YCoCg.z;
+//    return o;
+//}
 
 struct SH {
 	vec3 L00;
@@ -31,20 +48,43 @@ void ScaleSH(inout SH sh, vec3 x) {
 vec3 SampleSH(SH sh, vec3 direction) {
 
     vec3 result = vec3(0.0);
-    result += sh.L00 * Y00;
-    result += sh.L1_1 * Y1_1 * direction.y;
-    result += sh.L10 * Y10 * direction.z;
-    result += sh.L11 * Y11 * direction.x;
-    return result;
+    float Max = 0.0f;
+
+    result += max(sh.L00 * Y00, Max);
+    result += max(sh.L1_1 * Y1_1 * direction.y, Max);
+    result += max(sh.L10 * Y10 * direction.z, Max);
+    result += max(sh.L11 * Y11 * direction.x, Max);
+
+    return (result);
 }
+
+
+
+float GetSHLength(SH sh) {
+    return dot(sh.L00, sh.L00) + dot(sh.L1_1, sh.L1_1) + dot(sh.L10, sh.L10) + dot(sh.L11, sh.L11);
+}
+
+vec3 GetMostProminentDirection(SH sh, int Component) {
+
+    vec3 FirstOrderBasis = vec3(sh.L11[Component], sh.L1_1[Component], sh.L10[Component]);
+    return FirstOrderBasis / sh.L00[Component] * (0.282095f / 0.488603f);
+}
+
 
 SH EncodeSH(vec3 radiance, vec3 direction) {
 
+    radiance = (radiance);
+
     SH result = GenerateEmptySH();
-    result.L00 += Y00 * radiance;
-    result.L1_1 += Y1_1 * direction.y * radiance;
-    result.L10 += Y10 * direction.z * radiance;
-    result.L11 += Y11 * direction.x * radiance;
+    
+    // Zonal harmonic basis 
+    const float pi = 3.14159265359;
+    float A[3] = float[3](pi, (2.0f * pi) / 3.0f, pi/4.0f);
+
+    result.L00 += Y00 * radiance * A[0];
+    result.L1_1 += Y1_1 * direction.y * radiance * A[1];
+    result.L10 += Y10 * direction.z * radiance * A[1];
+    result.L11 += Y11 * direction.x * radiance * A[1];
     return result;
 }
 

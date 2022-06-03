@@ -1,41 +1,37 @@
-#include "DDGI.h"
+#include "ProbeGI.h"
 
 #include "ShaderManager.h"
 
 #include "ShadowMapHandler.h"
 
+//#define LARGE_RANGE_PROBE_GI
+
 namespace Lumen {
-	namespace DDGI {
+	namespace ProbeGI {
 
-		struct Ray {
-			glm::vec4 RayOrigin;
-			glm::vec4 RayDirection;
-		};
-
+#ifndef LARGE_RANGE_PROBE_GI
 		const int ProbeGridX = 48;
 		const int ProbeGridY = 24;
 		const int ProbeGridZ = 48;
-
-		//const int ProbeGridX = 64;
-		//const int ProbeGridY = 32;
-		//const int ProbeGridZ = 64;
-
-		//const glm::vec3 ProbeBoxSize = glm::vec3(12.0f, 6.0f, 12.0f);
 		const glm::vec3 ProbeBoxSize = glm::vec3(24.0f, 12.0f, 24.0f);
-		//const glm::vec3 ProbeBoxSize = glm::vec3(32.0f, 16.0f, 32.0f);
+#else 
+
+		const int ProbeGridX = 64;
+		const int ProbeGridY = 32;
+		const int ProbeGridZ = 64;
+		const glm::vec3 ProbeBoxSize = glm::vec3(32.0f, 16.0f, 32.0f);
+#endif
 
 		static GLuint _ProbeDataTextures[2] = { 0, 0 };
 		static GLuint _PrevProbeDataTexture[2] = { 0, 0 };
 		static GLuint _ProbeMapSSBO = 0;
-
 		static glm::vec3 LastOrigin = glm::vec3(0.0f);
 		static glm::vec3 _PreviousOrigin = glm::vec3(0.0f);
-
-		static glm::uvec2 CurrentDataTextures;
+		static glm::uvec2 _CurrentDataTextures;
 	}
 }
 
-void Lumen::DDGI::Initialize()
+void Lumen::ProbeGI::Initialize()
 {
 	glGenTextures(1, &_ProbeDataTextures[0]);
 	glBindTexture(GL_TEXTURE_3D, _ProbeDataTextures[0]);
@@ -85,7 +81,7 @@ static float Align(float value, float size)
 	return std::floor(value / size) * size;
 }
 
-void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap)
+void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap)
 {
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 
@@ -93,8 +89,8 @@ void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversal
 	GLuint CurrentVolumeTextures[2] = { Checkerboard ? _ProbeDataTextures[0] : _PrevProbeDataTexture[0], Checkerboard ? _ProbeDataTextures[1] : _PrevProbeDataTexture[1] };
 	GLuint PreviousVolumeTextures[2] = { (!Checkerboard) ? _ProbeDataTextures[0] : _PrevProbeDataTexture[0], (!Checkerboard) ? _ProbeDataTextures[1] : _PrevProbeDataTexture[1] };
 
-	CurrentDataTextures.x = CurrentVolumeTextures[0];
-	CurrentDataTextures.y = CurrentVolumeTextures[1];
+	_CurrentDataTextures.x = CurrentVolumeTextures[0];
+	_CurrentDataTextures.y = CurrentVolumeTextures[1];
 
 	ProbeUpdate.Use();
 
@@ -154,28 +150,28 @@ void Lumen::DDGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversal
 	glUseProgram(0);
 }
 
-glm::vec3 Lumen::DDGI::GetProbeGridSize()
+glm::vec3 Lumen::ProbeGI::GetProbeGridSize()
 {
 	return ProbeBoxSize;
 }
 
-glm::vec3 Lumen::DDGI::GetProbeGridRes()
+glm::vec3 Lumen::ProbeGI::GetProbeGridRes()
 {
 	return glm::vec3(ProbeGridX, ProbeGridY, ProbeGridZ);
 }
 
-glm::vec3 Lumen::DDGI::GetProbeBoxOrigin()
+glm::vec3 Lumen::ProbeGI::GetProbeBoxOrigin()
 {
 	return LastOrigin;
 }
 
-GLuint Lumen::DDGI::GetProbeDataSSBO()
+GLuint Lumen::ProbeGI::GetProbeDataSSBO()
 {
 	return _ProbeMapSSBO;
 }
 
-glm::uvec2 Lumen::DDGI::GetProbeDataTextures()
+glm::uvec2 Lumen::ProbeGI::GetProbeDataTextures()
 {
-	return CurrentDataTextures;
+	return _CurrentDataTextures;
 }
 

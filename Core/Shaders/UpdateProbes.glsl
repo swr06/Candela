@@ -177,7 +177,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 	float Length = length(Vector);
 	Vector /= Length;
 
-	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.0f);
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.5f);
 	return Weight;
 }
 
@@ -224,7 +224,7 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 			FinalSH = AddSH(FinalSH, sh[i]);
 		}
 
-		return max(SampleSH(FinalSH, N), 0.0f) * 3.75f;
+		return max(SampleSH(FinalSH, N), 0.0f);
 	}
 
 	return vec3(0.0f);
@@ -377,7 +377,7 @@ void main() {
 	if (TUVW.x > 0.0f) {
 		//vec3 Dither = (hash2().x > 0.5f ? -1.0f : 1.0f) * vec3(hash2(), hash2().x) * 0.1f;
 		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.03f),iNormal);
-		const float AttenuationBounce = 0.825f; 
+		const float AttenuationBounce = 0.96f; 
 		FinalRadiance += Bounce * AttenuationBounce;
 	}
 

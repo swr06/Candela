@@ -16,7 +16,7 @@
 
 namespace Lumen {
 
-	namespace DDGI {
+	namespace ProbeGI {
 
 		void Initialize();
 

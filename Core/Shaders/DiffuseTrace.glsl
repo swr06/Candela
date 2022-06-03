@@ -65,7 +65,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 	float Length = length(Vector);
 	Vector /= Length;
 
-	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.1f);
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.75f);
 	return Weight;
 }
 
@@ -112,7 +112,7 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 			FinalSH = AddSH(FinalSH, sh[i]);
 		}
 
-		return max(SampleSH(FinalSH, N), 0.0f) * 10.0f;
+		return max(SampleSH(FinalSH, N), 0.0f);
 	}
 
 	return vec3(0.0f);
@@ -312,13 +312,13 @@ void main() {
 		}
 
 		else {
+			const float Strength = 1.6f;
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
-			Bounced = InterpolatedRadiance;
+			Bounced = InterpolatedRadiance * Strength;
 		}
 
-		const float Strength = 0.725f;
 		float RayProbability = 1.0f / (dot(Normal, RayDirection) / PI); 
-		vec3 Throughput = Albedo * RayProbability * Strength; // <- Lambert throughput
+		vec3 Throughput = Albedo * RayProbability; // <- Lambert throughput
 		FinalRadiance += Bounced * Throughput;
 	}
 
