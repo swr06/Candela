@@ -16,7 +16,7 @@
 
 namespace Lumen {
 
-	namespace DDGI {
+	namespace ProbeGI {
 
 		void Initialize();
 
@@ -24,8 +24,8 @@ namespace Lumen {
 		glm::vec3 GetProbeGridSize();
 		glm::vec3 GetProbeGridRes();
 		glm::vec3 GetProbeBoxOrigin();
-		GLuint GetVolume();
 		GLuint GetProbeDataSSBO();
+		glm::uvec2 GetProbeDataTextures();
 	}
 
 }

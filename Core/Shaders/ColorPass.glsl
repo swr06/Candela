@@ -2,6 +2,9 @@
 #define PI 3.14159265359
 
 #include "Include/Octahedral.glsl"
+#include "Include/SphericalHarmonics.glsl"
+#include "Include/DebugIrradianceCache.glsl" 
+#include "Include/CookTorranceBRDF.glsl"
 
 layout (location = 0) out vec3 o_Color;
 
@@ -28,11 +31,6 @@ uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
-uniform vec3 u_ProbeBoxSize;
-uniform vec3 u_ProbeGridResolution;
-uniform vec3 u_ProbeBoxOrigin;
-uniform sampler3D u_ProbeData;
-
 struct ProbeMapPixel {
 	vec2 Packed;
 };
@@ -40,24 +38,6 @@ struct ProbeMapPixel {
 layout (std430, binding = 4) buffer SSBO_ProbeMaps {
 	ProbeMapPixel MapData[]; // x has luminance data, y has packed depth and depth^2
 };
-
-ivec3 Get3DIdx(int idx, ivec3 GridSize)
-{
-	int z = idx / (GridSize.x * GridSize.y);
-	idx -= (z * GridSize.x * GridSize.y);
-	int y = idx / GridSize.x;
-	int x = idx % GridSize.x;
-	return ivec3(x, y, z);
-}
-
-int Get1DIdx(ivec3 index, ivec3 GridSize)
-{
-    return (index.z * GridSize.x * GridSize.y) + (index.y * GridSize.x) + GridSize.x;
-}
-
-int Get1DIdx(ivec2 Coord, ivec2 GridSize) {
-	return (Coord.x * GridSize.x) + Coord.y;
-}
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -178,24 +158,7 @@ vec3 SampleIncidentRayDirection(vec2 screenspace)
 	return vec3(u_InverseView * eye);
 }
 
-vec3 SampleProbes(vec3 WorldPosition) {
-
-	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
-	SamplePoint = SamplePoint * 0.5 + 0.5; 
-
-	if (false) {
-		SamplePoint *= u_ProbeGridResolution;
-		SamplePoint = SamplePoint + 0.5f;
-		SamplePoint /= u_ProbeGridResolution;
-	}
-
-	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
-		return texture(u_ProbeData, SamplePoint).xyz;
-	}
-
-	return vec3(0.0f);
-}
-
+const vec3 SunColor = vec3(16.0f);
 
 void main() 
 {	
@@ -212,14 +175,12 @@ void main()
 	vec3 WorldPosition = WorldPosFromDepth(Depth,v_TexCoords).xyz;
 	vec3 Normal = normalize(texture(u_NormalTexture, v_TexCoords).xyz);
 	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords).xyz;
-	
+	vec3 PBR = texture(u_PBRTexture, v_TexCoords).xyz;
 
 	vec4 GI = texture(u_Trace, v_TexCoords).xyzw; 
-	//GI.xyz = SampleProbes(WorldPosition);
 
-	vec3 Direct = Albedo * 16.0 * max(dot(Normal, -u_LightDirection),0.) * FilterShadows(WorldPosition, Normal);
+	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), FilterShadows(WorldPosition, Normal)) * 0.5f;
 	vec3 DiffuseIndirect = GI.xyz * Albedo * GI.w;
-
-	o_Color = Direct + DiffuseIndirect;
+	o_Color = DiffuseIndirect + Direct;
 	
 }

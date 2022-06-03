@@ -13,7 +13,7 @@
 #include "GLClasses/DepthBuffer.h"
 #include "ShadowRenderer.h"
 #include "GLClasses/CubeTextureMap.h"
-#include "DDGI.h"
+#include "ProbeGI.h"
 
 #include "ProbeMap.h"
 
@@ -88,11 +88,6 @@ public:
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &_SunDirection[0], -1.0f, 1.0f);
 		ImGui::SliderFloat3("Dragon Slider : ", &DragonSlider[0], -15.0f, 15.0f);
-		
-		if (ImGui::Button("BENCH")) {
-			Camera.SetPosition(glm::vec3(10.0f, 2.0f, 0.125f));
-			Camera.SetFront(glm::normalize(glm::vec3(-0.99f, -0.03f, 0.05f)));
-		}
 	}
 
 	void OnEvent(Lumen::Event e) override
@@ -273,7 +268,7 @@ void Lumen::StartPipeline()
 	ShadowHandler::GenerateShadowMaps();
 
 	// Initialize radiance probes
-	DDGI::Initialize();
+	ProbeGI::Initialize();
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -326,7 +321,7 @@ void Lumen::StartPipeline()
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
 		// Update probes
-		DDGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID());
+		ProbeGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID());
 
 		// Render GBuffer
 		glDisable(GL_CULL_FACE);
@@ -358,10 +353,11 @@ void Lumen::StartPipeline()
 		DiffuseShader.SetInteger("u_NormalTexture", 1);
 		DiffuseShader.SetInteger("u_Skymap", 2);
 
-		DiffuseShader.SetVector3f("u_ProbeBoxSize", DDGI::GetProbeGridSize());
-		DiffuseShader.SetVector3f("u_ProbeGridResolution", DDGI::GetProbeGridRes());
-		DiffuseShader.SetVector3f("u_ProbeBoxOrigin", DDGI::GetProbeBoxOrigin());
-		DiffuseShader.SetInteger("u_ProbeData", 14);
+		DiffuseShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
+		DiffuseShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+		DiffuseShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+		DiffuseShader.SetInteger("u_SHDataA", 14);
+		DiffuseShader.SetInteger("u_SHDataB", 15);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
@@ -391,7 +387,11 @@ void Lumen::StartPipeline()
 		}
 
 		glActiveTexture(GL_TEXTURE14);
-		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().x);
+
+		glActiveTexture(GL_TEXTURE15);
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
+
 
 		Intersector.BindEverything(DiffuseShader, app.GetCurrentFrame() < 60);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -483,10 +483,12 @@ void Lumen::StartPipeline()
 		LightingShader.SetVector3f("u_LightDirection", SunDirection);
 		LightingShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 
-		LightingShader.SetVector3f("u_ProbeBoxSize", DDGI::GetProbeGridSize());
-		LightingShader.SetVector3f("u_ProbeGridResolution", DDGI::GetProbeGridRes());
-		LightingShader.SetVector3f("u_ProbeBoxOrigin", DDGI::GetProbeBoxOrigin());
-		LightingShader.SetInteger("u_ProbeData", 14);
+		LightingShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
+		LightingShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+		LightingShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+
+		LightingShader.SetInteger("u_SHDataA", 14);
+		LightingShader.SetInteger("u_SHDataB", 15);
 
 		for (int i = 0; i < 5; i++) {
 
@@ -528,9 +530,12 @@ void Lumen::StartPipeline()
 		// 8 - 13 occupied by shadow textures 
 
 		glActiveTexture(GL_TEXTURE14);
-		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().x);
+
+		glActiveTexture(GL_TEXTURE15);
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
 		
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, DDGI::GetProbeDataSSBO());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
