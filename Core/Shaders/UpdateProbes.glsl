@@ -4,10 +4,12 @@
 
 #include "TraverseBVH.glsl"
 #include "Include/Octahedral.glsl"
+#include "Include/SphericalHarmonics.glsl"
 
 layout(local_size_x = 8, local_size_y = 4, local_size_z = 8) in;
 
-layout(rgba16f, binding = 0) uniform image3D o_OutputData;
+layout(rgba32ui, binding = 0) uniform uimage3D o_SHOutputA; // 2 normalized floats in each channel, 8 normalized floats in a single texture 
+layout(rgba32ui, binding = 1) uniform uimage3D o_SHOutputB;
 
 uniform vec3 u_BoxOrigin;
 uniform vec3 u_Resolution;
@@ -20,8 +22,11 @@ uniform float u_ShadowClipPlanes[5]; // <- world space clip distances
 uniform vec3 u_SunDirection;
 uniform float u_Time;
 
-uniform sampler3D u_History;
 uniform vec3 u_PreviousOrigin;
+
+//////
+uniform usampler3D u_PreviousSHA;
+uniform usampler3D u_PreviousSHB;
 
 uniform samplerCube u_Skymap;
 
@@ -119,7 +124,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
+	return max(vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f), 0.00000001f);
 }
 
 vec3 LambertBRDF(vec3 Hash)
@@ -141,24 +146,88 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
-vec3 SampleProbes(vec3 WorldPosition) {
+float[8] Trilinear(vec3 BoxMin, vec3 BoxMax, vec3 p) {
+    float Weights[8];
+    vec3 Extent = BoxMax - BoxMin;
+    float InverseVolume = 1.0 / (Extent.x * Extent.y * Extent.z);
+    Weights[0] = (BoxMax.x - p.x) * (BoxMax.y - p.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[1] = (BoxMax.x - p.x) * (p.y - BoxMin.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[2] = (p.x - BoxMin.x) * (p.y - BoxMin.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[3] = (p.x - BoxMin.x) * (BoxMax.y - p.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[4] = (BoxMax.x - p.x) * (BoxMax.y - p.y) * (p.z - BoxMin.z) * InverseVolume;
+    Weights[5] = (BoxMax.x - p.x) * (p.y - BoxMin.y) * (p.z - BoxMin.z) * InverseVolume;
+    Weights[6] = (p.x - BoxMin.x) * (p.y - BoxMin.y) * (p.z - BoxMin.z) * InverseVolume;
+    Weights[7] = (p.x - BoxMin.x) * (BoxMax.y - p.y) * (p.z - BoxMin.z) * InverseVolume;
+    return Weights;
+}
+
+SH GetSH(ivec3 Texel) {
+	uvec4 A = texelFetch(u_PreviousSHA, Texel, 0);
+	uvec4 B = texelFetch(u_PreviousSHB, Texel, 0);
+	return UnpackSH(A,B);
+}
+
+float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
+	
+	vec3 TexCoords = vec3(Texel) / u_Resolution;
+	vec3 Clip = TexCoords * 2.0f - 1.0f;
+	vec3 ProbePosition = u_PreviousOrigin + Clip * u_Size;
+
+	vec3 Vector = ProbePosition - WorldPosition;
+	float Length = length(Vector);
+	Vector /= Length;
+
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 3.25f);
+	return Weight;
+}
+
+vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
+
 
 	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
-	SamplePoint = SamplePoint * 0.5 + 0.5;
-	
-	if (SamplePoint.x > 0.0f && SamplePoint.x < 1.0f &&
-		SamplePoint.y > 0.0f && SamplePoint.y < 1.0f &&
-		SamplePoint.z > 0.0f && SamplePoint.z < 1.0f) {
-	
-		SamplePoint *= u_Resolution;
-		SamplePoint = SamplePoint + 0.5f;
-		SamplePoint /= u_Resolution;
+	SamplePoint = SamplePoint * 0.5 + 0.5; 
 
-		return texture(u_History, SamplePoint).xyz;
+	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
+		
+		vec3 VolumeCoords = SamplePoint * (u_Resolution);
+		
+		vec3 MinSampleBox = floor(VolumeCoords);
+		vec3 MaxSampleBox = ceil(VolumeCoords);
+
+		float Alpha = 0.0f;
+		float Trilinear[8] = Trilinear(MinSampleBox, MaxSampleBox, VolumeCoords);
+		ivec3 TexelCoordinates[8];
+		SH sh[8];
+
+		TexelCoordinates[0] = ivec3(vec3(MinSampleBox.x, MinSampleBox.y, MinSampleBox.z)); 
+		TexelCoordinates[1] = ivec3(vec3(MinSampleBox.x, MaxSampleBox.y, MinSampleBox.z));
+		TexelCoordinates[2] = ivec3(vec3(MaxSampleBox.x, MaxSampleBox.y, MinSampleBox.z)); 
+		TexelCoordinates[3] = ivec3(vec3(MaxSampleBox.x, MinSampleBox.y, MinSampleBox.z));
+		TexelCoordinates[4] = ivec3(vec3(MinSampleBox.x, MinSampleBox.y, MaxSampleBox.z));
+		TexelCoordinates[5] = ivec3(vec3(MinSampleBox.x, MaxSampleBox.y, MaxSampleBox.z));
+		TexelCoordinates[6] = ivec3(vec3(MaxSampleBox.x, MaxSampleBox.y, MaxSampleBox.z)); 
+		TexelCoordinates[7] = ivec3(vec3(MaxSampleBox.x, MinSampleBox.y, MaxSampleBox.z));
+
+		for (int i = 0 ; i < 8 ; i++) {
+			sh[i] = GetSH(TexelCoordinates[i]);
+			float ProbeVisibility = GetVisibility(TexelCoordinates[i], WorldPosition, N);
+			Alpha += Trilinear[i] * (1.0f - ProbeVisibility);
+			Trilinear[i] *= ProbeVisibility;
+		}
+
+		float WeightSum = 1.0f - Alpha;
+
+		SH FinalSH = GenerateEmptySH();
+
+		for (int i = 0 ; i < 8 ; i++) {
+			ScaleSH(sh[i], vec3(Trilinear[i] / max(WeightSum, 0.000001f)));
+			FinalSH = AddSH(FinalSH, sh[i]);
+		}
+
+		return max(SampleSH(FinalSH, N), 0.0f) * 3.75f;
 	}
 
 	return vec3(0.0f);
-	
 }
 
 vec4 Reproject(vec3 WorldPosition) {
@@ -282,7 +351,6 @@ void main() {
 	//RayOrigin += vec3(hash2(), hash2().x) * 0.125f;
 
 	vec4 Reprojected = Reproject(Unjittered);
-	vec4 History = texelFetch(u_History, ivec3(Reprojected.xyz), 0).xyzw;
 
 	vec3 DiffuseDirection = ImportanceSample(ProbeMapPixelStartOffset);
     
@@ -300,15 +368,17 @@ void main() {
 	// Integrate radiance for point 
 	vec3 iWorldPos = (RayOrigin + DiffuseDirection * TUVW.x);
 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 2.0f : GetDirect(iWorldPos, iNormal, Albedo);
+	float LambertSky = clamp(dot(DiffuseDirection, vec3(0.0f, 1.0f, 0.0f)), 0.0f, 1.0f);
+
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 2.5f * LambertSky : GetDirect(iWorldPos, iNormal, Albedo);
 
 	float Packed = 1.0f;
 
 	if (TUVW.x > 0.0f) {
-		vec3 Dither = vec3(hash2(), hash2().x);
-		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.03f));
-		const float AttenuationBounce = 0.75f; 
-		FinalRadiance += AttenuationBounce * Bounce;
+		//vec3 Dither = (hash2().x > 0.5f ? -1.0f : 1.0f) * vec3(hash2(), hash2().x) * 0.1f;
+		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.03f),iNormal);
+		const float AttenuationBounce = 0.825f; 
+		FinalRadiance += Bounce * AttenuationBounce;
 	}
 
 	// Write map data 
@@ -326,9 +396,34 @@ void main() {
 	ProbeMapPixel PrevProbeData = MapData[PixelOffset];
 
 	MapData[PixelOffset] = ProbeMapPixel(vec2(mix(Luminance(FinalRadiance.xyz),PrevProbeData.Packed.x,TemporalBlend), PackedMoments));
-	FinalRadiance = mix(FinalRadiance, History.xyz, TemporalBlend);
 
-	imageStore(o_OutputData, Pixel, vec4(FinalRadiance, 1.0f));
+	SH EncodedSH = EncodeSH(FinalRadiance, DiffuseDirection);
+
+	SH FinalSH = EncodedSH;
+
+	if (Reprojected.w > 0.01f)
+	{
+		SH PreviousSH; 
+
+		uvec4 A = texelFetch(u_PreviousSHA, ivec3(Reprojected.xyz), 0);
+		uvec4 B = texelFetch(u_PreviousSHB, ivec3(Reprojected.xyz), 0);
+
+		PreviousSH = UnpackSH(A,B);
+
+		FinalSH.L00 = mix(FinalSH.L00, PreviousSH.L00, TemporalBlend);
+		FinalSH.L11 = mix(FinalSH.L11, PreviousSH.L11, TemporalBlend);
+		FinalSH.L10 = mix(FinalSH.L10, PreviousSH.L10, TemporalBlend);
+		FinalSH.L1_1 = mix(FinalSH.L1_1, PreviousSH.L1_1, TemporalBlend);
+	}
+
+	uvec4 PackedA, PackedB;
+
+	PackSH(FinalSH, PackedA, PackedB);
+
+	imageStore(o_SHOutputA, Pixel, PackedA);
+	imageStore(o_SHOutputB, Pixel, PackedB);
+
+	//imageStore(o_OutputData, Pixel, vec4(FinalRadiance, 1.0f));
 }
 
 

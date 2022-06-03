@@ -361,7 +361,8 @@ void Lumen::StartPipeline()
 		DiffuseShader.SetVector3f("u_ProbeBoxSize", DDGI::GetProbeGridSize());
 		DiffuseShader.SetVector3f("u_ProbeGridResolution", DDGI::GetProbeGridRes());
 		DiffuseShader.SetVector3f("u_ProbeBoxOrigin", DDGI::GetProbeBoxOrigin());
-		DiffuseShader.SetInteger("u_ProbeData", 14);
+		DiffuseShader.SetInteger("u_SHDataA", 14);
+		DiffuseShader.SetInteger("u_SHDataB", 15);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
@@ -391,7 +392,11 @@ void Lumen::StartPipeline()
 		}
 
 		glActiveTexture(GL_TEXTURE14);
-		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
+		glBindTexture(GL_TEXTURE_3D, DDGI::GetProbeDataTextures().x);
+
+		glActiveTexture(GL_TEXTURE15);
+		glBindTexture(GL_TEXTURE_3D, DDGI::GetProbeDataTextures().y);
+
 
 		Intersector.BindEverything(DiffuseShader, app.GetCurrentFrame() < 60);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -486,7 +491,9 @@ void Lumen::StartPipeline()
 		LightingShader.SetVector3f("u_ProbeBoxSize", DDGI::GetProbeGridSize());
 		LightingShader.SetVector3f("u_ProbeGridResolution", DDGI::GetProbeGridRes());
 		LightingShader.SetVector3f("u_ProbeBoxOrigin", DDGI::GetProbeBoxOrigin());
-		LightingShader.SetInteger("u_ProbeData", 14);
+
+		LightingShader.SetInteger("u_SHDataA", 14);
+		LightingShader.SetInteger("u_SHDataB", 15);
 
 		for (int i = 0; i < 5; i++) {
 
@@ -528,7 +535,10 @@ void Lumen::StartPipeline()
 		// 8 - 13 occupied by shadow textures 
 
 		glActiveTexture(GL_TEXTURE14);
-		glBindTexture(GL_TEXTURE_3D, DDGI::GetVolume());
+		glBindTexture(GL_TEXTURE_3D, DDGI::GetProbeDataTextures().x);
+
+		glActiveTexture(GL_TEXTURE15);
+		glBindTexture(GL_TEXTURE_3D, DDGI::GetProbeDataTextures().y);
 		
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, DDGI::GetProbeDataSSBO());
 

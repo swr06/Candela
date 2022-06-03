@@ -255,6 +255,7 @@
     <None Include="Core\Shaders\GeometryVert.glsl" />
     <None Include="Core\Shaders\Include\Octahedral.glsl" />
     <None Include="Core\Shaders\Include\Reservoir.glsl" />
+    <None Include="Core\Shaders\Include\SphericalHarmonics.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\TraverseBVHStack.glsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
