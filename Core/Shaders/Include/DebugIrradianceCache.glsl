@@ -42,6 +42,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal, SH sh) {
 
 vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 
+	WorldPosition += N * 0.35f;
 
 	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 

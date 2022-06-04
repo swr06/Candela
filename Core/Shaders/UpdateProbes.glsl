@@ -169,6 +169,7 @@ SH GetSH(ivec3 Texel) {
 
 float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 	
+
 	vec3 TexCoords = vec3(Texel) / u_Resolution;
 	vec3 Clip = TexCoords * 2.0f - 1.0f;
 	vec3 ProbePosition = u_PreviousOrigin + Clip * u_Size;
@@ -183,6 +184,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 
 vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 
+	WorldPosition += N * 0.35f;
 
 	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 

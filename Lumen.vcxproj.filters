@@ -409,8 +409,11 @@
     <None Include="Core\Shaders\Include\SphericalHarmonics.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
+    <None Include="Core\Shaders\Include\DebugIrradianceCache.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
     <None Include="Core\Shaders\Include\CookTorranceBRDF.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\Include</Filter>
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
