@@ -269,12 +269,13 @@
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackless.glsl" />
     <None Include="Core\Shaders\Intersectors\TraverseBVHStacklessShadow.glsl" />
     <None Include="Core\Shaders\Intersectors\TraverseBVHStackShadow.glsl" />
+    <None Include="Core\Shaders\MotionVectors.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
-    <None Include="Core\Shaders\UpdateProbes.glsl" />
+    <None Include="Core\Shaders\UpdateRadianceProbes.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Shaders\Surfel\Readme.txt" />

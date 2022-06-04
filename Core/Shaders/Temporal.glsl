@@ -1,5 +1,7 @@
 #version 330 core 
 
+#include "Include/Utility.glsl"
+
 layout (location = 0) out vec4 o_Diffuse;
 
 in vec2 v_TexCoords;
@@ -16,6 +18,11 @@ uniform sampler2D u_DiffuseHistory;
 
 uniform sampler2D u_Depth;
 uniform sampler2D u_Normals;
+
+uniform sampler2D u_PreviousDepth;
+uniform sampler2D u_PreviousNormals;
+
+uniform sampler2D u_MotionVectors;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -46,13 +53,13 @@ void main() {
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth, v_TexCoords).xyz;
 
-	vec3 Reprojected = Reprojection(WorldPosition);
+	vec2 Reprojected = texelFetch(u_MotionVectors, HighResPixel, 0).xy + v_TexCoords;
 
 	vec4 Current = texelFetch(u_DiffuseCurrent, Pixel, 0);
 
 	o_Diffuse = Current;
 
-	if (Reprojected.xy == clamp(Reprojected.xy, 0.01f, 0.99f)) 
+	if (IsInScreenspace(Reprojected)) 
 	{
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * textureSize(u_DiffuseHistory,0).xy);
 		vec4 History = texture(u_DiffuseHistory, Reprojected.xy);

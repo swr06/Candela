@@ -166,6 +166,8 @@ void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true) };
 GLClasses::Framebuffer LightingPass(16, 16, {GL_RGB16F, GL_RGB, GL_FLOAT, true, true}, false, true);
 
+GLClasses::Framebuffer MotionVectors(16, 16, { GL_RG16F, GL_RG, GL_FLOAT, true, true }, false, true);
+
 GLClasses::Framebuffer DiffuseCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
 GLClasses::Framebuffer DiffuseUpscaled(16, 16, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, false, true);
 GLClasses::Framebuffer DiffuseTemporalBuffers[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true} }, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true} }, false, true) };
@@ -210,6 +212,7 @@ void Lumen::StartPipeline()
 
 	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
@@ -227,7 +230,7 @@ void Lumen::StartPipeline()
 	Entity MainModelEntity(&MainModel);
 	MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.35f));
-	//MainModelEntity.m_Model *= ZOrientMatrix;
+	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
 
 	Entity DragonEntity(&Dragon);
 
@@ -255,6 +258,7 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& CheckerReconstructShader = ShaderManager::GetShader("CHECKER_UPSCALE");
 	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
 	GLClasses::Shader& TemporalFilterShader = ShaderManager::GetShader("TEMPORAL");
+	GLClasses::Shader& MotionVectorShader = ShaderManager::GetShader("MOTION_VECTORS");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 
 	// Matrices
@@ -286,6 +290,9 @@ void Lumen::StartPipeline()
 		// Resize FBOs
 		GBuffers[0].SetSize(app.GetWidth(), app.GetHeight());
 		GBuffers[1].SetSize(app.GetWidth(), app.GetHeight());
+		MotionVectors.SetSize(app.GetWidth(), app.GetHeight());
+
+		// Lighting
 		LightingPass.SetSize(app.GetWidth(), app.GetHeight());
 
 		// Diffuse FBOs
@@ -297,6 +304,7 @@ void Lumen::StartPipeline()
 		
 		// Set FBO references
 		GLClasses::Framebuffer& GBuffer = FrameMod2 ? GBuffers[0] : GBuffers[1];
+		GLClasses::Framebuffer& PrevGBuffer = FrameMod2 ? GBuffers[1] : GBuffers[0];
 
 		GLClasses::Framebuffer& DiffuseTrace = FrameMod2 ? DiffuseCheckerboardBuffers[0] : DiffuseCheckerboardBuffers[1];
 		GLClasses::Framebuffer& PreviousDiffuseTrace = FrameMod2 ? DiffuseCheckerboardBuffers[1] : DiffuseCheckerboardBuffers[0];
@@ -345,7 +353,24 @@ void Lumen::StartPipeline()
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
 
-		// Diffuse raytracing
+		// Motion vectors 
+		MotionVectors.Bind();
+		MotionVectorShader.Use();
+		MotionVectorShader.SetInteger("u_Depth", 0);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		SetCommonUniforms<GLClasses::Shader>(MotionVectorShader, UniformBuffer);
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		MotionVectors.Unbind();
+
+		// Indirect diffuse raytracing
+
 		DiffuseShader.Use();
 		DiffuseTrace.Bind();
 
@@ -393,7 +418,6 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE15);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
 
-
 		Intersector.BindEverything(DiffuseShader, app.GetCurrentFrame() < 60);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 		glDispatchCompute((int)floor(float(DiffuseTrace.GetWidth()) / 16.0f) + 1, (int)(floor(float(DiffuseTrace.GetHeight())) / 16.0f) + 1, 1);
@@ -438,6 +462,9 @@ void Lumen::StartPipeline()
 		TemporalFilterShader.SetInteger("u_Normals", 1);
 		TemporalFilterShader.SetInteger("u_DiffuseCurrent", 2);
 		TemporalFilterShader.SetInteger("u_DiffuseHistory", 3);
+		TemporalFilterShader.SetInteger("u_PreviousDepth", 4);
+		TemporalFilterShader.SetInteger("u_PreviousNormals", 5);
+		TemporalFilterShader.SetInteger("u_MotionVectors", 6);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
@@ -452,6 +479,15 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, PreviousDiffuseTemporal.GetTexture());
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, PrevGBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, PrevGBuffer.GetTexture(3));
+
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

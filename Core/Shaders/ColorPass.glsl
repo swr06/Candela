@@ -103,8 +103,6 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	float HashBorder = 0.95f - Hash.y * 0.03f; 
 
-	//float Distance = distance(WorldPosition, u_InverseView[3].xyz);
-
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
 		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.025f, 1.0f);
@@ -168,7 +166,7 @@ void main()
 	float Depth = texture(u_DepthTexture, v_TexCoords).x;
 
 	if (Depth > 0.999999f) {
-		o_Color = texture(u_Skymap, rD).xyz * 2.0f;
+		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 1.0f; // <----- pow2 done here 
 		return;
 	}
 

@@ -14,7 +14,8 @@ void Lumen::ShaderManager::CreateShaders()
 	AddComputeShader("DIFFUSE_TRACE", "Core/Shaders/DiffuseTrace.glsl");
 	AddShader("CHECKER_UPSCALE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/CheckerboardReconstruct.glsl");
 	AddShader("TEMPORAL", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Temporal.glsl");
-	AddComputeShader("PROBE_UPDATE", "Core/Shaders/UpdateProbes.glsl");
+	AddShader("MOTION_VECTORS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/MotionVectors.glsl");
+	AddComputeShader("PROBE_UPDATE", "Core/Shaders/UpdateRadianceProbes.glsl");
 }
 
 void Lumen::ShaderManager::AddShader(const std::string& name, const std::string& vert, const std::string& frag, const std::string& geo)

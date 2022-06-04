@@ -314,7 +314,7 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.9f;
+			const float Strength = 1.75f;
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 10.0f);
 		}

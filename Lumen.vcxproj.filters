@@ -400,7 +400,7 @@
     <None Include="Core\Shaders\Temporal.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\UpdateProbes.glsl">
+    <None Include="Core\Shaders\UpdateRadianceProbes.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Probe GI</Filter>
     </None>
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl">
@@ -417,6 +417,9 @@
     </None>
     <None Include="Core\Shaders\Include\Utility.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\MotionVectors.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

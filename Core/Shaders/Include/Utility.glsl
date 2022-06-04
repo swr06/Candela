@@ -6,6 +6,42 @@
 #define rcp(x) (1.0f/x)
 #define clamp01(x) (saturate(x))
 
+bool InScreenspace(vec2 x) {
+    float bias = 0.001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias) {
+        return true;
+    }
+
+    return false;
+}   
+
+bool IsInScreenspace(vec2 x) {
+    float bias = 0.001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias) {
+        return true;
+    }
+
+    return false;
+}   
+
+bool InScreenspace(vec3 x) {
+    float bias = 0.001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias && x.z > 0.0f && x.z < 1.0f-bias) {
+        return true;
+    }
+
+    return false;
+}   
+
+bool IsInScreenspace(vec3 x) {
+    float bias = 0.001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias && x.z > 0.0f && x.z < 1.0f-bias) {
+        return true;
+    }
+
+    return false;
+}   
+
 bool IsValid(in float x) {
 	
 	if (isnan(x) || isinf(x)) {
