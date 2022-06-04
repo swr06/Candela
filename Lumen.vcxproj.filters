@@ -415,6 +415,9 @@
     <None Include="Core\Shaders\Include\CookTorranceBRDF.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
+    <None Include="Core\Shaders\Include\Utility.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Shaders\Surfel\Readme.txt">

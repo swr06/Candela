@@ -1,5 +1,7 @@
 #version 330 core
 
+#include "Include/Utility.glsl"
+
 in vec2 v_TexCoords;
 layout(location = 0) out vec3 o_Color;
 
@@ -27,7 +29,7 @@ vec3 RRTAndODTFit(vec3 v)
 
 vec4 ACESFitted(vec4 Color, float Exposure)
 {
-    Color.rgb *= Exposure * 0.6;
+    Color.rgb *= Exposure;
     
     Color.rgb = ACESInputMat * Color.rgb;
     Color.rgb = RRTAndODTFit(Color.rgb);
@@ -39,6 +41,6 @@ vec4 ACESFitted(vec4 Color, float Exposure)
 void main()
 {
     o_Color.xyz = texture(u_MainTexture, v_TexCoords).xyz;
-    o_Color.xyz = ACESFitted(vec4(o_Color.xyz,1.0f), 2.0f).xyz;
-    o_Color.xyz = pow(o_Color, vec3(1.0f / 2.2f));
+    o_Color.xyz = ACESFitted(vec4(o_Color.xyz,1.0f), 1.5f).xyz;
+    o_Color.xyz = LinearToSRGB(o_Color);
 }

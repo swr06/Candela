@@ -220,6 +220,14 @@ vec3 SRGBToLinearVec3(vec3 x){
                 SRGBToLinear(x.z));
 }
 
+vec3 LinearToSRGB(vec3 linear) {
+    vec3 SRGBLo = linear * 12.92;
+    vec3 SRGBHi = (pow(abs(linear), vec3(1.0/2.4)) * 1.055) - 0.055;
+    vec3 SRGB = mix(SRGBHi, SRGBLo, step(linear, vec3(0.0031308)));
+    return SRGB;
+}
+
+
 vec3 TemperatureToRGB(float temperatureInKelvins)
 {
 	vec3 retColor;

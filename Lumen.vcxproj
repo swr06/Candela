@@ -255,6 +255,7 @@
     <None Include="Core\Shaders\GeometryVert.glsl" />
     <None Include="Core\Shaders\Include\CookTorranceBRDF.glsl" />
     <None Include="Core\Shaders\Include\DebugIrradianceCache.glsl" />
+    <None Include="Core\Shaders\Include\Utility.glsl" />
     <None Include="Core\Shaders\Include\Octahedral.glsl" />
     <None Include="Core\Shaders\Include\Reservoir.glsl" />
     <None Include="Core\Shaders\Include\SphericalHarmonics.glsl" />

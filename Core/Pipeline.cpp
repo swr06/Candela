@@ -210,6 +210,7 @@ void Lumen::StartPipeline()
 
 	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
