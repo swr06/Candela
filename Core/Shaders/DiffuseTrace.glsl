@@ -7,6 +7,7 @@ layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 
 #include "TraverseBVH.glsl"
 #include "Include/SphericalHarmonics.glsl"
+#include "Include/Utility.glsl"
 
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
@@ -315,14 +316,13 @@ void main() {
 		else {
 			const float Strength = 1.9f;
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
-			Bounced = InterpolatedRadiance * Strength;
+			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 10.0f);
 		}
 
 		float RayProbability = 1.0f / (dot(Normal, RayDirection) / PI); 
 		vec3 Throughput = Albedo * RayProbability; // <- Lambert throughput
 		FinalRadiance += Bounced * Throughput;
 	}
-
 
 	float AO = pow(clamp(TUVW.x / 1.1f, 0.0f, 1.0f), 3.1f);
 	imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, AO));

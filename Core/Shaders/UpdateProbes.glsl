@@ -5,6 +5,7 @@
 #include "TraverseBVH.glsl"
 #include "Include/Octahedral.glsl"
 #include "Include/SphericalHarmonics.glsl"
+#include "Include/Utility.glsl"
 
 layout(local_size_x = 8, local_size_y = 4, local_size_z = 8) in;
 
@@ -248,12 +249,6 @@ vec4 Reproject(vec3 WorldPosition) {
 	}
 
 	return vec4(-10.0f);
-}
-
-float Luminance(vec3 rgb)
-{
-    const vec3 W = vec3(0.2125, 0.7154, 0.0721);
-    return dot(rgb, W);
 }
 
 vec3 SampleCone(vec2 Xi, float CosThetaMax) 
