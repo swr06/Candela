@@ -12,6 +12,9 @@ layout(local_size_x = 8, local_size_y = 4, local_size_z = 8) in;
 layout(rgba32ui, binding = 0) uniform uimage3D o_SHOutputA; // 2 normalized floats in each channel, 8 normalized floats in a single texture 
 layout(rgba32ui, binding = 1) uniform uimage3D o_SHOutputB;
 
+layout(r11f_g11f_b10f, binding = 2) uniform image3D o_CurrentRaw;
+layout(r11f_g11f_b10f, binding = 3) uniform readonly image3D u_PrevRaw;
+
 uniform vec3 u_BoxOrigin;
 uniform vec3 u_Resolution;
 uniform vec3 u_Size;
@@ -25,7 +28,6 @@ uniform float u_Time;
 
 uniform vec3 u_PreviousOrigin;
 
-//////
 uniform usampler3D u_PreviousSHA;
 uniform usampler3D u_PreviousSHB;
 
@@ -128,19 +130,6 @@ vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 	return max(vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f), 0.00000001f);
 }
 
-vec3 LambertBRDF(vec3 Hash)
-{
-    float phi = 2.0 * PI * Hash.x;
-    float cosTheta = 2.0 * Hash.y - 1.0;
-    float u = Hash.z;
-    float theta = acos(cosTheta);
-    float r = pow(u, 1.0 / 3.0);
-    float x = r * sin(theta) * cos(phi);
-    float y = r * sin(theta) * sin(phi);
-    float z = r * cos(theta);
-    return vec3(x, y, z);
-}
-
 float HASH2SEED = 0.0f;
 vec2 hash2() 
 {
@@ -169,7 +158,6 @@ SH GetSH(ivec3 Texel) {
 }
 
 float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
-	
 
 	vec3 TexCoords = vec3(Texel) / u_Resolution;
 	vec3 Clip = TexCoords * 2.0f - 1.0f;
@@ -219,7 +207,6 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 		}
 
 		float WeightSum = 1.0f - Alpha;
-
 		SH FinalSH = GenerateEmptySH();
 
 		for (int i = 0 ; i < 8 ; i++) {
@@ -244,7 +231,6 @@ vec4 Reproject(vec3 WorldPosition) {
 	
 		SamplePoint *= u_Resolution;
 		SamplePoint = SamplePoint + 0.5f;
-
 		return vec4(SamplePoint, 5.0f);
 	}
 
@@ -285,6 +271,19 @@ vec3 CosWeightedHemisphere(const vec3 n, vec2 r)
 	float rz = sqrt(1.0 - r.y);
 	vec3  rr = vec3(rx * uu + ry * vv + rz * n );
     return normalize(rr);
+}
+
+vec3 LambertBRDF(vec3 Hash)
+{
+    float phi = 2.0f * PI * Hash.x; // 0 -> 2 pi
+    float cosTheta = 2.0f * Hash.y - 1.0f; // -1 -> 1
+    float u = Hash.z;
+    float theta = acos(cosTheta);
+    float r = pow(u, 1.0 / 3.0); // -> bias 
+    float x = r * sin(theta) * cos(phi);
+    float y = r * sin(theta) * sin(phi);
+    float z = r * cos(theta);
+    return vec3(x, y, z);
 }
 
 vec3 ImportanceSample(int PixelStartOffset) {
@@ -373,7 +372,7 @@ void main() {
 
 	if (TUVW.x > 0.0f) {
 		//vec3 Dither = (hash2().x > 0.5f ? -1.0f : 1.0f) * vec3(hash2(), hash2().x) * 0.1f;
-		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.03f),iNormal);
+		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.001f),iNormal);
 		const float AttenuationBounce = 0.96f; 
 		FinalRadiance += Bounce * AttenuationBounce;
 	}
@@ -388,15 +387,10 @@ void main() {
 
 	float PackedMoments = uintBitsToFloat(packHalf2x16(vec2(Depth, DepthSqr)));
 
-	float TemporalBlend = Reprojected.w > 1.01f ? 0.99f : 0.0f;
 
-	ProbeMapPixel PrevProbeData = MapData[PixelOffset];
+	SH FinalSH = EncodeSH(FinalRadiance, DiffuseDirection);
 
-	MapData[PixelOffset] = ProbeMapPixel(vec2(mix(Luminance(FinalRadiance.xyz),PrevProbeData.Packed.x,TemporalBlend), PackedMoments));
-
-	SH EncodedSH = EncodeSH(FinalRadiance, DiffuseDirection);
-
-	SH FinalSH = EncodedSH;
+	int AccumulatedFrames = 0;
 
 	if (Reprojected.w > 0.01f)
 	{
@@ -405,22 +399,31 @@ void main() {
 		uvec4 A = texelFetch(u_PreviousSHA, ivec3(Reprojected.xyz), 0);
 		uvec4 B = texelFetch(u_PreviousSHB, ivec3(Reprojected.xyz), 0);
 
+		AccumulatedFrames = int(B.w) + 1;
+
+		float TemporalBlend = min((1.0f - (1.0f / float(AccumulatedFrames))), 0.99f);
+
+		ProbeMapPixel PrevProbeData = MapData[PixelOffset];
+		MapData[PixelOffset] = ProbeMapPixel(vec2(mix(Luminance(FinalRadiance.xyz),PrevProbeData.Packed.x,TemporalBlend), PackedMoments));
+
 		PreviousSH = UnpackSH(A,B);
 
 		FinalSH.L00 = mix(FinalSH.L00, PreviousSH.L00, TemporalBlend);
 		FinalSH.L11 = mix(FinalSH.L11, PreviousSH.L11, TemporalBlend);
 		FinalSH.L10 = mix(FinalSH.L10, PreviousSH.L10, TemporalBlend);
 		FinalSH.L1_1 = mix(FinalSH.L1_1, PreviousSH.L1_1, TemporalBlend);
+		FinalRadiance = mix(FinalRadiance, imageLoad(u_PrevRaw,ivec3(Reprojected.xyz)).xyz, TemporalBlend);
 	}
 
 	uvec4 PackedA, PackedB;
 
 	PackSH(FinalSH, PackedA, PackedB);
+	
+	PackedB.w = uint(AccumulatedFrames);
 
 	imageStore(o_SHOutputA, Pixel, PackedA);
 	imageStore(o_SHOutputB, Pixel, PackedB);
-
-	//imageStore(o_OutputData, Pixel, vec4(FinalRadiance, 1.0f));
+	imageStore(o_CurrentRaw, Pixel, vec4(FinalRadiance,0.));
 }
 
 

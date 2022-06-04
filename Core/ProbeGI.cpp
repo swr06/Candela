@@ -28,6 +28,7 @@ namespace Lumen {
 		static glm::vec3 LastOrigin = glm::vec3(0.0f);
 		static glm::vec3 _PreviousOrigin = glm::vec3(0.0f);
 		static glm::uvec2 _CurrentDataTextures;
+		static GLuint _ProbeRawRadianceBuffers[2]; // <- Unprojected radiance
 	}
 }
 
@@ -69,6 +70,25 @@ void Lumen::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr);
 
+	// Raw radiance buffers
+	glGenTextures(1, &_ProbeRawRadianceBuffers[0]);
+	glBindTexture(GL_TEXTURE_3D, _ProbeRawRadianceBuffers[0]);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+	glGenTextures(1, &_ProbeRawRadianceBuffers[1]);
+	glBindTexture(GL_TEXTURE_3D, _ProbeRawRadianceBuffers[1]);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA, GL_FLOAT, nullptr);
+
 	// 8x8 luminance and depth/variance map
 	glGenBuffers(1, &_ProbeMapSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, _ProbeMapSSBO);
@@ -88,6 +108,9 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 	bool Checkerboard = Frame % 2 == 0;
 	GLuint CurrentVolumeTextures[2] = { Checkerboard ? _ProbeDataTextures[0] : _PrevProbeDataTexture[0], Checkerboard ? _ProbeDataTextures[1] : _PrevProbeDataTexture[1] };
 	GLuint PreviousVolumeTextures[2] = { (!Checkerboard) ? _ProbeDataTextures[0] : _PrevProbeDataTexture[0], (!Checkerboard) ? _ProbeDataTextures[1] : _PrevProbeDataTexture[1] };
+
+	GLuint CurrentRawRadianceTexture = Checkerboard ? _ProbeRawRadianceBuffers[0] : _ProbeRawRadianceBuffers[1];
+	GLuint PreviousRawRadianceTexture = Checkerboard ? _ProbeRawRadianceBuffers[1] : _ProbeRawRadianceBuffers[0];
 
 	_CurrentDataTextures.x = CurrentVolumeTextures[0];
 	_CurrentDataTextures.y = CurrentVolumeTextures[1];
@@ -140,6 +163,9 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 
 	glBindImageTexture(0, CurrentVolumeTextures[0], 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32UI);
 	glBindImageTexture(1, CurrentVolumeTextures[1], 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32UI);
+
+	glBindImageTexture(2, CurrentRawRadianceTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R11F_G11F_B10F);
+	glBindImageTexture(3, PreviousRawRadianceTexture, 0, GL_TRUE, 0, GL_READ_ONLY, GL_R11F_G11F_B10F);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _ProbeMapSSBO);
 

@@ -178,7 +178,6 @@ void main()
 	vec3 PBR = texture(u_PBRTexture, v_TexCoords).xyz;
 
 	vec4 GI = texture(u_Trace, v_TexCoords).xyzw; 
-	//GI.xyz = SampleProbes(WorldPosition, Normal);
 
 	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), FilterShadows(WorldPosition, Normal)) * 0.5f;
 	vec3 DiffuseIndirect = GI.xyz * Albedo * GI.w;

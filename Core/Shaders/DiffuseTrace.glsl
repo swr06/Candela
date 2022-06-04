@@ -72,7 +72,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 
 vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 
-	WorldPosition += N * 0.35f;
+	WorldPosition += N * 0.4f;
 
 	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
@@ -314,7 +314,7 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.85f;
+			const float Strength = 1.9f;
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 10.0f);
 		}

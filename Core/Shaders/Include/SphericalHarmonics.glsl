@@ -58,7 +58,9 @@ vec3 SampleSH(SH sh, vec3 direction) {
     return (result);
 }
 
-
+vec3 SampleSH(SH sh) {
+    return vec3(sh.L00) / Y00; 
+}
 
 float GetSHLength(SH sh) {
     return dot(sh.L00, sh.L00) + dot(sh.L1_1, sh.L1_1) + dot(sh.L10, sh.L10) + dot(sh.L11, sh.L11);
