@@ -286,7 +286,7 @@ void main() {
 	// Compute radiance 
 	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
 
-	// Integrate multibounce lighting 
+	// Handle multibounce lighting (isn't perfectly accurate)
 	if (DO_SECOND_BOUNCE) {
 
 		vec3 Bounced = vec3(0.0f);
@@ -319,8 +319,8 @@ void main() {
 			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 10.0f);
 		}
 
-		float RayProbability = 1.0f / (dot(Normal, RayDirection) / PI); 
-		vec3 Throughput = Albedo * RayProbability; // <- Lambert throughput
+		float RayProbability = (dot(Normal, RayDirection) / PI); 
+		vec3 Throughput = Albedo / RayProbability; 
 		FinalRadiance += Bounced * Throughput;
 	}
 

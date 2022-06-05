@@ -35,6 +35,11 @@ static bool vsync = false;
 static float SunTick = 50.0f;
 static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
+// Timings
+float CurrentTime = glfwGetTime();
+float Frametime = 0.0f;
+float DeltaTime = 0.0f;
+
 static glm::vec3 DragonSlider = glm::vec3(0.);
 
 class RayTracerApp : public Lumen::Application
@@ -57,7 +62,7 @@ public:
 		glfwSwapInterval((int)vsync);
 
 		GLFWwindow* window = GetWindow();
-		float camera_speed = 0.25f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f));
+		float camera_speed = DeltaTime * 6.0f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f));
 
 		if (GetCursorLocked()) {
 			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -465,6 +470,7 @@ void Lumen::StartPipeline()
 		TemporalFilterShader.SetInteger("u_PreviousDepth", 4);
 		TemporalFilterShader.SetInteger("u_PreviousNormals", 5);
 		TemporalFilterShader.SetInteger("u_MotionVectors", 6);
+		TemporalFilterShader.SetInteger("u_Utility", 7);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
@@ -488,6 +494,9 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
+
+		glActiveTexture(GL_TEXTURE7);
+		glBindTexture(GL_TEXTURE_2D, PreviousDiffuseTemporal.GetTexture(1));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -595,6 +604,11 @@ void Lumen::StartPipeline()
 		// Finish : 
 		glFinish();
 		app.FinishFrame();
+
+		CurrentTime = glfwGetTime();
+		DeltaTime = CurrentTime - Frametime;
+		Frametime = glfwGetTime();
+
 		GLClasses::DisplayFrameRate(app.GetWindow(), "Lumen ");
 
 	}
