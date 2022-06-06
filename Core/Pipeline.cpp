@@ -437,6 +437,9 @@ void Lumen::StartPipeline()
 		CheckerReconstructShader.SetInteger("u_Normals", 1);
 		CheckerReconstructShader.SetInteger("u_CurrentFrameTexture", 2);
 		CheckerReconstructShader.SetInteger("u_PreviousFrameTexture", 3);
+		CheckerReconstructShader.SetInteger("u_PreviousDepth", 4);
+		CheckerReconstructShader.SetInteger("u_PreviousNormals", 5);
+		CheckerReconstructShader.SetInteger("u_MotionVectors", 6);
 		CheckerReconstructShader.SetVector2f("u_Dimensions", glm::vec2(DiffuseUpscaled.GetWidth(), DiffuseUpscaled.GetHeight()));
 
 		SetCommonUniforms<GLClasses::Shader>(CheckerReconstructShader, UniformBuffer);
@@ -452,6 +455,15 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, PreviousDiffuseTrace.GetTexture());
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, PrevGBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, PrevGBuffer.GetTexture(3));
+
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

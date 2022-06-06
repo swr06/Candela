@@ -6,6 +6,14 @@
 #define rcp(x) (1.0f/x)
 #define clamp01(x) (saturate(x))
 
+bool IsSky(float D) {
+    if (D > 0.99999999f || D == 1.0f) {
+        return true;
+    }
+
+    return false;
+}
+
 bool InScreenspace(vec2 x) {
     float bias = 0.001f;
     if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias) {
@@ -341,4 +349,10 @@ float bayer2(vec2 a){
 #define bayer128(a) (bayer64( 0.5 * (a)) * 0.25 + bayer2(a))
 #define bayer256(a) (bayer128(0.5 * (a)) * 0.25 + bayer2(a))
 
-
+vec4 Nearest(sampler2D tex, vec2 uv) {
+    vec2 res = textureSize(tex,0).xy;
+    uv *= res;
+    uv = floor(uv)+0.5;
+    uv /= res;
+    return textureLod(tex, uv, 0.0);
+}

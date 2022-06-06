@@ -1,11 +1,19 @@
 #version 330 core 
 
+#include "Include/Utility.glsl"
+
 layout (location = 0) out vec4 o_Color;
 
+in vec2 v_TexCoords;
+
 uniform sampler2D u_Depth;
+uniform sampler2D u_PreviousDepth;
 uniform sampler2D u_Normals;
+uniform sampler2D u_PreviousNormals;
 uniform sampler2D u_CurrentFrameTexture;
 uniform sampler2D u_PreviousFrameTexture;
+
+uniform sampler2D u_MotionVectors;
 
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
@@ -13,6 +21,8 @@ uniform mat4 u_Projection;
 uniform mat4 u_View;
 uniform mat4 u_PrevProjection;
 uniform mat4 u_PrevView;
+uniform mat4 u_PrevInverseProjection;
+uniform mat4 u_PrevInverseView;
 
 uniform int u_Frame;
 uniform float u_zNear;
@@ -32,6 +42,16 @@ vec3 WorldPosFromDepth(float depth, vec2 txc)
     return WorldPos.xyz;
 }
 
+vec3 PrevWorldPosFromDepth(float depth, vec2 txc)
+{
+    float z = depth * 2.0 - 1.0;
+    vec4 ClipSpacePosition = vec4(txc * 2.0 - 1.0, z, 1.0);
+    vec4 ViewSpacePosition = u_PrevInverseProjection * ClipSpacePosition;
+    ViewSpacePosition /= ViewSpacePosition.w;
+    vec4 WorldPos = u_PrevInverseView * ViewSpacePosition;
+    return WorldPos.xyz;
+}
+
 vec3 Reprojection(vec3 WorldPos) 
 {
 	vec4 ProjectedPosition = u_PrevProjection * u_PrevView * vec4(WorldPos, 1.0f);
@@ -41,9 +61,52 @@ vec3 Reprojection(vec3 WorldPos)
 
 }
 
+float DistanceSquared(vec3 A, vec3 B)
+{
+    return dot(A-B, A-B);
+}
+
 float linearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
+}
+
+vec3 SearchBestPixel(vec3 WorldPosition, vec2 Reprojected) {
+	
+	vec2 InverseDimensions = 1.0f / u_Dimensions;
+    Reprojected *= u_Dimensions;
+    Reprojected = floor(Reprojected) + 0.5;
+
+	ivec2 Pixel = ivec2(Reprojected);
+
+	vec4 BestWorldPos = vec4(vec3(-1.), 1000000.0f);
+	ivec2 BestPixel = ivec2(-1);
+
+	int Kernel = 1;
+
+	for (int x = -Kernel ; x <= Kernel ; x++) {
+
+		for (int y = -Kernel ; y <= Kernel ; y++) {
+			
+			ivec2 SamplePixel = (Pixel + ivec2(x, y));
+			ivec2 SampleHighResPixel = SamplePixel * 2;
+			float SampleDepth = texelFetch(u_PreviousDepth, SampleHighResPixel, 0).x;
+
+			if (IsSky(SampleDepth)) {
+				continue;
+			}
+
+			vec3 PrevWorldPos = PrevWorldPosFromDepth(SampleDepth, vec2(SampleHighResPixel) / textureSize(u_PreviousDepth,0).xy);
+
+			if (DistanceSquared(PrevWorldPos, WorldPosition) < BestWorldPos.w) {
+				BestWorldPos = vec4(PrevWorldPos,DistanceSquared(PrevWorldPos, WorldPosition)); 
+				BestPixel = ivec2(x,y);
+			}
+		}
+
+	}
+
+	return vec3(vec2(Pixel+BestPixel),BestWorldPos.w);
 }
 
 void main() {
@@ -53,7 +116,6 @@ void main() {
 	if (OutputRaw) {
 		
 		o_Color = texelFetch(u_CurrentFrameTexture, ivec2(gl_FragCoord.xy), 0);
-
 		return;
 	}
 
@@ -62,24 +124,46 @@ void main() {
 
 	ivec2 HighResPixel = Pixel * 2;
 
-	vec2 UV = vec2(HighResPixel) / vec2(u_Dimensions);
-
 	bool IsCheckerStep = Pixel.x % 2 == int(Pixel.y % 2 == (u_Frame % 2));
 
 	if (IsCheckerStep) {
 
 		bool SpatialUpscale = false;
+
+		bool TryTemporalResample = true;
 		
-		if (true) {
-			ivec2 ReprojectedPixel = Pixel;
+		if (TryTemporalResample) {
+
+			ivec2 ReprojectedPixel = ivec2(Pixel.x/2, Pixel.y);
+			
+			float Error = 0.0f;
 
 			float Depth = texelFetch(u_Depth, HighResPixel, 0).x;
-			vec3 WorldPosition = WorldPosFromDepth(Depth, UV).xyz;
-			vec3 Reprojected = Reprojection(WorldPosition);
 
-			ivec2 PixelHalvedX = ReprojectedPixel;
-			PixelHalvedX.x /= 2;
-			o_Color = texelFetch(u_PreviousFrameTexture, PixelHalvedX, 0).xyzw;
+			vec2 MotionVector = texelFetch(u_MotionVectors, HighResPixel, 0).xy;
+
+			float MotionLength = length(MotionVector);
+
+			if (MotionLength > 0.001f)
+			{
+				vec3 WorldPosition = WorldPosFromDepth(Depth, v_TexCoords).xyz;
+				vec2 Reprojected = v_TexCoords; // Using the motion vector makes it look worse.. somehow.
+				vec3 Search = SearchBestPixel(WorldPosition, Reprojected.xy);
+
+				ReprojectedPixel.xy = ivec2(Search.xy); 
+				ReprojectedPixel.x /= 2;
+
+				Error = sqrt(Search.z);
+			}
+
+			if (Error >= 2.4f) {
+				// Couldn't resolve pixel temporally, spatially upscale.
+				SpatialUpscale = true;
+			}
+
+			else {
+				o_Color = texelFetch(u_PreviousFrameTexture, ivec2(ReprojectedPixel.x,ReprojectedPixel.y), 0).xyzw;
+			}
 		}
 
 		if (SpatialUpscale) {
@@ -104,14 +188,14 @@ void main() {
 
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
 
-				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), 48.0f) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), 12.0f);
-				CurrentWeight = clamp(CurrentWeight, 0.0000000001f, 1.0f);
+				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), 32.0f) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), 12.0f);
+				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				Total += SampleDiffuse * CurrentWeight;
 				TotalWeight += CurrentWeight;
 			}
 
-			Total /= max(TotalWeight, 0.000001f);
+			Total /= max(TotalWeight, 0.0000001f);
 			o_Color = Total;
 		}
 	}
