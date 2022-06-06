@@ -28,6 +28,14 @@ uniform sampler2D u_PreviousNormals;
 uniform sampler2D u_MotionVectors;
 uniform sampler2D u_Utility;
 
+uniform float u_zNear;
+uniform float u_zFar;
+
+float LinearizeDepth(float depth)
+{
+	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
+}
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -66,6 +74,9 @@ void main() {
 	float Depth = texelFetch(u_Depth, HighResPixel, 0).x;
 	vec3 Normals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 
+	float LinearDepth = LinearizeDepth(Depth);
+	vec2 DepthGradient = vec2(dFdx(LinearDepth), dFdy(LinearDepth));
+
 	vec3 WorldPosition = WorldPosFromDepth(Depth, v_TexCoords).xyz;
 
 	vec2 MotionVector = texelFetch(u_MotionVectors, HighResPixel, 0).xy;
@@ -80,17 +91,17 @@ void main() {
 
 	if (IsInScreenspace(Reprojected)) 
 	{
-
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * textureSize(u_DiffuseHistory,0).xy);
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;
 
 		vec3 ReprojectedPosition = PrevWorldPosFromDepth(ReprojectedDepth, Reprojected.xy);
 		
-		float Error = distance(ReprojectedPosition, WorldPosition);
+		float DistanceRelaxFactor = abs(length(DepthGradient)) * 50.0f;
+		float Error = distance(ReprojectedPosition, WorldPosition); // exp(-distance(ReprojectedPosition, WorldPosition) / DistanceRelaxFactor);
 
 		float BlendFactor = 0.0f;
 
-		float Tolerance = length(MotionVector) > 0.0001f ? 2.0f : 1.0f;
+		float Tolerance = length(MotionVector) > 0.0001f ? 1.0f : 2.0f;
 
 		if (Error < Tolerance)
 		{
@@ -100,6 +111,8 @@ void main() {
 			vec4 History = CatmullRom(u_DiffuseHistory, Reprojected.xy);
 			o_Diffuse = mix(Current, History, BlendFactor);
 		}
+
+		//o_Diffuse = vec4(vec3(DistanceRelaxFactor), 1.);
 
 	}
 

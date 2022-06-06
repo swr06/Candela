@@ -35,6 +35,7 @@ uniform vec3 u_ProbeBoxOrigin;
 uniform usampler3D u_SHDataA;
 uniform usampler3D u_SHDataB;
 
+
 float[8] Trilinear(vec3 BoxMin, vec3 BoxMax, vec3 p) {
     float Weights[8];
     vec3 Extent = BoxMax - BoxMin;

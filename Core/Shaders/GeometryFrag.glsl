@@ -24,6 +24,8 @@ uniform vec3 u_ModelColor;
 uniform float u_EntityRoughness;
 uniform float u_EntityMetalness;
 
+uniform vec3 u_ViewerPosition;
+
 in vec2 v_TexCoords;
 in vec3 v_FragPosition;
 in vec3 v_Normal;
@@ -38,8 +40,11 @@ void main()
 
 	o_Albedo += o_Albedo * u_EmissiveColor * u_ModelEmission * 8.0f;
 
-	o_HFNormal = u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) : v_Normal;
-	o_LFNormal = v_Normal;
+	vec3 LFN = normalize(v_Normal);
+	vec3 HQN = u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) : LFN;
+	
+	o_HFNormal = HQN;
+	o_LFNormal = LFN;
 
 	// https://www.khronos.org/blog/art-pipeline-for-gltf
 

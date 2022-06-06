@@ -350,6 +350,7 @@ void Lumen::StartPipeline()
 		GBufferShader.SetInteger("u_RoughnessMap", 2);
 		GBufferShader.SetInteger("u_MetalnessMap", 3);
 		GBufferShader.SetInteger("u_MetalnessRoughnessMap", 5);
+		GBufferShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 
 		RenderEntityList(EntityRenderList, GBufferShader);
 		UnbindEverything();
