@@ -15,6 +15,9 @@ layout(rgba32ui, binding = 1) uniform uimage3D o_SHOutputB;
 layout(r11f_g11f_b10f, binding = 2) uniform image3D o_CurrentRaw;
 layout(r11f_g11f_b10f, binding = 3) uniform readonly image3D u_PrevRaw;
 
+layout(rgba32ui, binding = 4) uniform readonly uimage3D u_PrevFrameSHA; 
+layout(rgba32ui, binding = 5) uniform readonly uimage3D u_PrevFrameSHB;
+
 uniform vec3 u_BoxOrigin;
 uniform vec3 u_Resolution;
 uniform vec3 u_Size;
@@ -152,8 +155,11 @@ float[8] Trilinear(vec3 BoxMin, vec3 BoxMax, vec3 p) {
 }
 
 SH GetSH(ivec3 Texel) {
-	uvec4 A = texelFetch(u_PreviousSHA, Texel, 0);
-	uvec4 B = texelFetch(u_PreviousSHB, Texel, 0);
+	//uvec4 A = texelFetch(u_PreviousSHA, Texel, 0);
+	//uvec4 B = texelFetch(u_PreviousSHB, Texel, 0);
+
+	uvec4 A = imageLoad(u_PrevFrameSHA, Texel);
+	uvec4 B = imageLoad(u_PrevFrameSHB, Texel);
 	return UnpackSH(A,B);
 }
 
@@ -373,7 +379,7 @@ void main() {
 	if (TUVW.x > 0.0f) {
 		//vec3 Dither = (hash2().x > 0.5f ? -1.0f : 1.0f) * vec3(hash2(), hash2().x) * 0.1f;
 		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.001f),iNormal);
-		const float AttenuationBounce = 0.96f; 
+		const float AttenuationBounce = 0.98f; 
 		FinalRadiance += Bounce * AttenuationBounce;
 	}
 
@@ -401,7 +407,7 @@ void main() {
 
 		AccumulatedFrames = int(B.w) + 1;
 
-		float TemporalBlend = min((1.0f - (1.0f / float(AccumulatedFrames))), 0.99f);
+		float TemporalBlend = min((1.0f - (1.0f / float(AccumulatedFrames))), 0.985f);
 
 		ProbeMapPixel PrevProbeData = MapData[PixelOffset];
 		MapData[PixelOffset] = ProbeMapPixel(vec2(mix(Luminance(FinalRadiance.xyz),PrevProbeData.Packed.x,TemporalBlend), PackedMoments));

@@ -111,7 +111,8 @@ void main() {
 			BlendFactor = 1.0f - (1.0f / Frames);
 
 			vec4 History = CatmullRom(u_DiffuseHistory, Reprojected.xy);
-			o_Diffuse = mix(Current, History, BlendFactor);
+			o_Diffuse.xyz = mix(Current.xyz, History.xyz, BlendFactor);
+			o_Diffuse.w = mix(Current.w, History.w, BlendFactor);
 		}
 
 		//o_Diffuse = vec4(vec3(DistanceRelaxFactor), 1.);

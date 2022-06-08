@@ -81,7 +81,8 @@ SH EncodeSH(vec3 radiance, vec3 direction) {
     
     // Zonal harmonic basis 
     const float pi = 3.14159265359;
-    float A[3] = float[3](pi, (2.0f * pi) / 3.0f, pi/4.0f);
+    const float m = 2.0f;
+    float A[3] = float[3](m * pi, ((2.0f * pi) / 3.0f) * m, (pi/4.0f) * m);
 
     result.L00 += Y00 * radiance * A[0];
     result.L1_1 += Y1_1 * direction.y * radiance * A[1];

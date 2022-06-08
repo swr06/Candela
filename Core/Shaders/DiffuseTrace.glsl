@@ -2,14 +2,14 @@
 
 #define PI 3.141592653
 
-layout(local_size_x = 16, local_size_y = 16) in;
-layout(rgba16f, binding = 0) uniform image2D o_OutputData;
-
 #include "TraverseBVH.glsl"
 #include "Include/SphericalHarmonics.glsl"
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
 #include "Include/Sampling.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
@@ -275,7 +275,7 @@ void main() {
 	// Compute radiance 
 	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
 
-	// Handle multibounce lighting (isn't perfectly accurate)
+	// Handle multibounce lighting 
 	if (DO_SECOND_BOUNCE) {
 
 		vec3 Bounced = vec3(0.0f);
@@ -303,10 +303,11 @@ void main() {
 		}
 
 		else {
-			const float Strength = 3.75f; 
+			const float Strength = 1.2f; 
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f);
 		}
+
 
 		float RayProbability = clamp(dot(Normal, RayDirection), 0.0f, 1.0f);
 		if (RayProbability > 0.000001f) {
@@ -315,7 +316,7 @@ void main() {
 		}
 
 		else {
-			FinalRadiance += Bounced * 1.0f * Albedo;
+			FinalRadiance += Bounced * (1.0f / PI) * Albedo;
 		}
 	}
 

@@ -246,8 +246,10 @@
     <None Include="Core\Shaders\BasicVert.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\ColorPass.glsl" />
+    <None Include="Core\Shaders\CopyVolume.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
     <None Include="Core\Shaders\DepthVert.glsl" />
+    <None Include="Core\Shaders\DiffuseRayGenerate.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
     <None Include="Core\Shaders\FBOFrag.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />
@@ -274,7 +276,9 @@
     <None Include="Core\Shaders\MotionVectors.glsl" />
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
+    <None Include="Core\Shaders\SpatialFilter.glsl" />
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl" />
+    <None Include="Core\Shaders\SpatialMoments.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
     <None Include="Core\Shaders\UpdateRadianceProbes.glsl" />
