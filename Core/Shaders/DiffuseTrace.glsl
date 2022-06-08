@@ -303,16 +303,31 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.75f;
+			const float Strength = 3.75f; 
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
-			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 10.0f);
+			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f);
 		}
 
-		float RayProbability = (dot(Normal, RayDirection) / PI); 
-		vec3 Throughput = Albedo / RayProbability; 
-		FinalRadiance += Bounced * Throughput;
+		float RayProbability = clamp(dot(Normal, RayDirection), 0.0f, 1.0f);
+		if (RayProbability > 0.000001f) {
+			vec3 Throughput = Albedo / RayProbability; 
+			FinalRadiance += Bounced * clamp(Throughput, 0.0f, 5.0f);
+		}
+
+		else {
+			FinalRadiance += Bounced * 1.0f * Albedo;
+		}
 	}
 
 	float AO = pow(clamp(TUVW.x / 1.1f, 0.0f, 1.0f), 3.1f);
+
+	if (!IsValid(FinalRadiance)) {
+		FinalRadiance = vec3(0.0f);
+	}
+
+	if (!IsValid(AO)) {
+		AO = 1.0f;
+	}
+
 	imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, AO));
 }
