@@ -8,6 +8,8 @@ layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 #include "TraverseBVH.glsl"
 #include "Include/SphericalHarmonics.glsl"
 #include "Include/Utility.glsl"
+#include "Include/SpatialUtility.glsl"
+#include "Include/Sampling.glsl"
 
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
@@ -208,20 +210,6 @@ vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 	return vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
 }
 
-vec3 CosWeightedHemisphere(const vec3 n, vec2 r) 
-{
-	float PI2 = 2.0f * 3.1415926f;
-	vec3  uu = normalize(cross(n, vec3(0.0,1.0,1.0)));
-	vec3  vv = cross(uu, n);
-	float ra = sqrt(r.y);
-	float rx = ra * cos(PI2 * r.x); 
-	float ry = ra * sin(PI2 * r.x);
-	float rz = sqrt(1.0 - r.y);
-	vec3  rr = vec3(rx * uu + ry * vv + rz * n );
-    return normalize(rr);
-}
-
-
 float HASH2SEED = 0.0f;
 vec2 hash2() 
 {
@@ -273,7 +261,7 @@ void main() {
 
 	vec3 RayOrigin = WorldPosition + Normal * 0.05f;
 	vec3 RayDirection = CosWeightedHemisphere(Normal, hash2());
-	 
+
 	// Outputs 
 	int IntersectedMesh = -1;
 	int IntersectedTri = -1;

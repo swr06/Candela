@@ -101,11 +101,13 @@ void main() {
 
 		float BlendFactor = 0.0f;
 
-		float Tolerance = length(MotionVector) > 0.0001f ? 1.0f : 2.0f;
+		float MotionLength = length(MotionVector);
+
+		float Tolerance = MotionLength <= 0.000001f ? 32.0f : (MotionLength > 0.001f ? 1.0f : 3.0f);
 
 		if (Error < Tolerance)
 		{
-			Frames = min((texelFetch(u_Utility, ReprojectedPixel.xy, 0).x * 255.), 128.) + 1.0f;
+			Frames = min((texelFetch(u_Utility, ReprojectedPixel.xy, 0).x * 255.0f), 128.0f) + 1.0f;
 			BlendFactor = 1.0f - (1.0f / Frames);
 
 			vec4 History = CatmullRom(u_DiffuseHistory, Reprojected.xy);
