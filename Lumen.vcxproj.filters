@@ -427,16 +427,16 @@
     <None Include="Core\Shaders\Include\Sampling.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
-    <None Include="Core\Shaders\SpatialFilter.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\SpatialMoments.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
     <None Include="Core\Shaders\CopyVolume.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
     <None Include="Core\Shaders\DiffuseRayGenerate.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\SpatialFilter.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\SpatialMoments.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>

@@ -1,9 +1,11 @@
 #version 330 core 
 
 #include "Include/Utility.glsl"
+#include "Include/SpatialUtility.glsl"
 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out float o_Utility;
+layout (location = 2) out vec2 o_Moments;
 
 in vec2 v_TexCoords;
 
@@ -27,6 +29,8 @@ uniform sampler2D u_PreviousNormals;
 
 uniform sampler2D u_MotionVectors;
 uniform sampler2D u_Utility;
+
+uniform sampler2D u_MomentsHistory;
 
 uniform float u_zNear;
 uniform float u_zFar;
@@ -85,9 +89,15 @@ void main() {
 
 	vec4 Current = texelFetch(u_DiffuseCurrent, Pixel, 0);
 
+	float L = Luminance(Current.xyz);
+
+	vec2 Moments;
+	Moments = vec2(L, L * L);
+
 	float Frames = 0.0f;
 
 	o_Diffuse = Current;
+	o_Moments = Moments;
 
 	if (IsInScreenspace(Reprojected)) 
 	{
@@ -113,9 +123,10 @@ void main() {
 			vec4 History = CatmullRom(u_DiffuseHistory, Reprojected.xy);
 			o_Diffuse.xyz = mix(Current.xyz, History.xyz, BlendFactor);
 			o_Diffuse.w = mix(Current.w, History.w, BlendFactor);
-		}
 
-		//o_Diffuse = vec4(vec3(DistanceRelaxFactor), 1.);
+			vec2 HistoryMoments = texture(u_MomentsHistory, Reprojected.xy).xy;
+			o_Moments = mix(Moments, HistoryMoments, BlendFactor);
+		}
 
 	}
 

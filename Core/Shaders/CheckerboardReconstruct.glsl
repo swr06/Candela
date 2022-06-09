@@ -144,7 +144,7 @@ void main() {
 
 			float MotionLength = length(MotionVector);
 
-			if (MotionLength > 0.001f)
+			if (MotionLength > 0.0015f)
 			{
 				vec3 WorldPosition = WorldPosFromDepth(Depth, v_TexCoords).xyz;
 				vec2 Reprojected = v_TexCoords; // Using the motion vector makes it look worse.. somehow.

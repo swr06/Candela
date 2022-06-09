@@ -5,3 +5,6 @@ vec3 SpecularDominantDirection(vec3 V, vec3 N, float Roughness) {
 	return normalize(Direction);
 }
 
+float Variance(float x, float x2) {
+	return abs(x2 - x * x);
+}
