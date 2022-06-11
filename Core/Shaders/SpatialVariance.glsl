@@ -28,9 +28,10 @@ void main() {
 	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
-	float VarianceBoost = clamp(4.0f / Frames, 0.0f, 0.0525f);
+	float VarianceBoost = 12.0f / Frames;
+	float VarianceBoostL = 24.0f / Frames;
 
-	if (Frames < 4) {
+	if (Frames < 8) {
 		
 		float MaxL = -100.0f;
 		vec2 Moments = vec2(0.0f); 
@@ -68,10 +69,10 @@ void main() {
                 vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 
 				float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)), DEPTH_EXPONENT), 0.0f, 1.0f);
-				float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), NORMAL_EXPONENT), 8.0f), 0.0f, 1.0f);
+				float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
 				float KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
-				float Weight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
+				float Weight = clamp(DepthWeight * NormalWeight, 0.0f, 1.0f);
 
 				Diffuse += SampleDiffuse * Weight;
 
@@ -87,13 +88,13 @@ void main() {
 
 		Moments /= TotalWeight;
 		Diffuse /= TotalWeight;
-		o_Variance = abs(Moments.y - Moments.x * Moments.x) * VarianceBoost * 1.0f;
+		o_Variance = abs(Moments.y - Moments.x * Moments.x) * VarianceBoost;
 	}
 
 	else {
 		
 		vec2 TemporalMoments = texelFetch(u_TemporalMoments, Pixel, 0).xy;
-		o_Variance = abs(TemporalMoments.y - (TemporalMoments.x * TemporalMoments.x)) * VarianceBoost;
+		o_Variance = abs(TemporalMoments.y - (TemporalMoments.x * TemporalMoments.x)) * VarianceBoostL;
 	}
 
 

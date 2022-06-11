@@ -572,8 +572,10 @@ void Lumen::StartPipeline()
 		// Atrous passes 
 		{
 			const int Passes = 5;
-			const int StepSizes[5] = { 16, 8, 4, 2, 1 };
 			//const int StepSizes[5] = { 1, 2, 4, 8, 16 };
+			//const int StepSizes[5] = { 2, 4, 8, 16, 32 };
+			//const int StepSizes[5] = {32, 16, 8, 4, 2 };
+			const int StepSizes[5] = {16, 8, 4, 2, 1 };
 
 			for (int Pass = 0; Pass < Passes; Pass++) {
 
@@ -591,6 +593,7 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Normals", 1);
 				SpatialFilterShader.SetInteger("u_Diffuse", 2);
 				SpatialFilterShader.SetInteger("u_Variance", 3);
+				SpatialFilterShader.SetInteger("u_FrameCounters", 4);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
 
@@ -605,6 +608,9 @@ void Lumen::StartPipeline()
 
 				glActiveTexture(GL_TEXTURE3);
 				glBindTexture(GL_TEXTURE_2D, InitialPass ? SpatialVariance.GetTexture(1) : SpatialPrevious.GetTexture(1));
+
+				glActiveTexture(GL_TEXTURE4);
+				glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture(1));
 
 				ScreenQuadVAO.Bind();
 				glDrawArrays(GL_TRIANGLES, 0, 6);
