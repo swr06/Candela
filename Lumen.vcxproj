@@ -277,7 +277,7 @@
     <None Include="Core\Shaders\ProbeForwardFrag.glsl" />
     <None Include="Core\Shaders\ProbeForwardVert.glsl" />
     <None Include="Core\Shaders\SpatialFilter.glsl" />
-    <None Include="Core\Shaders\SpatialMoments.glsl" />
+    <None Include="Core\Shaders\SpatialVariance.glsl" />
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />

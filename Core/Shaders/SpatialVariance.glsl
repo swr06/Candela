@@ -1,6 +1,7 @@
 #version 330 core 
 
 #include "Include/Utility.glsl"
+#include "Include/SpatialUtility.glsl"
 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out float o_Variance;
@@ -27,20 +28,25 @@ void main() {
 	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
-	vec2 Moments = vec2(0.0f); 
+	float VarianceBoost = clamp(4.0f / Frames, 0.0f, 0.0525f);
 
 	if (Frames < 4) {
+		
+		float MaxL = -100.0f;
+		vec2 Moments = vec2(0.0f); 
 		
 		// Calculate variance spatially 
 		Moments = vec2(Luminance(Diffuse.xyz));
 		Moments = vec2(Moments.x, Moments.x * Moments.x); 
 
-		float CenterDepth = LinearizeDepth(texelFetch(u_Depth, Pixel, 0).x);
-		vec3 CenterNormal = texelFetch(u_Normals, Pixel, 0).xyz;
+		float CenterDepth = LinearizeDepth(texelFetch(u_Depth, Pixel * 2, 0).x);
+		vec3 CenterNormal = texelFetch(u_Normals, Pixel * 2, 0).xyz;
 
 		const float Atrous[3] = float[3]( 1.0f, 2.0f / 3.0f, 1.0f / 6.0f );
 		float TotalWeight = 1.0f;
-		int Kernel = 1;
+		int Kernel = 3;
+
+		ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
 
 		for (int x = -Kernel ; x <= Kernel ; x++) {
 			
@@ -50,13 +56,19 @@ void main() {
 
 				ivec2 SamplePixel = Pixel + ivec2(x,y);
 
+				if (SamplePixel.x < 0 || SamplePixel.x > Size.x || SamplePixel.y < 0 || SamplePixel.y > Size.y) {
+					continue;
+				}
+
+				ivec2 HighResPixel = SamplePixel * 2;
+
 				vec4 SampleDiffuse = texelFetch(u_Diffuse, SamplePixel, 0);
 
-				float SampleDepth = LinearizeDepth(texelFetch(u_Depth, SamplePixel, 0).x);
-                vec3 SampleNormals = texelFetch(u_Normals, SamplePixel, 0).xyz;
+				float SampleDepth = LinearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
+                vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 
-				float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)), 2.0f), 0.0f, 1.0f);
-				float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), 8.0f), 0.0f, 1.0f);
+				float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)), DEPTH_EXPONENT), 0.0f, 1.0f);
+				float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), NORMAL_EXPONENT), 8.0f), 0.0f, 1.0f);
 				float KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
 				float Weight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
@@ -65,6 +77,7 @@ void main() {
 
 				vec2 CurrentMoments = vec2(Luminance(SampleDiffuse.xyz));
 				CurrentMoments = vec2(CurrentMoments.x, CurrentMoments.x * CurrentMoments.x);
+				MaxL = max(CurrentMoments.x, MaxL);
 
 				Moments += CurrentMoments * Weight;
 				TotalWeight += Weight;
@@ -74,16 +87,17 @@ void main() {
 
 		Moments /= TotalWeight;
 		Diffuse /= TotalWeight;
+		o_Variance = abs(Moments.y - Moments.x * Moments.x) * VarianceBoost * 1.0f;
 	}
 
 	else {
 		
 		vec2 TemporalMoments = texelFetch(u_TemporalMoments, Pixel, 0).xy;
-		Moments = TemporalMoments;
+		o_Variance = abs(TemporalMoments.y - (TemporalMoments.x * TemporalMoments.x)) * VarianceBoost;
 	}
 
+
 	o_Diffuse = Diffuse;
-	o_Variance = Moments.y - (Moments.x * Moments.x);
 }
 
 

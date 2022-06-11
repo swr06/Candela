@@ -8,3 +8,6 @@ vec3 SpecularDominantDirection(vec3 V, vec3 N, float Roughness) {
 float Variance(float x, float x2) {
 	return abs(x2 - x * x);
 }
+
+const float DEPTH_EXPONENT = 512.0f;
+const float NORMAL_EXPONENT = 20.0f;

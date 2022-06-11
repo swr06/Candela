@@ -177,6 +177,10 @@ GLClasses::Framebuffer DiffuseCheckerboardBuffers[2]{ GLClasses::Framebuffer(16,
 GLClasses::Framebuffer DiffuseUpscaled(16, 16, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, false, true);
 GLClasses::Framebuffer DiffuseTemporalBuffers[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true} }, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true} }, false, true) };
 
+// Denoiser 
+GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, true);
+GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}}, false, true) };
+
 void Lumen::StartPipeline()
 {
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
@@ -264,6 +268,8 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
 	GLClasses::Shader& TemporalFilterShader = ShaderManager::GetShader("TEMPORAL");
 	GLClasses::Shader& MotionVectorShader = ShaderManager::GetShader("MOTION_VECTORS");
+	GLClasses::Shader& SpatialVarianceShader = ShaderManager::GetShader("SVGF_VARIANCE");
+	GLClasses::Shader& SpatialFilterShader = ShaderManager::GetShader("SPATIAL_FILTER");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 
 	// Matrices
@@ -279,6 +285,9 @@ void Lumen::StartPipeline()
 
 	// Initialize radiance probes
 	ProbeGI::Initialize();
+
+	// Misc 
+	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -304,6 +313,9 @@ void Lumen::StartPipeline()
 		DiffuseCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 		DiffuseCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 		DiffuseUpscaled.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		SpatialVariance.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		SpatialBuffers[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		SpatialBuffers[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		DiffuseTemporalBuffers[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		DiffuseTemporalBuffers[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		
@@ -521,6 +533,85 @@ void Lumen::StartPipeline()
 
 		DiffuseTemporal.Unbind();
 
+		// SVGF 
+
+		{
+			SpatialVariance.Bind();
+			SpatialVarianceShader.Use();
+
+			SpatialVarianceShader.SetInteger("u_Depth", 0);
+			SpatialVarianceShader.SetInteger("u_Normals", 1);
+			SpatialVarianceShader.SetInteger("u_Diffuse", 2);
+			SpatialVarianceShader.SetInteger("u_FrameCounters", 3);
+			SpatialVarianceShader.SetInteger("u_TemporalMoments", 4);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture());
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture(1));
+
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture(2));
+
+			SetCommonUniforms<GLClasses::Shader>(SpatialVarianceShader, UniformBuffer);
+
+			ScreenQuadVAO.Bind();
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			ScreenQuadVAO.Unbind();
+
+			glUseProgram(0);
+		}
+
+		// Atrous passes 
+		{
+			const int Passes = 5;
+			const int StepSizes[5] = { 16, 8, 4, 2, 1 };
+			//const int StepSizes[5] = { 1, 2, 4, 8, 16 };
+
+			for (int Pass = 0; Pass < Passes; Pass++) {
+
+				auto& CurrentBuffer = SpatialBuffers[(Pass % 2 == 0) ? 0 : 1];
+				auto& SpatialPrevious = SpatialBuffers[(Pass % 2 == 0) ? 1 : 0];
+
+				FinalDenoiseBufferPtr = &CurrentBuffer;
+
+				bool InitialPass = Pass == 0;
+
+				CurrentBuffer.Bind();
+				SpatialFilterShader.Use();
+
+				SpatialFilterShader.SetInteger("u_Depth", 0);
+				SpatialFilterShader.SetInteger("u_Normals", 1);
+				SpatialFilterShader.SetInteger("u_Diffuse", 2);
+				SpatialFilterShader.SetInteger("u_Variance", 3);
+				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
+				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, InitialPass ? SpatialVariance.GetTexture() : SpatialPrevious.GetTexture());
+
+				glActiveTexture(GL_TEXTURE3);
+				glBindTexture(GL_TEXTURE_2D, InitialPass ? SpatialVariance.GetTexture(1) : SpatialPrevious.GetTexture(1));
+
+				ScreenQuadVAO.Bind();
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				ScreenQuadVAO.Unbind();
+			}
+		}
+
 
 		// Lighting pass : 
 
@@ -588,7 +679,7 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
 		
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture());
 
 		// 8 - 13 occupied by shadow textures 
 
