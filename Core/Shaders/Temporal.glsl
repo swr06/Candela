@@ -74,6 +74,7 @@ void main() {
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 	ivec2 HighResPixel = Pixel * 2;
+	ivec2 Dimensions = textureSize(u_DiffuseHistory,0).xy;
 
 	float Depth = texelFetch(u_Depth, HighResPixel, 0).x;
 	vec3 Normals = texelFetch(u_Normals, HighResPixel, 0).xyz;
@@ -101,7 +102,7 @@ void main() {
 
 	if (IsInScreenspace(Reprojected)) 
 	{
-		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * textureSize(u_DiffuseHistory,0).xy);
+		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;
 
 		vec3 ReprojectedPosition = PrevWorldPosFromDepth(ReprojectedDepth, Reprojected.xy);
@@ -122,10 +123,14 @@ void main() {
 
 			vec4 History = CatmullRom(u_DiffuseHistory, Reprojected.xy);
 			o_Diffuse.xyz = mix(Current.xyz, History.xyz, BlendFactor);
-			o_Diffuse.w = mix(Current.w, History.w, BlendFactor);
 
 			vec2 HistoryMoments = texture(u_MomentsHistory, Reprojected.xy).xy;
 			o_Moments = mix(Moments, HistoryMoments, BlendFactor);
+
+			if (Error < Tolerance * 0.8f) {
+				float MotionWeight = MotionLength > 0.001f ? clamp(exp(-length(MotionVector * vec2(Dimensions))) * 0.6f + 0.75f, 0.0f, 1.0f) : 1.0f;
+				o_Diffuse.w = mix(Current.w, History.w, min(BlendFactor * MotionWeight, 0.93f));
+			}
 		}
 
 	}

@@ -62,14 +62,22 @@ const int Kernel = 1;
 void main() {
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
-	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(u_StepSize)/4.));
+	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(u_StepSize)/2.));
 	ivec2 HighResPixel = Pixel * 2;
 
 	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
-	float CenterLuma = Luminance(Diffuse.xyz);
 	float Variance = texelFetch(u_Variance, Pixel, 0).x;
+
+	if (false) {
+		o_Diffuse = Diffuse;
+		o_Variance = Variance;
+		return;
+	}
+
+	float CenterAO = Diffuse.w;
+	float CenterLuma = Luminance(Diffuse.xyz);
 	float CenterDepth = LinearizeDepth(texelFetch(u_Depth, Pixel * 2, 0).x);
 	vec3 CenterNormal = texelFetch(u_Normals, Pixel * 2, 0).xyz;
 
@@ -78,6 +86,7 @@ void main() {
 	SqrtVar /= 1.0f;
 	 
 	float TotalWeight = 1.0f;
+	float TotalAOWeight = 1.0f;
 
 	ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
 
@@ -108,21 +117,28 @@ void main() {
 			float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
 
 			float LumaError = abs(CenterLuma - Luminance(SampleDiffuse.xyz));
-			float LumaWeight = pow(clamp(exp(-LumaError / PhiL), 0.0f, 1.0f), 1.0f);
+			float AOError = abs(CenterAO - SampleDiffuse.w);
+
+			float LumaWeight = 1.0f; //pow(clamp(exp(-LumaError / PhiL), 0.0f, 1.0f), 1.0f);
+			float AOWeightDetail = pow(clamp(exp(-AOError / 0.025f), 0.0f, 1.0f), 1.0f);
 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];
 
 			float Weight = clamp(DepthWeight * NormalWeight * KernelWeight * LumaWeight, 0.0f, 1.0f);
+			float AOWeight = clamp(DepthWeight * NormalWeight * KernelWeight * AOWeightDetail, 0.0f, 1.0f);
 
-			Diffuse += SampleDiffuse * Weight;
+			Diffuse.xyz += SampleDiffuse.xyz * Weight;
+			Diffuse.w += SampleDiffuse.w * AOWeight;
 			Variance += SampleVariance * (Weight * Weight);
 
 			TotalWeight += Weight;
+			TotalAOWeight += AOWeight;
 		}
 	}
 
 	Variance /= TotalWeight * TotalWeight;
-	Diffuse /= TotalWeight;
+	Diffuse.xyz /= TotalWeight;
+	Diffuse.w /= TotalAOWeight;
 
 	o_Diffuse = Diffuse;
 	o_Variance = Variance;

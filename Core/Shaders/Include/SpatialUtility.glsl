@@ -9,5 +9,5 @@ float Variance(float x, float x2) {
 	return abs(x2 - x * x);
 }
 
-const float DEPTH_EXPONENT = 32.0f;
-const float NORMAL_EXPONENT = 16.0f;
+const float DEPTH_EXPONENT = 512.0f;
+const float NORMAL_EXPONENT = 24.0f;
