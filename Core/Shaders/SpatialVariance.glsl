@@ -25,13 +25,12 @@ float LinearizeDepth(float depth)
 void main() {
 	
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
-	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
+	int Frames = max(int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f), 1);
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
-	float VarianceBoost = 12.0f / Frames;
-	float VarianceBoostL = 24.0f / Frames;
+	float VarianceBoost = 4.0f / max(Frames, 1);
 
-	if (Frames < 8) {
+	if (Frames <= 4) {
 		
 		float MaxL = -100.0f;
 		vec2 Moments = vec2(0.0f); 
@@ -88,17 +87,21 @@ void main() {
 
 		Moments /= TotalWeight;
 		Diffuse /= TotalWeight;
-		o_Variance = abs(Moments.y - Moments.x * Moments.x) * VarianceBoost;
+
+
+		o_Variance = abs(Moments.y - Moments.x * Moments.x);
 	}
 
 	else {
 		
+		float LumSqr = Luminance(Diffuse.xyz) * Luminance(Diffuse.xyz);
 		vec2 TemporalMoments = texelFetch(u_TemporalMoments, Pixel, 0).xy;
-		o_Variance = abs(TemporalMoments.y - (TemporalMoments.x * TemporalMoments.x)) * VarianceBoostL;
+		o_Variance = abs(TemporalMoments.y - TemporalMoments.x * TemporalMoments.x);
 	}
 
-
 	o_Diffuse = Diffuse;
+
+	o_Variance *= VarianceBoost;
 }
 
 

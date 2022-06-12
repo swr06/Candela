@@ -83,7 +83,6 @@ void main() {
 
 	float VarianceGaussian = GaussianVariance(Pixel);
 	float SqrtVar = sqrt(max(0.00000001f, VarianceGaussian));
-	SqrtVar /= 1.0f;
 	 
 	float TotalWeight = 1.0f;
 	float TotalAOWeight = 1.0f;
@@ -91,7 +90,7 @@ void main() {
 	ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
 
 	float FrameFactor = clamp(8.0f / float(Frames), 0.05f, 8.0f);
-	float PhiLFactor = exp(-pow(max(0.00000001f, VarianceGaussian), 1.0f / 3.0f) * 800.0f * mix(1.0f, 1.004f, FrameFactor));
+	//float PhiLFactor = exp(-pow(max(0.00000001f, VarianceGaussian), 1.0f / 3.0f) * 800.0f * mix(1.0f, 1.004f, FrameFactor));
 	float PhiL = (SqrtVar / 1.0f); // * pow(FrameFactor, 1.0f / 4.0f); //PhiLFactor * mix(sqrt(VarianceGaussian), 1.0f, 0.9f);
 
 	for (int x = -Kernel ; x <= Kernel ; x++) 
@@ -119,7 +118,7 @@ void main() {
 			float LumaError = abs(CenterLuma - Luminance(SampleDiffuse.xyz));
 			float AOError = abs(CenterAO - SampleDiffuse.w);
 
-			float LumaWeight = 1.0f; //pow(clamp(exp(-LumaError / PhiL), 0.0f, 1.0f), 1.0f);
+			float LumaWeight = pow(clamp(exp(-LumaError / PhiL), 0.0f, 1.0f), 1.0f);
 			float AOWeightDetail = pow(clamp(exp(-AOError / 0.025f), 0.0f, 1.0f), 1.0f);
 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];

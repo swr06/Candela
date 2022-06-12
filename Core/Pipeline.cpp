@@ -573,9 +573,9 @@ void Lumen::StartPipeline()
 		{
 			const int Passes = 5;
 			//const int StepSizes[5] = { 1, 2, 4, 8, 16 };
-			//const int StepSizes[5] = { 2, 4, 8, 16, 32 };
+			const int StepSizes[5] = { 2, 4, 8, 16, 32 };
 			//const int StepSizes[5] = {32, 16, 8, 4, 2 };
-			const int StepSizes[5] = {16, 8, 4, 2, 1 };
+			//const int StepSizes[5] = {16, 8, 4, 2, 1 };
 
 			for (int Pass = 0; Pass < Passes; Pass++) {
 
@@ -686,6 +686,7 @@ void Lumen::StartPipeline()
 		
 		glActiveTexture(GL_TEXTURE7);
 		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture());
+		//glBindTexture(GL_TEXTURE_2D, SpatialVariance.GetTexture(1));
 
 		// 8 - 13 occupied by shadow textures 
 

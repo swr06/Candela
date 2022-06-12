@@ -95,10 +95,10 @@ void main() {
 	vec2 Moments;
 	Moments = vec2(L, L * L);
 
-	float Frames = 0.0f;
+	float Frames = 1.0f;
 
 	o_Diffuse = Current;
-	o_Moments = Moments;
+	o_Moments = max(Moments, 0.0f);
 
 	if (IsInScreenspace(Reprojected)) 
 	{
