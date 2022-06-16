@@ -100,7 +100,7 @@ void main() {
 	o_Diffuse = Current;
 	o_Moments = max(Moments, 0.0f);
 
-	if (IsInScreenspace(Reprojected)) 
+	if (IsInScreenspaceBiased(Reprojected)) 
 	{
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;

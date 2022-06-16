@@ -25,7 +25,16 @@ bool InScreenspace(vec2 x) {
 
 bool IsInScreenspace(vec2 x) {
     float bias = 0.001f;
-    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias) {
+    if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias) {
+        return true;
+    }
+
+    return false;
+}   
+
+bool IsInScreenspaceBiased(vec2 x) {
+    float bias = 0.003f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias) {
         return true;
     }
 

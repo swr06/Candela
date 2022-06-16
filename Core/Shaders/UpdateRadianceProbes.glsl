@@ -379,7 +379,7 @@ void main() {
 	if (TUVW.x > 0.0f) {
 		//vec3 Dither = (hash2().x > 0.5f ? -1.0f : 1.0f) * vec3(hash2(), hash2().x) * 0.1f;
 		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.001f),iNormal);
-		const float AttenuationBounce = 0.98f; 
+		const float AttenuationBounce = 0.9875f; 
 		FinalRadiance += Bounce * AttenuationBounce;
 	}
 

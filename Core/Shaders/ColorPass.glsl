@@ -172,7 +172,7 @@ void main()
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth,v_TexCoords).xyz;
 	vec3 Normal = normalize(texture(u_NormalTexture, v_TexCoords).xyz);
-	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords).xyz;
+	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords, -0.75f).xyz;
 	vec3 PBR = texture(u_PBRTexture, v_TexCoords).xyz;
 
 	vec4 GI = texture(u_Trace, v_TexCoords).xyzw; 

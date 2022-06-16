@@ -303,7 +303,7 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.2f; 
+			const float Strength = 1.44f; 
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f);
 		}
@@ -320,7 +320,7 @@ void main() {
 		}
 	}
 
-	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.1f, 0.0f, 1.0f), 4.1f) : 1.0f;
+	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.25f, 0.0f, 1.0f), 5.0f) : 1.0f;
 
 	if (!IsValid(FinalRadiance)) {
 		FinalRadiance = vec3(0.0f);

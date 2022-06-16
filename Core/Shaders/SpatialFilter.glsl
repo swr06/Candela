@@ -22,6 +22,8 @@ uniform float u_Time;
 
 uniform int u_Pass;
 
+const bool SPATIAL_OFF = false;
+
 float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
@@ -92,7 +94,7 @@ void main() {
 	vec4 CenterDiffuse = Diffuse;
 	float Variance = texelFetch(u_Variance, Pixel, 0).x;
 
-	if (false) {
+	if (SPATIAL_OFF) {
 		o_Diffuse = Diffuse;
 		o_Variance = Variance;
 		return;

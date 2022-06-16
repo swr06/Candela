@@ -17,6 +17,8 @@ uniform sampler2D u_TemporalMoments;
 uniform float u_zNear;
 uniform float u_zFar;
 
+const bool SPATIAL_OFF = false;
+
 float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
@@ -51,7 +53,7 @@ void main() {
 
 		ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
 
-		const float PhiL = 0.1f; // <- Lower to get more detail
+		float PhiL = SPATIAL_OFF ? 0.0000001f : 30.0f; // <- Lower to get more detail
 
 		for (int x = -Kernel ; x <= Kernel ; x++) {
 			
@@ -74,7 +76,7 @@ void main() {
 
 				float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)), DEPTH_EXPONENT), 0.0f, 1.0f);
 				float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
-				float LumaWeight = 1.0f; //clamp(exp(-abs(Luminance(SampleDiffuse.xyz)-CenterL)/PhiL),0.0,1.0f);
+				float LumaWeight = clamp(exp(-abs(Luminance(SampleDiffuse.xyz)-CenterL)/PhiL),0.0,1.0f);
 				float KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
 				float Weight = clamp(DepthWeight * NormalWeight * LumaWeight, 0.0f, 1.0f);
