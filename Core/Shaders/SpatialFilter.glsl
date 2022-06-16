@@ -124,7 +124,7 @@ void main() {
 
 			ivec2 SamplePixel = Pixel + (ivec2(x,y) * u_StepSize) + Jitter;
 
-			if (SamplePixel.x <= 0 || SamplePixel.x >= Size.x || SamplePixel.y <= 0 || SamplePixel.y >= Size.y) {
+			if (SamplePixel.x <= 0 || SamplePixel.x >= Size.x - 1 || SamplePixel.y <= 0 || SamplePixel.y >= Size.y - 1) {
 					continue;
 			}
 
