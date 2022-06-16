@@ -12,6 +12,7 @@ void Lumen::ShaderManager::CreateShaders()
 	AddShader("DEPTH", "Core/Shaders/DepthVert.glsl", "Core/Shaders/DepthFrag.glsl");
 	AddShader("PROBE_FORWARD", "Core/Shaders/ProbeForwardVert.glsl", "Core/Shaders/ProbeForwardFrag.glsl");
 	AddComputeShader("DIFFUSE_TRACE", "Core/Shaders/DiffuseTrace.glsl");
+	AddComputeShader("SPECULAR_TRACE", "Core/Shaders/SpecularTrace.glsl");
 	AddShader("CHECKER_UPSCALE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/CheckerboardReconstruct.glsl");
 	AddShader("TEMPORAL", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Temporal.glsl");
 	AddShader("MOTION_VECTORS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/MotionVectors.glsl");

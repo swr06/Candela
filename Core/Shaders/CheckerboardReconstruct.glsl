@@ -2,7 +2,8 @@
 
 #include "Include/Utility.glsl"
 
-layout (location = 0) out vec4 o_Color;
+layout (location = 0) out vec4 o_Diffuse;
+layout (location = 1) out vec4 o_Specular;
 
 in vec2 v_TexCoords;
 
@@ -12,6 +13,9 @@ uniform sampler2D u_Normals;
 uniform sampler2D u_PreviousNormals;
 uniform sampler2D u_CurrentFrameTexture;
 uniform sampler2D u_PreviousFrameTexture;
+
+uniform sampler2D u_CurrentFrameSpecular;
+uniform sampler2D u_PreviousFrameSpecular;
 
 uniform sampler2D u_MotionVectors;
 
@@ -115,7 +119,8 @@ void main() {
 
 	if (OutputRaw) {
 		
-		o_Color = texelFetch(u_CurrentFrameTexture, ivec2(gl_FragCoord.xy), 0);
+		o_Diffuse = texelFetch(u_CurrentFrameTexture, ivec2(gl_FragCoord.xy), 0);
+		o_Specular = texelFetch(u_CurrentFrameSpecular, ivec2(gl_FragCoord.xy), 0);
 		return;
 	}
 
@@ -128,13 +133,15 @@ void main() {
 
 	if (IsCheckerStep) {
 
-		bool SpatialUpscale = false;
+		bool SpatialUpscaleAll = false;
+		bool SpatialUpscaleSpec = false;
 
 		bool TryTemporalResample = true;
 		
 		if (TryTemporalResample) {
 
 			ivec2 ReprojectedPixel = ivec2(Pixel.x/2, Pixel.y);
+			ivec2 PixelXHalved = ReprojectedPixel;
 			
 			float Error = 0.0f;
 
@@ -158,15 +165,23 @@ void main() {
 
 			if (Error >= 2.4f) {
 				// Couldn't resolve pixel temporally, spatially upscale.
-				SpatialUpscale = true;
+				SpatialUpscaleAll = true;
 			}
 
 			else {
-				o_Color = texelFetch(u_PreviousFrameTexture, ivec2(ReprojectedPixel.x,ReprojectedPixel.y), 0).xyzw;
+				o_Diffuse = texelFetch(u_PreviousFrameTexture, ivec2(ReprojectedPixel.x,ReprojectedPixel.y), 0).xyzw;
+			}
+
+			if (MotionLength > 0.002f) {
+				SpatialUpscaleSpec = true; // <- Spatially resolve specular if motion vector changed, we cant reliably reproject it for the checkerboard 
+			}
+
+			else {
+				o_Specular = texelFetch(u_PreviousFrameSpecular, ivec2(PixelXHalved), 0).xyzw;
 			}
 		}
 
-		if (SpatialUpscale) {
+		if (SpatialUpscaleAll) {
 
 			ivec2 PixelHalvedX = Pixel;
 			PixelHalvedX.x /= 2;
@@ -175,7 +190,8 @@ void main() {
 			vec3 BaseNormal = texelFetch(u_Normals, HighResPixel, 0).xyz;
 
 			float TotalWeight = 0.0f;
-			vec4 Total = vec4(0.0f);
+			vec4 TotalDiffuse = vec4(0.0f);
+			vec4 TotalSpec = vec4(0.0f);
 
 			for (int i = 0 ; i < 4 ; i++) {
 				
@@ -187,16 +203,54 @@ void main() {
 				vec3 SampleNormal = texelFetch(u_Normals, HighResCoord, 0).xyz;
 
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
+				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
 
 				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), 32.0f) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), 12.0f);
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
-				Total += SampleDiffuse * CurrentWeight;
+				TotalDiffuse += SampleDiffuse * CurrentWeight;
+				TotalSpec += SampleSpecular * CurrentWeight;
 				TotalWeight += CurrentWeight;
 			}
 
-			Total /= max(TotalWeight, 0.0000001f);
-			o_Color = Total;
+			TotalDiffuse /= max(TotalWeight, 0.0000001f);
+			TotalSpec /= max(TotalWeight, 0.0000001f);
+			o_Diffuse = TotalDiffuse;
+			o_Specular = TotalSpec;
+		}
+
+		else if (SpatialUpscaleSpec) {
+
+			ivec2 PixelHalvedX = Pixel;
+			PixelHalvedX.x /= 2;
+
+			float BaseDepth = linearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
+			vec3 BaseNormal = texelFetch(u_Normals, HighResPixel, 0).xyz;
+
+			float TotalWeight = 0.0f;
+			vec4 TotalSpec = vec4(0.0f);
+
+			for (int i = 0 ; i < 4 ; i++) {
+				
+				ivec2 Offset = UpscaleOffsets[i];
+				ivec2 Coord = PixelHalvedX + Offset;
+				ivec2 HighResCoord = HighResPixel + Offset;
+
+				float SampleDepth = linearizeDepth(texelFetch(u_Depth, HighResCoord, 0).x);
+				vec3 SampleNormal = texelFetch(u_Normals, HighResCoord, 0).xyz;
+
+				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
+				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
+
+				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), 32.0f) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), 12.0f);
+				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
+
+				TotalSpec += SampleSpecular * CurrentWeight;
+				TotalWeight += CurrentWeight;
+			}
+
+			TotalSpec /= max(TotalWeight, 0.0000001f);
+			o_Specular = TotalSpec;
 		}
 	}
 
@@ -204,7 +258,7 @@ void main() {
 
 		ivec2 PixelHalvedX = Pixel;
 		PixelHalvedX.x /= 2;
-		o_Color = texelFetch(u_CurrentFrameTexture, PixelHalvedX, 0).xyzw;
-
+		o_Diffuse = texelFetch(u_CurrentFrameTexture, PixelHalvedX, 0).xyzw;
+		o_Specular = texelFetch(u_CurrentFrameSpecular, PixelHalvedX, 0);
 	}
 }

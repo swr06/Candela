@@ -15,8 +15,8 @@ bool IsSky(float D) {
 }
 
 bool InScreenspace(vec2 x) {
-    float bias = 0.001f;
-    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias) {
+    const float bias = 0.0000000001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias) {
         return true;
     }
 
@@ -24,7 +24,7 @@ bool InScreenspace(vec2 x) {
 }   
 
 bool IsInScreenspace(vec2 x) {
-    float bias = 0.001f;
+    const float bias = 0.0000000001f;
     if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias) {
         return true;
     }
@@ -33,7 +33,7 @@ bool IsInScreenspace(vec2 x) {
 }   
 
 bool IsInScreenspaceBiased(vec2 x) {
-    float bias = 0.003f;
+    const float bias = 0.0025f;
     if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias) {
         return true;
     }
@@ -42,8 +42,8 @@ bool IsInScreenspaceBiased(vec2 x) {
 }   
 
 bool InScreenspace(vec3 x) {
-    float bias = 0.001f;
-    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias && x.z > 0.0f && x.z < 1.0f-bias) {
+    const float bias = 0.001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias && x.z > 0.0f && x.z < 1.0f-bias) {
         return true;
     }
 
@@ -51,8 +51,8 @@ bool InScreenspace(vec3 x) {
 }   
 
 bool IsInScreenspace(vec3 x) {
-    float bias = 0.001f;
-    if (x.x > bias && x.x < 1.0f-bias && x.y > 0.0f && x.y < 1.0f-bias && x.z > 0.0f && x.z < 1.0f-bias) {
+    const float bias = 0.001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias && x.z > 0.0f && x.z < 1.0f-bias) {
         return true;
     }
 
