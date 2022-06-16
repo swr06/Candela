@@ -28,10 +28,13 @@ void main() {
 	int Frames = max(int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f), 1);
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
-	float VarianceBoost = 4.0f / max(Frames, 1);
+	vec4 CenterDiffuse = Diffuse;
+	float VarianceBoost = 8.0f / max(float(Frames), 1.0f);
 
-	if (Frames <= 4) {
+	if (Frames <= 8) {
 		
+		float CenterL = Luminance(Diffuse.xyz);
+
 		float MaxL = -100.0f;
 		vec2 Moments = vec2(0.0f); 
 		
@@ -44,9 +47,11 @@ void main() {
 
 		const float Atrous[3] = float[3]( 1.0f, 2.0f / 3.0f, 1.0f / 6.0f );
 		float TotalWeight = 1.0f;
-		int Kernel = 3;
+		int Kernel = 2;
 
 		ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
+
+		const float PhiL = 0.1f; // <- Lower to get more detail
 
 		for (int x = -Kernel ; x <= Kernel ; x++) {
 			
@@ -56,7 +61,7 @@ void main() {
 
 				ivec2 SamplePixel = Pixel + ivec2(x,y);
 
-				if (SamplePixel.x < 0 || SamplePixel.x > Size.x || SamplePixel.y < 0 || SamplePixel.y > Size.y) {
+				if (SamplePixel.x <= 0 || SamplePixel.x >= Size.x || SamplePixel.y <= 0 || SamplePixel.y >= Size.y) {
 					continue;
 				}
 
@@ -69,9 +74,10 @@ void main() {
 
 				float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)), DEPTH_EXPONENT), 0.0f, 1.0f);
 				float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
+				float LumaWeight = 1.0f; //clamp(exp(-abs(Luminance(SampleDiffuse.xyz)-CenterL)/PhiL),0.0,1.0f);
 				float KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
-				float Weight = clamp(DepthWeight * NormalWeight, 0.0f, 1.0f);
+				float Weight = clamp(DepthWeight * NormalWeight * LumaWeight, 0.0f, 1.0f);
 
 				Diffuse += SampleDiffuse * Weight;
 
@@ -88,20 +94,19 @@ void main() {
 		Moments /= TotalWeight;
 		Diffuse /= TotalWeight;
 
-
-		o_Variance = abs(Moments.y - Moments.x * Moments.x);
+		o_Variance = abs(Moments.y - Moments.x * Moments.x) * 3.0f;
 	}
 
 	else {
 		
-		float LumSqr = Luminance(Diffuse.xyz) * Luminance(Diffuse.xyz);
 		vec2 TemporalMoments = texelFetch(u_TemporalMoments, Pixel, 0).xy;
 		o_Variance = abs(TemporalMoments.y - TemporalMoments.x * TemporalMoments.x);
 	}
 
+	o_Variance *= VarianceBoost;
+
 	o_Diffuse = Diffuse;
 
-	o_Variance *= VarianceBoost;
 }
 
 

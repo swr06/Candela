@@ -571,11 +571,10 @@ void Lumen::StartPipeline()
 
 		// Atrous passes 
 		{
-			const int Passes = 5;
-			//const int StepSizes[5] = { 1, 2, 4, 8, 16 };
-			const int StepSizes[5] = { 2, 4, 8, 16, 32 };
-			//const int StepSizes[5] = {32, 16, 8, 4, 2 };
-			//const int StepSizes[5] = {16, 8, 4, 2, 1 };
+			// We use a small 3x3 kernel, so we use more passes
+			// This is actually faster due to fewer cache hits
+			const int Passes = 6; 
+			const int StepSizes[6] = { 1, 2, 4, 8, 16, 32 };
 
 			for (int Pass = 0; Pass < Passes; Pass++) {
 
@@ -595,6 +594,8 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Variance", 3);
 				SpatialFilterShader.SetInteger("u_FrameCounters", 4);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
+				SpatialFilterShader.SetInteger("u_Pass", Pass);
+				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
 
 				glActiveTexture(GL_TEXTURE0);

@@ -16,22 +16,30 @@ uniform float u_zNear;
 uniform float u_zFar;
 
 uniform int u_StepSize;
+uniform float u_SqrtStepSize;
 uniform sampler2D u_FrameCounters;
 uniform float u_Time;
+
+uniform int u_Pass;
 
 float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
 }
 
+#define LARGE_VARIANCE_KERNEL
+
 float GaussianVariance(ivec2 Pixel) {
 	
 	float VarianceSum = 0.0f;
 
-	const float Kernel[3] = float[3](1.0 / 4.0, 1.0 / 8.0, 1.0 / 16.0);
-	const float Gaussian[2] = float[2](0.60283f, 0.198585f); // gaussian kernel
-	float TotalKernel = 0.0f;
+	const float Wavelet[3] = float[3](1.0 / 4.0, 1.0 / 8.0, 1.0 / 16.0);
+	const float Gaussian[2] = float[2](0.60283f, 0.198585f); 
+	float TotalWeight = 0.0f;
 
+	ivec2 SmallKernelOffsets[5] = ivec2[5](ivec2(0), ivec2(0,1), ivec2(0,-1), ivec2(1,0), ivec2(-1,0));
+
+#ifdef LARGE_VARIANCE_KERNEL
 	for (int x = -1 ; x <= 1 ; x++)
 	{
 		for (int y = -1 ; y <= 1 ; y++)
@@ -42,11 +50,24 @@ float GaussianVariance(ivec2 Pixel) {
 			float V = texelFetch(u_Variance, SampleCoord, 0).r;
 
 			VarianceSum += V * KernelValue;
-			TotalKernel += KernelValue;
+			TotalWeight += KernelValue;
 		}
 	}
+#else 
+	for (int Sample = 0 ; Sample < 5 ; Sample++)
+	{
+		ivec2 S = SmallKernelOffsets[Sample];
+		ivec2 SampleCoord = Pixel + ivec2(S.x,S.y);
+			
+		float KernelValue = Gaussian[abs(S.x)] * Gaussian[abs(S.y)];
+		float V = texelFetch(u_Variance, SampleCoord, 0).r;
 
-	return VarianceSum / max(TotalKernel, 0.0000000000001f);
+		VarianceSum += V * KernelValue;
+		TotalWeight += KernelValue;
+	}
+#endif
+
+	return VarianceSum / max(TotalWeight, 0.000000001f);
 }
 
 float GradientNoise()
@@ -62,12 +83,13 @@ const int Kernel = 1;
 void main() {
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
-	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(u_StepSize)/2.));
+	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(u_StepSize)/sqrt(2.0f)));
 	ivec2 HighResPixel = Pixel * 2;
 
 	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
+	vec4 CenterDiffuse = Diffuse;
 	float Variance = texelFetch(u_Variance, Pixel, 0).x;
 
 	if (false) {
@@ -82,16 +104,17 @@ void main() {
 	vec3 CenterNormal = texelFetch(u_Normals, Pixel * 2, 0).xyz;
 
 	float VarianceGaussian = GaussianVariance(Pixel);
-	float SqrtVar = sqrt(max(0.00000001f, VarianceGaussian));
 	 
 	float TotalWeight = 1.0f;
 	float TotalAOWeight = 1.0f;
 
 	ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
 
+	const float PhiLMult = 1.0f; //0.0000001f;
 	float FrameFactor = clamp(8.0f / float(Frames), 0.05f, 8.0f);
-	//float PhiLFactor = exp(-pow(max(0.00000001f, VarianceGaussian), 1.0f / 3.0f) * 800.0f * mix(1.0f, 1.004f, FrameFactor));
-	float PhiL = (SqrtVar / 1.0f); // * pow(FrameFactor, 1.0f / 4.0f); //PhiLFactor * mix(sqrt(VarianceGaussian), 1.0f, 0.9f);
+	//float DepthFactor = mix(4.0f, 15.0f, clamp(pow(abs(CenterDepth) / 15.0f, 1.0f),0.0f,1.0f));
+	float PhiLFrameFactor = 6.25f; //mix(6.5f,3.75f,clamp(float(Frames)/20.0f,0.0f,1.0f));
+	float PhiL = PhiLMult * PhiLFrameFactor * sqrt(max(0.0f, 0.00000001f + VarianceGaussian));
 
 	for (int x = -Kernel ; x <= Kernel ; x++) 
 	{
@@ -101,7 +124,7 @@ void main() {
 
 			ivec2 SamplePixel = Pixel + (ivec2(x,y) * u_StepSize) + Jitter;
 
-			if (SamplePixel.x < 0 || SamplePixel.x > Size.x || SamplePixel.y < 0 || SamplePixel.y > Size.y) {
+			if (SamplePixel.x <= 0 || SamplePixel.x >= Size.x || SamplePixel.y <= 0 || SamplePixel.y >= Size.y) {
 					continue;
 			}
 
@@ -112,18 +135,19 @@ void main() {
 			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
             vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 
-			float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)), DEPTH_EXPONENT), 0.0f, 1.0f);
+			float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)*float(u_SqrtStepSize)), DEPTH_EXPONENT), 0.0f, 1.0f);
 			float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
 
 			float LumaError = abs(CenterLuma - Luminance(SampleDiffuse.xyz));
 			float AOError = abs(CenterAO - SampleDiffuse.w);
 
-			float LumaWeight = pow(clamp(exp(-LumaError / PhiL), 0.0f, 1.0f), 1.0f);
-			float AOWeightDetail = pow(clamp(exp(-AOError / 0.025f), 0.0f, 1.0f), 1.0f);
+			float LumaWeight = pow(clamp(exp(-LumaError / (1.0f * PhiL + 0.0000001f)), 0.0f, 1.0f), 1.0f);
+			float AOWeightDetail = pow(clamp(exp(-AOError / 0.075f), 0.0f, 1.0f), 1.0f);
 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];
 
-			float Weight = clamp(DepthWeight * NormalWeight * KernelWeight * LumaWeight, 0.0f, 1.0f);
+			float RawWeight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
+			float Weight = clamp(RawWeight * LumaWeight, 0.0f, 1.0f);
 			float AOWeight = clamp(DepthWeight * NormalWeight * KernelWeight * AOWeightDetail, 0.0f, 1.0f);
 
 			Diffuse.xyz += SampleDiffuse.xyz * Weight;
