@@ -9,11 +9,11 @@
 - Cascaded Shadow Mapping
 - Indirect Diffuse GI
 - Infinite bounce GI using irradiance probes
+- SVGF
+- SSR
 
 # Todo
-- SVGF
 - TXAA (+ TAAU)
-- SSR (Hi-Z tracing) and Cubemap raytracing (with worldspace rt fallback?)
 - ReStir GI/DI
 - LTC
 - Compute based particle system (kD tree)
