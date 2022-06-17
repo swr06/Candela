@@ -365,3 +365,8 @@ vec4 Nearest(sampler2D tex, vec2 uv) {
     uv /= res;
     return textureLod(tex, uv, 0.0);
 }
+
+vec4 TexelFetchNormalized(sampler2D tex, vec2 uv) {
+    vec2 res = textureSize(tex,0).xy;
+    return texelFetch(tex, ivec2(res*uv), 0);
+}

@@ -9,5 +9,13 @@ float Variance(float x, float x2) {
 	return abs(x2 - x * x);
 }
 
+float TransformReflectionTransversal(float x) {
+	return x / 48.0f;
+}	
+
+float UntransformReflectionTransversal(float x) {
+	return x * 48.0f;
+}	
+
 const float DEPTH_EXPONENT = 256.0f;
 const float NORMAL_EXPONENT = 24.0f;

@@ -1,6 +1,7 @@
 #version 330 core 
 
 #include "Include/Utility.glsl"
+#include "Include/SpatialUtility.glsl"
 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out vec4 o_Specular;
@@ -205,7 +206,7 @@ void main() {
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
 
-				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), 32.0f) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), 12.0f);
+				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), DEPTH_EXPONENT) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), NORMAL_EXPONENT);
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalDiffuse += SampleDiffuse * CurrentWeight;
@@ -242,7 +243,7 @@ void main() {
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
 
-				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), 32.0f) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), 12.0f);
+				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), DEPTH_EXPONENT) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), NORMAL_EXPONENT);
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalSpec += SampleSpecular * CurrentWeight;

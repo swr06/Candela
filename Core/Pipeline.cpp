@@ -461,7 +461,14 @@ void Lumen::StartPipeline()
 		SpecularShader.SetInteger("u_LFNormals", 2);
 		SpecularShader.SetInteger("u_PBR", 3);
 		SpecularShader.SetInteger("u_Albedo", 4);
+		SpecularShader.SetInteger("u_IndirectDiffuse", 5);
+		SpecularShader.SetInteger("u_SkyCube", 12);
 		SpecularShader.SetVector2f("u_Dimensions", glm::vec2(SpecularTrace.GetWidth(), SpecularTrace.GetHeight()));
+		SpecularShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
+		SpecularShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+		SpecularShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+		SpecularShader.SetInteger("u_SHDataA", 14);
+		SpecularShader.SetInteger("u_SHDataB", 15);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -478,13 +485,44 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
 
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(0));
+
+		for (int i = 0; i < 5; i++) {
+
+			const int BindingPointStart = 6;
+
+			std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+			std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+			std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+
+			SpecularShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+			SpecularShader.SetInteger(NameTex, i + BindingPointStart);
+			SpecularShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+
+			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+		}
+
+		// 6 - 10 used by shadow textures, start binding further textures from index 12
+
+		glActiveTexture(GL_TEXTURE12);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
+
+		glActiveTexture(GL_TEXTURE14);
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().x);
+
+		glActiveTexture(GL_TEXTURE15);
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
+
 		SetCommonUniforms<GLClasses::ComputeShader>(SpecularShader, UniformBuffer);
 
-		//Intersector.BindEverything(SpecularShader, app.GetCurrentFrame() < 60);
+		Intersector.BindEverything(SpecularShader, app.GetCurrentFrame() < 60);
 		glBindImageTexture(0, SpecularTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 		glDispatchCompute((int)floor(float(SpecularTrace.GetWidth()) / 16.0f) + 1, (int)(floor(float(SpecularTrace.GetHeight())) / 16.0f) + 1, 1);
 
-		// Checker reconstruction
+
+		// Spatio-temporal Checkerboard reconstruction
 
 		CheckerboardUpscaled.Bind();
 		CheckerReconstructShader.Use();

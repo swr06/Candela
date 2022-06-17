@@ -1,9 +1,18 @@
-#version 430 core 
+#version 440 core 
+
+#define ONLY_SCREENTRACING
+//#define ONLY_TRACING
+//#define HYBRID_TRACING
+
+#define ROUGH_REFLECTIONS
 
 #define PI 3.14159265359
 
+#include "TraverseBVH.glsl"
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
+#include "Include/Sampling.glsl"
+#include "Include/SphericalHarmonics.glsl"
 
 layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
@@ -29,6 +38,21 @@ uniform vec3 u_SunDirection;
 
 uniform float u_zNear;
 uniform float u_zFar;
+
+uniform sampler2D u_IndirectDiffuse;
+
+uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
+uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
+uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
+
+uniform samplerCube u_SkyCube;
+
+uniform vec3 u_ProbeBoxSize;
+uniform vec3 u_ProbeGridResolution;
+uniform vec3 u_ProbeBoxOrigin;
+
+uniform usampler3D u_SHDataA;
+uniform usampler3D u_SHDataB;
 
 float LinearizeDepth(float depth)
 {
@@ -66,52 +90,42 @@ vec3 WorldPosFromDepth(float depth, vec2 txc)
     return WorldPos.xyz;
 }
 
-vec3 GGX_VNDF(vec3 N, float roughness, vec2 Xi)
-{
-    float alpha = roughness * roughness;
-    float alpha2 = alpha * alpha;
-	
-    float phi = 2.0 * PI * Xi.x;
-    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha2 - 1.0) * Xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-	
-    vec3 H;
-    H.x = cos(phi) * sinTheta;
-    H.y = sin(phi) * sinTheta;
-    H.z = cosTheta;
-	
-    vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
-    vec3 tangent = normalize(cross(up, N));
-    vec3 bitangent = cross(N, tangent);
-	
-    vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
-    return normalize(sampleVec);
-} 
-
 vec3 StochasticReflectionDirection(vec3 Incident, vec3 Normal, float Roughness) {
     
-    float NearestDot = -100.0f;
-
-    bool FoundValid = false;
-
-    const vec2 TailControl = vec2(0.8f, 0.7f); // <- get the ggx tail under control and reduce variance 
-
-    vec3 Microfacet = Normal;
-
-    for (int i = 0 ; i < 8 ; i++) {
-        
-        vec3 Sample = GGX_VNDF(Normal, Roughness, hash2() * TailControl);
-
-        if (dot(Sample, Normal) > 0.001f) // <- sampling the vndf can actually generate directions that are away from the normal.
-        {
-            Microfacet = Sample;
-        }
+    //#define USE_RAW_DIRECTION 
+    if (Roughness < 0.01f) {
+            return reflect(Incident, Normal);
     }
 
-    return reflect(Incident, Microfacet);
+    #ifdef USE_RAW_DIRECTION
+        vec3 Sample = GGX_VNDF(Normal, Roughness, hash2());
+        return Sample;
+    #else
+
+        float NearestDot = -100.0f;
+
+        bool FoundValid = false;
+
+        const vec2 TailControl = vec2(0.8f, 0.7f); // <- get the ggx tail under control and reduce variance 
+
+        vec3 Microfacet = Normal;
+
+        for (int i = 0 ; i < 16 ; i++) {
+            
+            vec3 Sample = SampleGGXVNDF(Normal, Roughness, hash2() * TailControl);
+
+            if (dot(Sample, Normal) > 0.001f) // <- sampling the vndf can actually generate directions that are away from the normal.
+            {
+                Microfacet = Sample;
+                break;
+            }
+        }
+
+        return reflect(Incident, Microfacet);
+    #endif
 }
 
-vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps) {
+vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps, const float ThresholdMultiplier) {
 
     float TraceDistance = 48.0f;
 
@@ -119,12 +133,13 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 
     vec2 Hash = hash2();
 
-    vec3 RayPosition = Origin + Direction * Hash.x;
+    vec3 RayPosition = Origin + Direction * Hash.x * 0.25f;
 
     vec3 FinalProjected = vec3(0.0f);
     float FinalDepth = 0.0f;
 
     bool FoundIntersection = false;
+    int SkyHits = 0;
 
     for (int Step = 0 ; Step < Steps ; Step++) {
 
@@ -132,16 +147,22 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 		
 		if(abs(ProjectedRayScreenspace.x) > 1.0f || abs(ProjectedRayScreenspace.y) > 1.0f || abs(ProjectedRayScreenspace.z) > 1.0f) 
 		{
-			return vec4(-1.0f);
+			return vec4(vec3(-1.0f),SkyHits>4);
 		}
 		
 		ProjectedRayScreenspace.xyz = ProjectedRayScreenspace.xyz * 0.5f + 0.5f; 
 
+		// Depth texture uses nearest filtering
         float DepthAt = texture(u_Depth, ProjectedRayScreenspace.xy).x; 
+
+        if (DepthAt == 1.0f) {
+            SkyHits += 1;
+        }
+
 		float CurrentRayDepth = LinearizeDepth(ProjectedRayScreenspace.z); 
 		float Error = abs(LinearizeDepth(DepthAt) - CurrentRayDepth);
 
-        if (Error < StepSize * 0.006f && ProjectedRayScreenspace.z > DepthAt) 
+        if (Error < StepSize * ThresholdMultiplier && ProjectedRayScreenspace.z > DepthAt) 
 		{
             FoundIntersection = true; 
 
@@ -156,6 +177,7 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 			    Projected = Projected * 0.5f + 0.5f;
                 FinalProjected = Projected;
 
+				// Depth texture uses nearest filtering
                 float Fetch = texture(u_Depth, Projected.xy).x;
                 FinalDepth = Fetch;
 
@@ -185,10 +207,191 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
     }
 
     if (!FoundIntersection) {
-        return vec4(-1.0f);
+        return vec4(vec3(-1.0f), SkyHits>4);
     }
 
-    return vec4(FinalProjected.xy, distance(RayPosition, Origin), FinalDepth);
+	float T = distance(RayPosition, Origin);
+
+	vec3 Pos = Origin + Direction * T;
+
+	if (distance(RayPosition, Pos) > 0.025f) {
+		return vec4(vec3(-1.0f), SkyHits>4);
+	}
+
+    return vec4(FinalProjected.xy, FinalDepth == 1.0f ? -1.0f : T, FinalDepth == 1.0f ? 1.0f : float(SkyHits>4));
+}
+
+float SampleShadowMap(vec2 SampleUV, int Map) {
+
+	switch (Map) {
+		
+		case 0 :
+			return texture(u_ShadowTextures[0], SampleUV).x; break;
+
+		case 1 :
+			return texture(u_ShadowTextures[1], SampleUV).x; break;
+
+		case 2 :
+			return texture(u_ShadowTextures[2], SampleUV).x; break;
+
+		case 3 :
+			return texture(u_ShadowTextures[3], SampleUV).x; break;
+
+		case 4 :
+			return texture(u_ShadowTextures[4], SampleUV).x; break;
+	}
+
+	return texture(u_ShadowTextures[4], SampleUV).x;
+}
+
+bool IsInBox(vec3 point, vec3 Min, vec3 Max) {
+  return (point.x >= Min.x && point.x <= Max.x) &&
+         (point.y >= Min.y && point.y <= Max.y) &&
+         (point.z >= Min.z && point.z <= Max.z);
+}
+
+float GetDirectShadow(vec3 WorldPosition, vec3 N)
+{
+	int ClosestCascade = -1;
+	float Shadow = 0.0;
+	float VogelScales[5] = float[5](0.001f, 0.0015f, 0.002f, 0.00275f, 0.00325f);
+	
+	vec2 TexelSize = 1.0 / textureSize(u_ShadowTextures[ClosestCascade], 0);
+
+	vec4 ProjectionCoordinates;
+
+	float HashBorder = 1.0f; 
+
+	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
+	
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.0275f, 1.0f);
+
+		if (ProjectionCoordinates.z < 1.0f && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
+		{
+			bool BoxCheck = IsInBox(WorldPosition, 
+									u_InverseView[3].xyz-(u_ShadowClipPlanes[Cascade]),
+									u_InverseView[3].xyz+(u_ShadowClipPlanes[Cascade]));
+
+			//if (BoxCheck) 
+			{
+				ProjectionCoordinates = ProjectionCoordinates * 0.5f + 0.5f;
+				ClosestCascade = Cascade;
+				break;
+			}
+		}
+	}
+
+	if (ClosestCascade < 0) {
+		return 0.0f;
+	}
+	
+	float Bias = 0.00f;
+	vec2 SampleUV = ProjectionCoordinates.xy;
+	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
+	return 1.0f - Shadow;
+}
+
+// Irradiance probe grid sampling 
+float[8] Trilinear(vec3 BoxMin, vec3 BoxMax, vec3 p) {
+    float Weights[8];
+    vec3 Extent = BoxMax - BoxMin;
+    float InverseVolume = 1.0 / (Extent.x * Extent.y * Extent.z);
+    Weights[0] = (BoxMax.x - p.x) * (BoxMax.y - p.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[1] = (BoxMax.x - p.x) * (p.y - BoxMin.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[2] = (p.x - BoxMin.x) * (p.y - BoxMin.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[3] = (p.x - BoxMin.x) * (BoxMax.y - p.y) * (BoxMax.z - p.z) * InverseVolume;
+    Weights[4] = (BoxMax.x - p.x) * (BoxMax.y - p.y) * (p.z - BoxMin.z) * InverseVolume;
+    Weights[5] = (BoxMax.x - p.x) * (p.y - BoxMin.y) * (p.z - BoxMin.z) * InverseVolume;
+    Weights[6] = (p.x - BoxMin.x) * (p.y - BoxMin.y) * (p.z - BoxMin.z) * InverseVolume;
+    Weights[7] = (p.x - BoxMin.x) * (BoxMax.y - p.y) * (p.z - BoxMin.z) * InverseVolume;
+    return Weights;
+}
+
+SH GetSH(ivec3 Texel) {
+	uvec4 A = texelFetch(u_SHDataA, Texel, 0);
+	uvec4 B = texelFetch(u_SHDataB, Texel, 0);
+	return UnpackSH(A,B);
+}
+
+// Visibility weight 
+float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
+	
+	vec3 TexCoords = vec3(Texel) / u_ProbeGridResolution;
+	vec3 Clip = TexCoords * 2.0f - 1.0f;
+	vec3 ProbePosition = u_ProbeBoxOrigin + Clip * u_ProbeBoxSize;
+
+	vec3 Vector = ProbePosition - WorldPosition;
+	float Length = length(Vector);
+	Vector /= Length;
+
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.75f);
+	return Weight;
+}
+
+// Samples probes at a position in the world
+vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
+
+	WorldPosition += N * 0.4f;
+
+	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
+	SamplePoint = SamplePoint * 0.5 + 0.5; 
+
+	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
+		
+		vec3 VolumeCoords = SamplePoint * (u_ProbeGridResolution);
+		
+		vec3 MinSampleBox = floor(VolumeCoords);
+		vec3 MaxSampleBox = ceil(VolumeCoords);
+
+		float Alpha = 0.0f;
+		float Trilinear[8] = Trilinear(MinSampleBox, MaxSampleBox, VolumeCoords);
+		ivec3 TexelCoordinates[8];
+		SH sh[8];
+
+		TexelCoordinates[0] = ivec3(vec3(MinSampleBox.x, MinSampleBox.y, MinSampleBox.z)); 
+		TexelCoordinates[1] = ivec3(vec3(MinSampleBox.x, MaxSampleBox.y, MinSampleBox.z));
+		TexelCoordinates[2] = ivec3(vec3(MaxSampleBox.x, MaxSampleBox.y, MinSampleBox.z)); 
+		TexelCoordinates[3] = ivec3(vec3(MaxSampleBox.x, MinSampleBox.y, MinSampleBox.z));
+		TexelCoordinates[4] = ivec3(vec3(MinSampleBox.x, MinSampleBox.y, MaxSampleBox.z));
+		TexelCoordinates[5] = ivec3(vec3(MinSampleBox.x, MaxSampleBox.y, MaxSampleBox.z));
+		TexelCoordinates[6] = ivec3(vec3(MaxSampleBox.x, MaxSampleBox.y, MaxSampleBox.z)); 
+		TexelCoordinates[7] = ivec3(vec3(MaxSampleBox.x, MinSampleBox.y, MaxSampleBox.z));
+
+		for (int i = 0 ; i < 8 ; i++) {
+			sh[i] = GetSH(TexelCoordinates[i]);
+			float ProbeVisibility = GetVisibility(TexelCoordinates[i], WorldPosition, N);
+			Alpha += Trilinear[i] * (1.0f - ProbeVisibility);
+			Trilinear[i] *= ProbeVisibility;
+		}
+
+		float WeightSum = 1.0f - Alpha;
+
+		SH FinalSH = GenerateEmptySH();
+
+		for (int i = 0 ; i < 8 ; i++) {
+			ScaleSH(sh[i], vec3(Trilinear[i] / max(WeightSum, 0.000001f)));
+			FinalSH = AddSH(FinalSH, sh[i]);
+		}
+
+		return max(SampleSH(FinalSH, N), 0.0f);
+	}
+
+	return vec3(0.0f);
+}
+
+// Computes final lighting at a point 
+vec3 SampleLighting(in vec2 TexCoords, in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) { // For screen traces 
+
+	vec4 DiffuseIndirect = texture(u_IndirectDiffuse, TexCoords).xyzw;
+	float Shadow = GetDirectShadow(WorldPosition, Normal);
+	return (vec3(Albedo) * 16.0f * Shadow) + (Albedo * 0.5f * DiffuseIndirect.xyz * DiffuseIndirect.w * DiffuseIndirect.w); 
+}
+
+vec3 SampleLighting(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) { // For global/world traces 
+
+	vec3 DiffuseIndirect = SampleProbes(WorldPosition,Normal);
+	float Shadow = GetDirectShadow(WorldPosition, Normal);
+	return (vec3(Albedo) * 16.0f * Shadow) + (Albedo * 0.75f * DiffuseIndirect.xyz); 
 }
 
 void main() {
@@ -220,6 +423,9 @@ void main() {
     }
 
     vec3 PBR = texelFetch(u_PBR, HighResPixel, 0).xyz;
+#ifndef ROUGH_REFLECTIONS
+	PBR.x *= 0.0f;
+#endif
 
 	vec2 TexCoords = HighResUV;
 	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
@@ -232,20 +438,89 @@ void main() {
 
 	vec3 Incident = normalize(WorldPosition - Player);
 
-    vec3 RayOrigin = WorldPosition + Normal * 0.05f;
-    vec3 RayDirection = StochasticReflectionDirection(Incident, NormalHF, PBR.x * 0.0f);
+    vec3 RayOrigin = WorldPosition + Normal * mix(0.04f, 0.1f, PBR.x * PBR.x);
+    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x / 2.5f);
 
     vec3 FinalRadiance = vec3(0.0f);
     float FinalTransversal = -1.0f;
 
-    vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 20, 8);
+#ifdef ONLY_SCREENTRACING 
+
+    vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
+        int(mix(48, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
+        int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
+        mix(0.0045f, 0.009f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
 
     if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
         
         vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
         FinalTransversal = Screentrace.z;
-        FinalRadiance = texture(u_Albedo, Screentrace.xy).xyz;
+
+		vec3 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy).xyz;
+		vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
+
+        FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal, IntersectionAlbedo);
     }
 
-    imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, FinalTransversal));
+    else {
+        FinalRadiance = Screentrace.w * texture(u_SkyCube, RayDirection).xyz * 2.0f;
+    }
+
+#else 
+	#ifdef ONLY_TRACING 
+		// Intersection kernel outputs 
+		int IntersectedMesh = -1;
+		int IntersectedTri = -1;
+		vec4 TUVW = vec4(-1.0f);
+		vec3 IntersectionAlbedo = vec3(0.0f);
+		vec3 IntersectionNormal = vec3(-1.0f);
+			
+		// Intersect ray 
+		IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, IntersectionAlbedo, IntersectionNormal);
+		FinalTransversal = TUVW.x;
+
+		FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
+	#else 
+		#ifdef HYBRID_TRACING
+			vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
+			    int(mix(48, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
+			    int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
+			    mix(0.0045f, 0.009f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
+
+			if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
+			    
+			    vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
+			    FinalTransversal = Screentrace.z;
+
+				vec3 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy).xyz;
+				vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
+
+			    FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal, IntersectionAlbedo);
+			}
+
+			// Screenspace trace failed, intersect full geometry.
+			else {
+
+			    // Intersection kernel outputs 
+				int IntersectedMesh = -1;
+				int IntersectedTri = -1;
+				vec4 TUVW = vec4(-1.0f);
+				vec3 IntersectionAlbedo = vec3(0.0f);
+				vec3 IntersectionNormal = vec3(-1.0f);
+					
+				// Intersect ray 
+				IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, IntersectionAlbedo, IntersectionNormal);
+				FinalTransversal = TUVW.x;
+
+				if (TUVW.x > 0.0f) 
+					FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
+				else 
+					FinalRadiance = texture(u_SkyCube, RayDirection).xyz;
+			}
+		#endif
+	#endif
+#endif
+
+	// xyz has radiance, w has transformed transversal 
+    imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, TransformReflectionTransversal(FinalTransversal)));
 }
