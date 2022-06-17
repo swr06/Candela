@@ -438,7 +438,7 @@ void main() {
 
 	vec3 Incident = normalize(WorldPosition - Player);
 
-    vec3 RayOrigin = WorldPosition + Normal * mix(0.04f, 0.1f, PBR.x * PBR.x);
+    vec3 RayOrigin = WorldPosition + Normal * mix(0.06f, 0.1f, PBR.x * PBR.x);
     vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x / 2.5f);
 
     vec3 FinalRadiance = vec3(0.0f);
@@ -447,7 +447,7 @@ void main() {
 #ifdef ONLY_SCREENTRACING 
 
     vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-        int(mix(48, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
+        int(mix(32, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
         int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
         mix(0.0045f, 0.009f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
 
@@ -483,7 +483,7 @@ void main() {
 	#else 
 		#ifdef HYBRID_TRACING
 			vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-			    int(mix(48, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
+			    int(mix(32, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
 			    int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
 			    mix(0.0045f, 0.009f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
 
@@ -520,6 +520,13 @@ void main() {
 		#endif
 	#endif
 #endif
+
+	if (!IsValid(FinalRadiance)) {
+		FinalRadiance = vec3(0.0f);
+		FinalTransversal = -1.0f;
+	}
+
+	FinalRadiance = clamp(FinalRadiance, 0.0f, 6.0f);
 
 	// xyz has radiance, w has transformed transversal 
     imageStore(o_OutputData, WritePixel, vec4(FinalRadiance, TransformReflectionTransversal(FinalTransversal)));
