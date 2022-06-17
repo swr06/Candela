@@ -17,7 +17,8 @@ void Lumen::ShadowHandler::GenerateShadowMaps()
 
 void Lumen::ShadowHandler::UpdateShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities)
 {
-	int id = Frame % 5;
+	int UpdateList[8] = { 0, 1, 2, 0, 1, 0, 3, (rand() % 4) >= 3 ? 1 : 4 };
+	int id = UpdateList[Frame % 8];
 
 	RenderShadowMap(Shadowmaps[id], Origin, Direction, Entities, CascadeDistances[id], ProjectionMatrices[id], ViewMatrices[id]);
 }
