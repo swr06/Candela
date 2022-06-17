@@ -42,6 +42,9 @@ namespace GLClasses
 			m_ShaderContents = ccode;
 
 		}
+
+		m_ComputeSize = m_ShaderContents.size();
+		m_ComputeHash = CRC::Calculate(m_ShaderContents.c_str(), m_ShaderContents.size(), CRC::CRC_32());
 	}
 
 	void ComputeShader::Compile()
@@ -171,15 +174,39 @@ namespace GLClasses
 		return;
 	}
 
-	void ComputeShader::Recompile()
+	bool ComputeShader::Recompile()
 	{
+		uint32_t PrevHash = m_ComputeHash;
+		uint32_t PrevSize = m_ComputeSize;
+
+		this->CreateComputeShader(m_ComputePath);
+
+		if (m_ComputeHash != PrevHash || m_ComputeSize != PrevSize) {
+
+			Location_map.clear();
+			glDeleteProgram(m_ID);
+			glDeleteShader(m_ComputeID);
+			glUseProgram(0);
+
+			this->Compile();
+
+			return true;
+		}
+
+		return false;
+	}
+
+	void ComputeShader::ForceRecompile()
+	{
+		this->CreateComputeShader(m_ComputePath);
+
 		Location_map.clear();
 		glDeleteProgram(m_ID);
 		glDeleteShader(m_ComputeID);
 		glUseProgram(0);
 
-		this->CreateComputeShader(m_ComputePath);
 		this->Compile();
+
 	}
 
 	void ComputeShader::SetVector2f(const std::string& name, GLfloat x, GLfloat y, GLboolean useShader)

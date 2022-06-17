@@ -64,6 +64,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Probe GI">
       <UniqueIdentifier>{f3d2fba3-09e5-4392-b8c3-477c4ba5f929}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Dependencies\crc">
+      <UniqueIdentifier>{3c938029-aa3a-4236-ad38-f037560a380a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -203,6 +206,9 @@
     </ClInclude>
     <ClInclude Include="Core\ProbeGI.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\crc\CRC.h">
+      <Filter>Source Files\Dependencies\crc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

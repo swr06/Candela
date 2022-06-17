@@ -16,6 +16,7 @@
 #include <filesystem>
 
 #include "../Application/Logger.h"
+#include <crc/CRC.h>
 
 namespace GLClasses
 {
@@ -53,7 +54,8 @@ namespace GLClasses
 
 		void Destroy();
 		void ValidateProgram();
-		void Recompile();
+		bool Recompile();
+		void ForceRecompile();
 		void SetFloat(const std::string& name, GLfloat value, GLboolean useShader = GL_FALSE);
 		void SetInteger(const std::string& name, GLint value, GLboolean useShader = GL_FALSE);
 		void SetBool(const std::string& name, bool value, GLboolean useShader = GL_FALSE);
@@ -85,5 +87,12 @@ namespace GLClasses
 		std::string m_FragmentPath = "";
 		std::string m_GeometryData = "";
 		std::string m_GeometryPath = "";
+
+		uint32_t m_VertexCRC = 0;
+		uint32_t m_FragmentCRC = 0;
+		uint32_t m_GeometryCRC = 0;
+		uint32_t m_VertexSize = 0;
+		uint32_t m_FragmentSize = 0;
+		uint32_t m_GeometrySize = 0;
 	};
 }

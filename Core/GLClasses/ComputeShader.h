@@ -19,6 +19,8 @@
 
 #include "stb_include.h"
 
+#include <crc/CRC.h>
+
 namespace GLClasses
 {
 	class ComputeShader
@@ -58,7 +60,8 @@ namespace GLClasses
 		void SetIntegerArray(const std::string& name, const GLint* value, GLsizei count, GLboolean useShader = GL_FALSE);
 		void SetTextureArray(const std::string& name, const GLuint first, const GLuint count, GLboolean useShader = GL_FALSE);
 
-		void Recompile();
+		bool Recompile();
+		void ForceRecompile();
 
 		GLuint FetchUniformLocation(const std::string& name)
 		{
@@ -74,7 +77,11 @@ namespace GLClasses
 
 		std::string m_ShaderContents = "";
 		std::string m_ComputePath = "";
-		GLuint m_ID;
-		GLuint m_ComputeID;
+		GLuint m_ID = 0;
+		GLuint m_ComputeID = 0;
+
+		uint32_t m_ComputeSize = 0;
+		uint32_t m_ComputeHash = 0;
+
 	};
 }

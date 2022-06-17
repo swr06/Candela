@@ -105,13 +105,33 @@ GLuint Lumen::ShaderManager::GetShaderID(const std::string& name)
 
 void Lumen::ShaderManager::RecompileShaders()
 {
+	int ShadersRecompiled = 0;
+	int ComputeShadersRecompiled = 0;
+
 	for (auto& e : ShaderManager_ShaderMap)
 	{
-		e.second.Recompile();
+		ShadersRecompiled += (int)e.second.Recompile();
 	}
 
 	for (auto& e : ShaderManager_ShaderMapC)
 	{
-		e.second.Recompile();
+		ComputeShadersRecompiled += (int)e.second.Recompile();
 	}
+	
+	std::cout << "\nShaders Recompiled : " << ShadersRecompiled << "   |   Compute Shaders Recompiled : " << ComputeShadersRecompiled;
+}
+
+void Lumen::ShaderManager::ForceRecompileShaders()
+{
+	for (auto& e : ShaderManager_ShaderMap)
+	{
+		e.second.ForceRecompile();
+	}
+
+	for (auto& e : ShaderManager_ShaderMapC)
+	{
+		e.second.ForceRecompile();
+	}
+
+	std::cout << "\nShaders Recompiled : " << ShaderManager_ShaderMap.size() << "   |   Compute Shaders Recompiled : " << ShaderManager_ShaderMapC.size();
 }

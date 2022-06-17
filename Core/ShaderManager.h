@@ -20,5 +20,6 @@ namespace Lumen
 		GLClasses::ComputeShader& GetComputeShader(const std::string& name);
 		GLuint GetShaderID(const std::string& name);
 		void RecompileShaders();
+		void ForceRecompileShaders();
 	}
 }

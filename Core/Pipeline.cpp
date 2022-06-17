@@ -122,6 +122,12 @@ public:
 			Intersector.Recompile();
 		}
 
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F3 && this->GetCurrentFrame() > 5)
+		{
+			Lumen::ShaderManager::ForceRecompileShaders();
+			Intersector.Recompile();
+		}
+
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
 		{
 			vsync = !vsync;
@@ -178,7 +184,7 @@ GLClasses::Framebuffer DiffuseCheckerboardBuffers[2]{ GLClasses::Framebuffer(16,
 GLClasses::Framebuffer SpecularCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
 
 GLClasses::Framebuffer CheckerboardUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true },{ GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, true);
-GLClasses::Framebuffer TemporalBuffers[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true} }, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true} }, false, true) };
+GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true} }, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true} }, false, true) };
 
 // Denoiser 
 GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, true);
@@ -323,8 +329,8 @@ void Lumen::StartPipeline()
 		SpatialVariance.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		SpatialBuffers[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		SpatialBuffers[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
-		TemporalBuffers[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
-		TemporalBuffers[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		TemporalBuffersIndirect[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		TemporalBuffersIndirect[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		
 		// Set FBO references
 		GLClasses::Framebuffer& GBuffer = FrameMod2 ? GBuffers[0] : GBuffers[1];
@@ -336,8 +342,8 @@ void Lumen::StartPipeline()
 		GLClasses::Framebuffer& SpecularTrace = FrameMod2 ? SpecularCheckerboardBuffers[0] : SpecularCheckerboardBuffers[1];
 		GLClasses::Framebuffer& PreviousSpecularTrace = FrameMod2 ? SpecularCheckerboardBuffers[1] : SpecularCheckerboardBuffers[0];
 		
-		GLClasses::Framebuffer& DiffuseTemporal = FrameMod2 ? TemporalBuffers[0] : TemporalBuffers[1];
-		GLClasses::Framebuffer& PreviousDiffuseTemporal = FrameMod2 ? TemporalBuffers[1] : TemporalBuffers[0];
+		GLClasses::Framebuffer& IndirectTemporal = FrameMod2 ? TemporalBuffersIndirect[0] : TemporalBuffersIndirect[1];
+		GLClasses::Framebuffer& PreviousIndirectTemporal = FrameMod2 ? TemporalBuffersIndirect[1] : TemporalBuffersIndirect[0];
 
 		// App update 
 		PreviousProjection = Camera.GetProjectionMatrix();
@@ -576,7 +582,7 @@ void Lumen::StartPipeline()
 		// Temporal 
 
 		TemporalFilterShader.Use();
-		DiffuseTemporal.Bind();
+		IndirectTemporal.Bind();
 
 		TemporalFilterShader.SetInteger("u_Depth", 0);
 		TemporalFilterShader.SetInteger("u_Normals", 1);
@@ -600,7 +606,7 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_2D, CheckerboardUpscaled.GetTexture());
 
 		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, PreviousDiffuseTemporal.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, PreviousIndirectTemporal.GetTexture());
 
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, PrevGBuffer.GetDepthBuffer());
@@ -612,16 +618,16 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
 
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, PreviousDiffuseTemporal.GetTexture(1));
+		glBindTexture(GL_TEXTURE_2D, PreviousIndirectTemporal.GetTexture(1));
 
 		glActiveTexture(GL_TEXTURE8);
-		glBindTexture(GL_TEXTURE_2D, PreviousDiffuseTemporal.GetTexture(2));
+		glBindTexture(GL_TEXTURE_2D, PreviousIndirectTemporal.GetTexture(2));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
 
-		DiffuseTemporal.Unbind();
+		IndirectTemporal.Unbind();
 
 		// SVGF 
 
@@ -642,13 +648,13 @@ void Lumen::StartPipeline()
 			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
 
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture());
+			glBindTexture(GL_TEXTURE_2D, IndirectTemporal.GetTexture());
 
 			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture(1));
+			glBindTexture(GL_TEXTURE_2D, IndirectTemporal.GetTexture(1));
 
 			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture(2));
+			glBindTexture(GL_TEXTURE_2D, IndirectTemporal.GetTexture(2));
 
 			SetCommonUniforms<GLClasses::Shader>(SpatialVarianceShader, UniformBuffer);
 
@@ -701,7 +707,7 @@ void Lumen::StartPipeline()
 				glBindTexture(GL_TEXTURE_2D, InitialPass ? SpatialVariance.GetTexture(1) : SpatialPrevious.GetTexture(1));
 
 				glActiveTexture(GL_TEXTURE4);
-				glBindTexture(GL_TEXTURE_2D, DiffuseTemporal.GetTexture(1));
+				glBindTexture(GL_TEXTURE_2D, IndirectTemporal.GetTexture(1));
 
 				ScreenQuadVAO.Bind();
 				glDrawArrays(GL_TRIANGLES, 0, 6);

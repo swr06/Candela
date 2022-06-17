@@ -1,11 +1,7 @@
 #version 450 core
 
 #extension GL_ARB_bindless_texture : require
-
-
 #extension GL_ARB_bindless_texture : enable
-
-
 
 layout(local_size_x = 16, local_size_y = 16) in;
 

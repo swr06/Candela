@@ -213,6 +213,16 @@ namespace GLClasses
 			char* fcode = stb_include_file((char*)fragment_pth.c_str(), (char*)"", (char*)"Core/Shaders/", error);
 			m_FragmentData = fcode;
 		}
+
+		// Create hashes 
+
+		m_VertexSize = m_VertexData.size();
+		m_FragmentSize = m_FragmentData.size();
+		m_GeometrySize = m_GeometryData.size();
+
+		m_VertexCRC = CRC::Calculate(m_VertexData.c_str(), m_VertexData.size(), CRC::CRC_32());
+		m_FragmentCRC = CRC::Calculate(m_FragmentData.c_str(), m_FragmentData.size(), CRC::CRC_32());
+		m_GeometryCRC = CRC::Calculate(m_GeometryData.c_str(), m_GeometryData.size(), CRC::CRC_32());
 	}
 
 	void Shader::Destroy()
@@ -250,10 +260,41 @@ namespace GLClasses
 		return;
 	}
 
-	void Shader::Recompile()
+	bool Shader::Recompile()
 	{
-		Destroy();
+		uint32_t PrevVHash = m_VertexCRC;
+		uint32_t PrevFHash = m_FragmentCRC;
+		uint32_t PrevGHash = m_GeometryCRC;
+
+		uint32_t PrevVSize = m_VertexSize;
+		uint32_t PrevFSize = m_FragmentSize;
+		uint32_t PrevGSize = m_GeometrySize;
+
 		CreateShaderProgramFromFile(m_VertexPath, m_FragmentPath, m_GeometryPath);
+
+		if (PrevVHash != m_VertexCRC || PrevFHash != m_FragmentCRC ||
+			PrevGHash != m_GeometryCRC || PrevVSize != m_VertexSize ||
+			PrevFSize != m_FragmentSize || PrevGSize != m_GeometrySize) {
+			
+			Location_map.clear();
+			glDeleteProgram(m_Program);
+			glUseProgram(0);
+
+			CompileShaders();
+			return true;
+		}
+
+		return false;
+	}
+
+	void Shader::ForceRecompile()
+	{
+		CreateShaderProgramFromFile(m_VertexPath, m_FragmentPath, m_GeometryPath);
+		
+		Location_map.clear();
+		glDeleteProgram(m_Program);
+		glUseProgram(0);
+
 		CompileShaders();
 	}
 
