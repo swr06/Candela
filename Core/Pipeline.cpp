@@ -705,6 +705,8 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Variance", 3);
 				SpatialFilterShader.SetInteger("u_FrameCounters", 4);
 				SpatialFilterShader.SetInteger("u_Specular", 5);
+				SpatialFilterShader.SetInteger("u_NormalsHF", 6);
+				SpatialFilterShader.SetInteger("u_PBR", 7);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SpatialFilterShader.SetInteger("u_Pass", Pass);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
@@ -727,6 +729,12 @@ void Lumen::StartPipeline()
 
 				glActiveTexture(GL_TEXTURE5);
 				glBindTexture(GL_TEXTURE_2D, InitialPass ? IndirectTemporal.GetTexture(3) : SpatialPrevious.GetTexture(2));
+
+				glActiveTexture(GL_TEXTURE6);
+				glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(1));
+
+				glActiveTexture(GL_TEXTURE7);
+				glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(2));
 
 				ScreenQuadVAO.Bind();
 				glDrawArrays(GL_TRIANGLES, 0, 6);

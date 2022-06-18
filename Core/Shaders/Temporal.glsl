@@ -200,18 +200,18 @@ void main() {
 		if (IsInScreenspaceBiased(ReprojectedReflection.xy)) {
 			vec4 HistorySpecular = CatmullRom(u_SpecularHistory, ReprojectedReflection.xy);
 
-			float ClipStrength = max(mix(1.0f, 5.0f, pow(PBR.x,1.5f)) * (MotionLength > 0.0001f ? 0.4f : 3.0f), 1.0f);
+			float ClipStrength = max(mix(1.0f, 5.0f, pow(PBR.x,1.5f)) * (MotionLength > 0.0025f ? 0.4f : 16.0f), 1.0f);
 			HistorySpecular.xyz = YCoCg2RGB(ClipToAABB(RGB2YCoCg(HistorySpecular.xyz), MeanSpec.xyz - Variance.xyz * ClipStrength, MeanSpec.xyz + Variance.xyz * ClipStrength));
 
-			float TransversalError = abs(HistorySpecular.w - Transversal);
+			float TransversalError = abs(UntransformReflectionTransversal(HistorySpecular.w) - Transversal);
 
-			SpecularFrames = min((texture(u_Utility,ReprojectedReflection.xy).y * 255.0f), 20.0f) + 1.0f;
+			SpecularFrames = min((texture(u_Utility,ReprojectedReflection.xy).y * 255.0f), 28.0f) + 1.0f;
 			float SpecBlendFactor = 1.0f - (1.0f / SpecularFrames);
 
-			if (true)
+			//if (TransversalError < mix(4.0f, 16.0f, clamp(PBR.x*1.5f,0.,1.)))
 			{
 				o_Specular.xyz = InverseReinhard(mix(Reinhard(CurrentSpecular.xyz), Reinhard(HistorySpecular.xyz), SpecBlendFactor));
-				o_Specular.w = mix(Transversal, HistorySpecular.w, SpecBlendFactor);
+				o_Specular.w = mix(MeanSpec.w, HistorySpecular.w, SpecBlendFactor);
 			}
 		}
 

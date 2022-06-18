@@ -1,10 +1,14 @@
 #version 430 core
 #define PI 3.14159265359
 
+#define DO_INDIRECT 
+
 #include "Include/Octahedral.glsl"
 #include "Include/SphericalHarmonics.glsl"
 #include "Include/DebugIrradianceCache.glsl" 
 #include "Include/CookTorranceBRDF.glsl"
+#include "Include/SpatialUtility.glsl"
+#include "Include/Karis.glsl"
 
 layout (location = 0) out vec3 o_Color;
 
@@ -162,11 +166,11 @@ const vec3 SunColor = vec3(16.0f);
 void main() 
 {	
 	vec3 rO = u_InverseView[3].xyz;
-	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 
 	float Depth = texture(u_DepthTexture, v_TexCoords).x;
 
 	if (Depth > 0.999999f) {
+		vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 1.0f; // <----- pow2 done here 
 		return;
 	}
@@ -176,11 +180,39 @@ void main()
 	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords, -0.75f).xyz;
 	vec3 PBR = texture(u_PBRTexture, v_TexCoords).xyz;
 
-	vec4 GI = texture(u_IndirectDiffuse, v_TexCoords).xyzw; 
-	vec4 SpecGI = texture(u_IndirectSpecular, v_TexCoords).xyzw; 
+	vec3 Incident = normalize(u_ViewerPosition - WorldPosition);
+
+	vec3 F0 = mix(vec3(0.04f), Albedo, PBR.y);
+
+	vec3 SpecularIndirect = vec3(0.0f);
+	vec3 DiffuseIndirect = vec3(0.0f);
+
+	#ifdef DO_INDIRECT
+		const vec2 IndirectStrength = vec2(1.0f, 1.2f); // x : diffuse strength, y : specular strength
+
+		// Sample GI
+		vec4 GI = texture(u_IndirectDiffuse, v_TexCoords).xyzw; 
+		vec4 SpecGI = texture(u_IndirectSpecular, v_TexCoords).xyzw; 
+
+		vec3 FresnelTerm = FresnelSchlickRoughness(max(dot(Incident, Normal.xyz), 0.000001f), vec3(F0), PBR.x) * 1.25f; 
+		FresnelTerm = clamp(FresnelTerm, 0.0f, 1.0f);
+
+		vec3 kS = FresnelTerm;
+		vec3 kD = 1.0f - kS;
+		kD *= 1.0f - PBR.y;
+					
+		vec2 EnvironmentBRDFSampleLocation = vec2(max(dot(Incident, Normal.xyz), 0.000001f), PBR.x);
+		EnvironmentBRDFSampleLocation = clamp(EnvironmentBRDFSampleLocation, 0.0f, 1.0f);
+		vec2 EnvironmentBRDF = Karis(EnvironmentBRDFSampleLocation.x, EnvironmentBRDFSampleLocation.y);
+
+		SpecularIndirect = SpecGI.xyz * (FresnelTerm * EnvironmentBRDF.x + EnvironmentBRDF.y) * IndirectStrength.y;
+		DiffuseIndirect = kD * GI.xyz * Albedo * GI.w * IndirectStrength.x;
+	#endif
 
 	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), FilterShadows(WorldPosition, Normal)) * 0.5f;
-	vec3 DiffuseIndirect = GI.xyz * Albedo * GI.w;
-	o_Color = Direct + DiffuseIndirect; // + (SpecGI.xyz * 0.2f);
+	
+	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect;
+
+	o_Color = Combined;
 	
 }

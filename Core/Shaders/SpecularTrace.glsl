@@ -1,9 +1,5 @@
 #version 440 core 
 
-#define ONLY_SCREENTRACING
-//#define ONLY_TRACING
-//#define HYBRID_TRACING
-
 #define ROUGH_REFLECTIONS
 
 #define PI 3.14159265359
@@ -133,7 +129,7 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 
     vec2 Hash = hash2();
 
-    vec3 RayPosition = Origin + Direction * Hash.x * 0.25f;
+    vec3 RayPosition = Origin + Direction * Hash.x;
 
     vec3 FinalProjected = vec3(0.0f);
     float FinalDepth = 0.0f;
@@ -394,6 +390,8 @@ vec3 SampleLighting(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) { // 
 	return (vec3(Albedo) * 16.0f * Shadow) + (Albedo * 0.75f * DiffuseIndirect.xyz); 
 }
 
+int TRACE_MODE = 0; 
+
 void main() {
     
     ivec2 Pixel = ivec2(gl_GlobalInvocationID.xy);
@@ -427,6 +425,10 @@ void main() {
 	PBR.x *= 0.0f;
 #endif
 
+	if (PBR.y > 0.04f) {
+		TRACE_MODE = 1;
+	}
+
 	vec2 TexCoords = HighResUV;
 	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
 
@@ -438,36 +440,57 @@ void main() {
 
 	vec3 Incident = normalize(WorldPosition - Player);
 
-    vec3 RayOrigin = WorldPosition + Normal * 0.075f;
-    vec3 RayDirection = StochasticReflectionDirection(Incident, NormalHF, PBR.x * 0.825f);
+    vec3 RayOrigin = WorldPosition + Normal * mix(0.05f, 0.1f, clamp(PBR.x*1.4f,0.0f,1.0f));
+    vec3 RayDirection = StochasticReflectionDirection(Incident, NormalHF, PBR.x*0.825f); 
 
     vec3 FinalRadiance = vec3(0.0f);
     float FinalTransversal = -1.0f;
 
-#ifdef ONLY_SCREENTRACING 
+	if (TRACE_MODE == 0 || TRACE_MODE == 1) {
 
-    vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-        int(mix(32, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
-        int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
-        mix(0.0045f, 0.009f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
+		vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
+			int(mix(32, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
+			int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
+			mix(0.0045f, 0.0075f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
 
-    if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
-        
-        vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
-        FinalTransversal = Screentrace.z;
+		if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
+			    
+			vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
+			FinalTransversal = Screentrace.z;
 
-		vec3 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy).xyz;
-		vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
+			vec3 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy).xyz;
+			vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
 
-        FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal, IntersectionAlbedo);
-    }
+			FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal, IntersectionAlbedo);
+		}
 
-    else {
-        FinalRadiance = Screentrace.w * texture(u_SkyCube, RayDirection).xyz * 2.0f;
-    }
+		// Screenspace trace failed, intersect full geometry.
+		else if (TRACE_MODE == 1) {
 
-#else 
-	#ifdef ONLY_TRACING 
+			// Intersection kernel outputs 
+			int IntersectedMesh = -1;
+			int IntersectedTri = -1;
+			vec4 TUVW = vec4(-1.0f);
+			vec3 IntersectionAlbedo = vec3(0.0f);
+			vec3 IntersectionNormal = vec3(-1.0f);
+					
+			// Intersect ray 
+			IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, IntersectionAlbedo, IntersectionNormal);
+			FinalTransversal = TUVW.x;
+
+			if (TUVW.x > 0.0f) 
+				FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
+			else 
+				FinalRadiance = texture(u_SkyCube, RayDirection).xyz;
+		}
+
+		else {
+		    FinalRadiance = Screentrace.w * texture(u_SkyCube, RayDirection).xyz * 2.0f;
+		}
+	}
+
+	else if (TRACE_MODE == 2) {
+
 		// Intersection kernel outputs 
 		int IntersectedMesh = -1;
 		int IntersectedTri = -1;
@@ -480,46 +503,7 @@ void main() {
 		FinalTransversal = TUVW.x;
 
 		FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
-	#else 
-		#ifdef HYBRID_TRACING
-			vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-			    int(mix(32, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
-			    int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
-			    mix(0.0045f, 0.009f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
-
-			if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
-			    
-			    vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
-			    FinalTransversal = Screentrace.z;
-
-				vec3 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy).xyz;
-				vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
-
-			    FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal, IntersectionAlbedo);
-			}
-
-			// Screenspace trace failed, intersect full geometry.
-			else {
-
-			    // Intersection kernel outputs 
-				int IntersectedMesh = -1;
-				int IntersectedTri = -1;
-				vec4 TUVW = vec4(-1.0f);
-				vec3 IntersectionAlbedo = vec3(0.0f);
-				vec3 IntersectionNormal = vec3(-1.0f);
-					
-				// Intersect ray 
-				IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, IntersectionAlbedo, IntersectionNormal);
-				FinalTransversal = TUVW.x;
-
-				if (TUVW.x > 0.0f) 
-					FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
-				else 
-					FinalRadiance = texture(u_SkyCube, RayDirection).xyz;
-			}
-		#endif
-	#endif
-#endif
+	}
 
 	if (!IsValid(FinalRadiance)) {
 		FinalRadiance = vec3(0.0f);

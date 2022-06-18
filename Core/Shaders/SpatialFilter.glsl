@@ -1,22 +1,36 @@
 #version 330 core 
 
+#define PI 3.14159265359
+
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
+#include "Include/SphericalGaussian.glsl"
 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out float o_Variance;
 layout (location = 2) out vec4 o_Specular;
 
+in vec2 v_TexCoords;
+
 uniform sampler2D u_Depth;
 uniform sampler2D u_Normals;
+uniform sampler2D u_NormalsHF;
+uniform sampler2D u_PBR;
 
 uniform sampler2D u_Diffuse;
 uniform sampler2D u_Specular;
 
 uniform sampler2D u_Variance; // <- Diffuse variance 
 
+uniform mat4 u_Projection;
+uniform mat4 u_View;
+uniform mat4 u_InverseView;
+uniform mat4 u_InverseProjection;
+
 uniform float u_zNear;
 uniform float u_zFar;
+
+uniform vec3 u_ViewerPosition;
 
 uniform int u_StepSize;
 uniform float u_SqrtStepSize;
@@ -27,9 +41,71 @@ uniform int u_Pass;
 
 const bool SPATIAL_OFF = false;
 
+vec3 WorldPosFromDepth(float depth, vec2 txc)
+{
+    float z = depth * 2.0 - 1.0;
+    vec4 ClipSpacePosition = vec4(txc * 2.0 - 1.0, z, 1.0);
+    vec4 ViewSpacePosition = u_InverseProjection * ClipSpacePosition;
+    ViewSpacePosition /= ViewSpacePosition.w;
+    vec4 WorldPos = u_InverseView * ViewSpacePosition;
+    return WorldPos.xyz;
+}
+
 float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
+}
+
+SG RoughnessLobe(float Roughness, vec3 Normal, vec3 Incident) {
+	
+	Roughness = max(Roughness, 0.001f);
+	float a = Roughness * Roughness;
+	float a2 = a * a;
+
+	float NDotV = clamp(abs(dot(Incident, Normal)) + 0.00001f, 0.0f, 1.0f);
+	vec3 SGAxis = 2.0f * NDotV * Normal - Incident;
+
+	SG ReturnValue;
+	ReturnValue.Axis = SGAxis;
+	ReturnValue.Sharpness = 0.5f / (a2 * max(NDotV, 0.1f));
+	ReturnValue.Amplitude = 1.0f / (PI * a2);
+
+	return ReturnValue;
+}
+
+float GetLobeWeight(float CenterRoughness, float SampleRoughness, vec3 CenterNormal, vec3 SampleNormal, vec2 Transversals, const vec3 Incident) {
+	
+	const float Beta = 32.0f;
+
+	float LobeSimilarity = 1.0f;
+	float AxisSimilarity = 1.0f;
+
+	SG CenterLobe = RoughnessLobe(CenterRoughness, CenterNormal, Incident); 
+	SG SampleLobe = RoughnessLobe(SampleRoughness, SampleNormal, Incident); 
+
+	float OneOverSharpnessSum = 1.0f / (CenterLobe.Sharpness + SampleLobe.Sharpness);
+
+	LobeSimilarity = pow(2.0f * sqrt(CenterLobe.Sharpness * SampleLobe.Sharpness) * OneOverSharpnessSum, Beta);
+	AxisSimilarity = exp(-(Beta * (CenterLobe.Sharpness * SampleLobe.Sharpness) * OneOverSharpnessSum) * clamp(1.0f - dot(CenterLobe.Axis, SampleLobe.Axis), 0.0f, 1.0f));
+
+	return LobeSimilarity * AxisSimilarity;
+}
+
+float GetLobeWeight(in SG CenterLobe, float SampleRoughness, vec3 SampleNormal, const vec3 Incident) {
+	
+	const float Beta = 128.0f;
+
+	float LobeSimilarity = 1.0f;
+	float AxisSimilarity = 1.0f;
+
+	SG SampleLobe = RoughnessLobe(SampleRoughness, SampleNormal, Incident);
+
+	float OneOverSharpnessSum = 1.0f / (CenterLobe.Sharpness + SampleLobe.Sharpness);
+
+	LobeSimilarity = pow(2.0f * sqrt(CenterLobe.Sharpness * SampleLobe.Sharpness) * OneOverSharpnessSum, Beta);
+	AxisSimilarity = exp(-(Beta * (CenterLobe.Sharpness * SampleLobe.Sharpness) * OneOverSharpnessSum) * clamp(1.0f - dot(CenterLobe.Axis, SampleLobe.Axis), 0.0f, 1.0f));
+
+	return LobeSimilarity * AxisSimilarity;
 }
 
 #define LARGE_VARIANCE_KERNEL
@@ -89,7 +165,6 @@ void main() {
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(u_StepSize)/sqrt(2.0f)));
-	ivec2 HighResPixel = Pixel * 2;
 
 	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
 
@@ -107,11 +182,26 @@ void main() {
 		return;
 	}
 
+
+	float DepthFetch = texelFetch(u_Depth, Pixel * 2, 0).x;
+	float CenterDepth = LinearizeDepth(DepthFetch);
+	vec3 CenterNormal = texelFetch(u_Normals, Pixel * 2, 0).xyz;
+	vec3 CenterHFNormal = texelFetch(u_NormalsHF, Pixel * 2, 0).xyz;
+	float CenterRoughness = texelFetch(u_PBR, Pixel * 2, 0).x;
+
+	float CenterSTraversal = UntransformReflectionTransversal(CenterSpec.w);
+
+	vec3 WorldPosition = WorldPosFromDepth(DepthFetch, v_TexCoords.xy).xyz;
+	vec3 ViewPosition = vec3(u_View * vec4(WorldPosition, 1.0f));
+	float PrimaryTransversal = length(ViewPosition);
+	vec3 Incident = normalize(u_ViewerPosition - WorldPosition);
+
+	float F = CenterSTraversal / (CenterSTraversal + PrimaryTransversal);
+	float SpecularRadius = clamp(mix(0.7f * CenterRoughness, 1.0f, F), 0.0f, 1.0f);
+
 	float CenterAO = Diffuse.w;
 	float CenterDiffuseLuma = Luminance(Diffuse.xyz);
 	float CenterSpecularLuma = Luminance(Specular.xyz);
-	float CenterDepth = LinearizeDepth(texelFetch(u_Depth, Pixel * 2, 0).x);
-	vec3 CenterNormal = texelFetch(u_Normals, Pixel * 2, 0).xyz;
 
 	float VarianceGaussian = GaussianVariance(Pixel);
 	 
@@ -132,9 +222,9 @@ void main() {
 		{
 			if (x == 0 && y == 0) { continue; }
 
-			ivec2 SamplePixel = Pixel + (ivec2(x,y) * u_StepSize) + Jitter;
+			ivec2 SamplePixel = Pixel + ivec2(vec2(x,y) * u_StepSize) + Jitter;
 
-			if (SamplePixel.x <= 0 || SamplePixel.x >= Size.x - 1 || SamplePixel.y <= 0 || SamplePixel.y >= Size.y - 1) {
+			if (SamplePixel.x <= 1 || SamplePixel.x >= Size.x - 1 || SamplePixel.y <= 1 || SamplePixel.y >= Size.y - 1) {
 					continue;
 			}
 
@@ -145,6 +235,10 @@ void main() {
 			float SampleVariance = texelFetch(u_Variance, SamplePixel, 0).x;
 			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
             vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
+			vec3 SampleHFNormal = texelFetch(u_NormalsHF, HighResPixel, 0).xyz;
+			float SampleRoughness = texelFetch(u_PBR, HighResPixel, 0).x;
+
+			float SampleSTraversal = UntransformReflectionTransversal(SampleSpecular.w);
 
 			float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)*float(u_SqrtStepSize)), DEPTH_EXPONENT), 0.0f, 1.0f);
 			float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
@@ -159,13 +253,14 @@ void main() {
 			float AOWeightDetail = pow(clamp(exp(-AOError / 0.075f), 0.0f, 1.0f), 1.0f);
 
 			// Specular Weights 
-			float SpecLumaWeight = pow(clamp(exp(-SpecLumaError / (0.0000000005f)), 0.0f, 1.0f), 1.0f);
+			float SpecLumaWeight = pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.));
+			float SpecLobeWeight = pow(GetLobeWeight(CenterRoughness, SampleRoughness, CenterHFNormal, SampleHFNormal, vec2(CenterSpec.w,SampleSpecular.w),Incident), 1.5f);
 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];
 
 			float RawWeight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
 			float DiffuseWeight = clamp(RawWeight * LumaWeight, 0.0f, 1.0f);
-			float SpecularWeight = clamp(RawWeight * SpecLumaWeight, 0.0f, 1.0f);
+			float SpecularWeight = clamp(DepthWeight * KernelWeight * SpecLobeWeight * SpecLumaWeight, 0.0f, 1.0f);
 			float AOWeight = clamp(DepthWeight * NormalWeight * KernelWeight * AOWeightDetail, 0.0f, 1.0f);
 
 			Specular += SampleSpecular * SpecularWeight;
@@ -185,6 +280,7 @@ void main() {
 	Diffuse.w /= TotalAOWeight;
 
 	Specular /= TotalSpecularWeight;
+	Specular.w = CenterSpec.w;
 
 	o_Diffuse = Diffuse;
 	o_Variance = Variance;
