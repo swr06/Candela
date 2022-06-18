@@ -190,7 +190,7 @@ GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16
 
 // Denoiser 
 GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, true);
-GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}}, false, true) };
+GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true) };
 
 // Entry point 
 void Lumen::StartPipeline()
@@ -704,6 +704,7 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Diffuse", 2);
 				SpatialFilterShader.SetInteger("u_Variance", 3);
 				SpatialFilterShader.SetInteger("u_FrameCounters", 4);
+				SpatialFilterShader.SetInteger("u_Specular", 5);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SpatialFilterShader.SetInteger("u_Pass", Pass);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
@@ -724,6 +725,9 @@ void Lumen::StartPipeline()
 				glActiveTexture(GL_TEXTURE4);
 				glBindTexture(GL_TEXTURE_2D, IndirectTemporal.GetTexture(1));
 
+				glActiveTexture(GL_TEXTURE5);
+				glBindTexture(GL_TEXTURE_2D, InitialPass ? IndirectTemporal.GetTexture(3) : SpatialPrevious.GetTexture(2));
+
 				ScreenQuadVAO.Bind();
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 				ScreenQuadVAO.Unbind();
@@ -742,7 +746,8 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_DepthTexture", 3);
 		LightingShader.SetInteger("u_BlueNoise", 5);
 		LightingShader.SetInteger("u_Skymap", 6);
-		LightingShader.SetInteger("u_Trace", 7);
+		LightingShader.SetInteger("u_IndirectDiffuse", 7);
+		LightingShader.SetInteger("u_IndirectSpecular", 8);
 
 		LightingShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
 		LightingShader.SetMatrix4("u_View", Camera.GetViewMatrix());
@@ -759,12 +764,12 @@ void Lumen::StartPipeline()
 		LightingShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
 		LightingShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 
-		LightingShader.SetInteger("u_SHDataA", 14);
-		LightingShader.SetInteger("u_SHDataB", 15);
+		LightingShader.SetInteger("u_SHDataA", 15);
+		LightingShader.SetInteger("u_SHDataB", 16);
 
 		for (int i = 0; i < 5; i++) {
 
-			const int BindingPointStart = 8;
+			const int BindingPointStart = 9;
 
 			std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
 			std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
@@ -797,15 +802,17 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
 		
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture());
-		glBindTexture(GL_TEXTURE_2D, IndirectTemporal.GetTexture(3));
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE8);
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(2));
 
 		// 8 - 13 occupied by shadow textures 
 
-		glActiveTexture(GL_TEXTURE14);
+		glActiveTexture(GL_TEXTURE15);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().x);
 
-		glActiveTexture(GL_TEXTURE15);
+		glActiveTexture(GL_TEXTURE16);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
 		
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());

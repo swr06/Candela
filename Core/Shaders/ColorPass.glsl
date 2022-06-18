@@ -17,7 +17,8 @@ uniform sampler2D u_DepthTexture;
 uniform sampler2D u_BlueNoise;
 uniform samplerCube u_Skymap;
 
-uniform sampler2D u_Trace;
+uniform sampler2D u_IndirectDiffuse;
+uniform sampler2D u_IndirectSpecular;
 
 uniform vec3 u_ViewerPosition;
 uniform vec3 u_LightDirection;
@@ -175,10 +176,11 @@ void main()
 	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords, -0.75f).xyz;
 	vec3 PBR = texture(u_PBRTexture, v_TexCoords).xyz;
 
-	vec4 GI = texture(u_Trace, v_TexCoords).xyzw; 
+	vec4 GI = texture(u_IndirectDiffuse, v_TexCoords).xyzw; 
+	vec4 SpecGI = texture(u_IndirectSpecular, v_TexCoords).xyzw; 
 
 	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), FilterShadows(WorldPosition, Normal)) * 0.5f;
 	vec3 DiffuseIndirect = GI.xyz * Albedo * GI.w;
-	o_Color = GI.xyz;
+	o_Color = Direct + DiffuseIndirect; // + (SpecGI.xyz * 0.2f);
 	
 }

@@ -5,12 +5,15 @@
 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out float o_Variance;
+layout (location = 2) out vec4 o_Specular;
 
 uniform sampler2D u_Depth;
 uniform sampler2D u_Normals;
 
 uniform sampler2D u_Diffuse;
-uniform sampler2D u_Variance;
+uniform sampler2D u_Specular;
+
+uniform sampler2D u_Variance; // <- Diffuse variance 
 
 uniform float u_zNear;
 uniform float u_zFar;
@@ -91,30 +94,35 @@ void main() {
 	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
+	vec4 Specular = texelFetch(u_Specular, Pixel, 0);
 	vec4 CenterDiffuse = Diffuse;
+	vec4 CenterSpec = Specular;
+
 	float Variance = texelFetch(u_Variance, Pixel, 0).x;
 
 	if (SPATIAL_OFF) {
 		o_Diffuse = Diffuse;
 		o_Variance = Variance;
+		o_Specular = Specular;
 		return;
 	}
 
 	float CenterAO = Diffuse.w;
-	float CenterLuma = Luminance(Diffuse.xyz);
+	float CenterDiffuseLuma = Luminance(Diffuse.xyz);
+	float CenterSpecularLuma = Luminance(Specular.xyz);
 	float CenterDepth = LinearizeDepth(texelFetch(u_Depth, Pixel * 2, 0).x);
 	vec3 CenterNormal = texelFetch(u_Normals, Pixel * 2, 0).xyz;
 
 	float VarianceGaussian = GaussianVariance(Pixel);
 	 
-	float TotalWeight = 1.0f;
+	float TotalDiffuseWeight = 1.0f;
+	float TotalSpecularWeight = 1.0f;
 	float TotalAOWeight = 1.0f;
 
 	ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
 
 	const float PhiLMult = 1.0f; //0.0000001f;
 	float FrameFactor = clamp(8.0f / float(Frames), 0.05f, 8.0f);
-	//float DepthFactor = mix(4.0f, 15.0f, clamp(pow(abs(CenterDepth) / 15.0f, 1.0f),0.0f,1.0f));
 	float PhiLFrameFactor = 6.25f; //mix(6.5f,3.75f,clamp(float(Frames)/20.0f,0.0f,1.0f));
 	float PhiL = PhiLMult * PhiLFrameFactor * sqrt(max(0.0f, 0.00000001f + VarianceGaussian));
 
@@ -133,6 +141,7 @@ void main() {
 			ivec2 HighResPixel = SamplePixel * 2;
 
 			vec4 SampleDiffuse = texelFetch(u_Diffuse, SamplePixel, 0);
+			vec4 SampleSpecular = texelFetch(u_Specular, SamplePixel, 0);
 			float SampleVariance = texelFetch(u_Variance, SamplePixel, 0).x;
 			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
             vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
@@ -140,31 +149,44 @@ void main() {
 			float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)*float(u_SqrtStepSize)), DEPTH_EXPONENT), 0.0f, 1.0f);
 			float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
 
-			float LumaError = abs(CenterLuma - Luminance(SampleDiffuse.xyz));
+			float LumaError = abs(CenterDiffuseLuma - Luminance(SampleDiffuse.xyz));
 			float AOError = abs(CenterAO - SampleDiffuse.w);
 
+			float SpecLumaError = abs(CenterSpecularLuma - Luminance(SampleSpecular.xyz));
+
+			// Diffuse Weights
 			float LumaWeight = pow(clamp(exp(-LumaError / (1.0f * PhiL + 0.0000001f)), 0.0f, 1.0f), 1.0f);
 			float AOWeightDetail = pow(clamp(exp(-AOError / 0.075f), 0.0f, 1.0f), 1.0f);
+
+			// Specular Weights 
+			float SpecLumaWeight = pow(clamp(exp(-SpecLumaError / (0.0000000005f)), 0.0f, 1.0f), 1.0f);
 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];
 
 			float RawWeight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
-			float Weight = clamp(RawWeight * LumaWeight, 0.0f, 1.0f);
+			float DiffuseWeight = clamp(RawWeight * LumaWeight, 0.0f, 1.0f);
+			float SpecularWeight = clamp(RawWeight * SpecLumaWeight, 0.0f, 1.0f);
 			float AOWeight = clamp(DepthWeight * NormalWeight * KernelWeight * AOWeightDetail, 0.0f, 1.0f);
 
-			Diffuse.xyz += SampleDiffuse.xyz * Weight;
-			Diffuse.w += SampleDiffuse.w * AOWeight;
-			Variance += SampleVariance * (Weight * Weight);
+			Specular += SampleSpecular * SpecularWeight;
+			TotalSpecularWeight += SpecularWeight;
 
-			TotalWeight += Weight;
+			Diffuse.xyz += SampleDiffuse.xyz * DiffuseWeight;
+			Diffuse.w += SampleDiffuse.w * AOWeight;
+			Variance += SampleVariance * (DiffuseWeight * DiffuseWeight);
+
+			TotalDiffuseWeight += DiffuseWeight;
 			TotalAOWeight += AOWeight;
 		}
 	}
 
-	Variance /= TotalWeight * TotalWeight;
-	Diffuse.xyz /= TotalWeight;
+	Variance /= TotalDiffuseWeight * TotalDiffuseWeight;
+	Diffuse.xyz /= TotalDiffuseWeight;
 	Diffuse.w /= TotalAOWeight;
+
+	Specular /= TotalSpecularWeight;
 
 	o_Diffuse = Diffuse;
 	o_Variance = Variance;
+	o_Specular = Specular;
 }

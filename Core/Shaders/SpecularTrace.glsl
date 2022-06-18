@@ -438,8 +438,8 @@ void main() {
 
 	vec3 Incident = normalize(WorldPosition - Player);
 
-    vec3 RayOrigin = WorldPosition + Normal * mix(0.06f, 0.1f, PBR.x * PBR.x);
-    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x / 2.5f);
+    vec3 RayOrigin = WorldPosition + Normal * 0.075f;
+    vec3 RayDirection = StochasticReflectionDirection(Incident, NormalHF, PBR.x * 0.825f);
 
     vec3 FinalRadiance = vec3(0.0f);
     float FinalTransversal = -1.0f;

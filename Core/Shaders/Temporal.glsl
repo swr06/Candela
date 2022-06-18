@@ -90,6 +90,7 @@ void GatherMinMax(ivec2 Pixel, out vec4 Min, out vec4 Max, out vec4 Mean, out ve
 		for (int y = -1 ; y <= 1 ; y++) {
 			
 			vec4 Fetch = texelFetch(u_SpecularCurrent, Pixel + ivec2(x, y), 0);
+			Fetch.xyz = RGB2YCoCg(Fetch.xyz);
 			Min = min(Min, Fetch);
 			Max = max(Max, Fetch);
 			Mean += Fetch;
@@ -194,12 +195,13 @@ void main() {
 		vec3 Incident = normalize(u_ViewerPosition - WorldPosition.xyz);
 		vec3 ReflectedPosition = (WorldPosition.xyz) - Incident * Transversal;
 		vec3 ReprojectedReflection = Reprojection(ReflectedPosition).xyz;
+		float SpecMotionLength = length(ReprojectedReflection.xy-v_TexCoords);
 
 		if (IsInScreenspaceBiased(ReprojectedReflection.xy)) {
 			vec4 HistorySpecular = CatmullRom(u_SpecularHistory, ReprojectedReflection.xy);
 
-			float ClipStrength = max(mix(1.0f, 6.0f, pow(PBR.x,1.5f)) * (MotionLength > 0.0001f ? 0.4f : 5.0f), 1.0f);
-			HistorySpecular.xyz = ClipToAABB(HistorySpecular.xyz, MeanSpec.xyz - Variance.xyz * ClipStrength, MeanSpec.xyz + Variance.xyz * ClipStrength);
+			float ClipStrength = max(mix(1.0f, 5.0f, pow(PBR.x,1.5f)) * (MotionLength > 0.0001f ? 0.4f : 3.0f), 1.0f);
+			HistorySpecular.xyz = YCoCg2RGB(ClipToAABB(RGB2YCoCg(HistorySpecular.xyz), MeanSpec.xyz - Variance.xyz * ClipStrength, MeanSpec.xyz + Variance.xyz * ClipStrength));
 
 			float TransversalError = abs(HistorySpecular.w - Transversal);
 
