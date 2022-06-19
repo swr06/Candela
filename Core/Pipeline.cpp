@@ -24,6 +24,8 @@
 #include "BVH/BVHConstructor.h"
 #include "BVH/Intersector.h"
 
+#include "TAAJitter.h"
+
 #include "Utility.h"
 
 
@@ -193,6 +195,9 @@ GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16
 GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, true);
 GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true) };
 
+// Antialiasing 
+GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
+
 // Entry point 
 void Lumen::StartPipeline()
 {
@@ -283,6 +288,7 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& MotionVectorShader = ShaderManager::GetShader("MOTION_VECTORS");
 	GLClasses::Shader& SpatialVarianceShader = ShaderManager::GetShader("SVGF_VARIANCE");
 	GLClasses::Shader& SpatialFilterShader = ShaderManager::GetShader("SPATIAL_FILTER");
+	GLClasses::Shader& TAAShader = ShaderManager::GetShader("TAA");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
 
@@ -299,6 +305,9 @@ void Lumen::StartPipeline()
 
 	// Initialize radiance probes
 	ProbeGI::Initialize();
+
+	// TAA
+	GenerateJitterStuff();
 
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
@@ -322,6 +331,10 @@ void Lumen::StartPipeline()
 
 		// Lighting
 		LightingPass.SetSize(app.GetWidth(), app.GetHeight());
+		
+		// Antialiasing
+		TAABuffers[0].SetSize(app.GetWidth(), app.GetHeight());
+		TAABuffers[1].SetSize(app.GetWidth(), app.GetHeight());
 
 		// Diffuse FBOs
 		DiffuseCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
@@ -349,6 +362,9 @@ void Lumen::StartPipeline()
 		GLClasses::Framebuffer& IndirectTemporal = FrameMod2 ? TemporalBuffersIndirect[0] : TemporalBuffersIndirect[1];
 		GLClasses::Framebuffer& PreviousIndirectTemporal = FrameMod2 ? TemporalBuffersIndirect[1] : TemporalBuffersIndirect[0];
 
+		GLClasses::Framebuffer& TAA = FrameMod2 ? TAABuffers[0] : TAABuffers[1];
+		GLClasses::Framebuffer& PrevTAA = FrameMod2 ? TAABuffers[1] : TAABuffers[0];
+
 		// App update 
 		PreviousProjection = Camera.GetProjectionMatrix();
 		PreviousView = Camera.GetViewMatrix();
@@ -374,10 +390,12 @@ void Lumen::StartPipeline()
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
 
+		glm::mat4 TAAMatrix = GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions());
+
 		GBuffer.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		GBufferShader.Use();
-		GBufferShader.SetMatrix4("u_ViewProjection", Camera.GetViewProjection());
+		GBufferShader.SetMatrix4("u_ViewProjection", TAAMatrix * Camera.GetViewProjection());
 		GBufferShader.SetInteger("u_AlbedoMap", 0);
 		GBufferShader.SetInteger("u_NormalMap", 1);
 		GBufferShader.SetInteger("u_RoughnessMap", 2);
@@ -824,6 +842,40 @@ void Lumen::StartPipeline()
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
 
+		// Temporal Anti Aliasing 
+
+		TAAShader.Use();
+		TAA.Bind();
+
+		TAAShader.SetInteger("u_CurrentColorTexture", 0);
+		TAAShader.SetInteger("u_PreviousColorTexture", 1);
+		TAAShader.SetInteger("u_DepthTexture", 2);
+		TAAShader.SetInteger("u_PreviousDepthTexture", 3);
+		TAAShader.SetInteger("u_MotionVectors", 4);
+		TAAShader.SetVector2f("u_CurrentJitter", GetTAAJitter(app.GetCurrentFrame()));
+
+		SetCommonUniforms<GLClasses::Shader>(TAAShader, UniformBuffer);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, PrevTAA.GetTexture());
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, PrevGBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+
 		// Final
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, app.GetWidth(), app.GetHeight());
@@ -832,7 +884,7 @@ void Lumen::StartPipeline()
 		FinalShader.SetInteger("u_MainTexture", 0);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture(0));
+		glBindTexture(GL_TEXTURE_2D, TAA.GetTexture(0));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

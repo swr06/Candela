@@ -210,6 +210,9 @@
     <ClInclude Include="Dependencies\crc\CRC.h">
       <Filter>Source Files\Dependencies\crc</Filter>
     </ClInclude>
+    <ClInclude Include="Core\TAAJitter.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -335,6 +338,9 @@
     <ClCompile Include="Core\ProbeGI.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
+    <ClCompile Include="Core\TAAJitter.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl">
@@ -453,6 +459,9 @@
     </None>
     <None Include="Core\Shaders\Include\Karis.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\TAA.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -181,6 +181,7 @@
     <ClInclude Include="Core\Shadowmap.h" />
     <ClInclude Include="Core\ShadowMapHandler.h" />
     <ClInclude Include="Core\ShadowRenderer.h" />
+    <ClInclude Include="Core\TAAJitter.h" />
     <ClInclude Include="Core\Threadpool.h" />
     <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\Utils\Random.h" />
@@ -229,6 +230,7 @@
     <ClCompile Include="Core\Shadowmap.cpp" />
     <ClCompile Include="Core\ShadowMapHandler.cpp" />
     <ClCompile Include="Core\ShadowRenderer.cpp" />
+    <ClCompile Include="Core\TAAJitter.cpp" />
     <ClCompile Include="Core\Threadpool.cpp" />
     <ClCompile Include="Dependencies\glad\src\glad.c" />
     <ClCompile Include="Dependencies\imgui\imgui.cpp" />
@@ -283,6 +285,7 @@
     <None Include="Core\Shaders\SpatialVariance.glsl" />
     <None Include="Core\Shaders\SpecularTrace.glsl" />
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl" />
+    <None Include="Core\Shaders\TAA.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
     <None Include="Core\Shaders\UpdateRadianceProbes.glsl" />
