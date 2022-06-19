@@ -169,17 +169,17 @@ void main() {
         Current.xyz = Tonemap(Current.xyz);
         History.xyz = Tonemap(History.xyz);
 
-        float Bias = 0.0f;
+        float Bias = MotionLength > 0.00008f ? 0.0f : 0.01f;
+
         History.xyz = ClipToAABB(History.xyz, Min.xyz - Bias, Max.xyz + Bias);
 
         float BlendFactor = exp(-length((MotionVector * Dimensions))) * 0.9f + 0.7f;
-		BlendFactor = clamp(BlendFactor, 0.0f, 1.0f);
 
         float FrameBlend = 1.0f - clamp(1.0f / Frames, 0.0f, 1.0f);
 
         float TemporalBlur = BlendFactor;
 
-        o_Color.xyz = InverseTonemap(mix(Current.xyz, History.xyz, TemporalBlur));
+        o_Color.xyz = InverseTonemap(mix(Current.xyz, History.xyz, clamp(TemporalBlur, 0.0f, 0.97f)));
         o_Color.w = (Frames * BlendFactor);
     }
 
