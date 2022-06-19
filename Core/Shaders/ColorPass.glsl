@@ -32,6 +32,8 @@ uniform mat4 u_Projection;
 uniform mat4 u_View;
 uniform vec2 u_Dims;
 
+uniform int u_Frame;
+
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
@@ -98,9 +100,11 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 {
 	int ClosestCascade = -1;
 	float Shadow = 0.0;
-	float VogelScales[5] = float[5](0.002f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
+	float VogelScales[5] = float[5](0.00225f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
 	
 	vec2 Hash = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
+
+	Hash.xy = mod(Hash.xy + 1.61803398874f * (u_Frame % 100), 1.0f);
 
 	vec2 TexelSize = 1.0 / textureSize(u_ShadowTextures[ClosestCascade], 0);
 
@@ -134,7 +138,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	
 	float Bias = 0.00f;
 
-	int SampleCount = 32;
+	int SampleCount = 4;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
@@ -188,24 +192,24 @@ void main()
 	vec3 DiffuseIndirect = vec3(0.0f);
 
 	#ifdef DO_INDIRECT
-		const vec2 IndirectStrength = vec2(1.0f, 1.2f); // x : diffuse strength, y : specular strength
+		const vec2 IndirectStrength = vec2(1.0f, 1.3f); // x : diffuse strength, y : specular strength
 
 		// Sample GI
 		vec4 GI = texture(u_IndirectDiffuse, v_TexCoords).xyzw; 
 		vec4 SpecGI = texture(u_IndirectSpecular, v_TexCoords).xyzw; 
 
-		vec3 FresnelTerm = FresnelSchlickRoughness(max(dot(Incident, Normal.xyz), 0.000001f), vec3(F0), PBR.x) * 1.25f; 
+		vec3 FresnelTerm = FresnelSchlickRoughness(max(dot(Incident, Normal.xyz), 0.000001f), vec3(F0), PBR.x); 
 		FresnelTerm = clamp(FresnelTerm, 0.0f, 1.0f);
 
 		vec3 kS = FresnelTerm;
 		vec3 kD = 1.0f - kS;
 		kD *= 1.0f - PBR.y;
 					
-		vec2 EnvironmentBRDFSampleLocation = vec2(max(dot(Incident, Normal.xyz), 0.000001f), PBR.x);
-		EnvironmentBRDFSampleLocation = clamp(EnvironmentBRDFSampleLocation, 0.0f, 1.0f);
-		vec2 EnvironmentBRDF = Karis(EnvironmentBRDFSampleLocation.x, EnvironmentBRDFSampleLocation.y);
+		vec2 BRDFCoord = vec2(max(dot(Incident, Normal.xyz), 0.000001f), PBR.x);
+		BRDFCoord = clamp(BRDFCoord, 0.0f, 1.0f);
+		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
-		SpecularIndirect = SpecGI.xyz * (FresnelTerm * EnvironmentBRDF.x + EnvironmentBRDF.y) * IndirectStrength.y;
+		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y;
 		DiffuseIndirect = kD * GI.xyz * Albedo * GI.w * IndirectStrength.x;
 	#endif
 

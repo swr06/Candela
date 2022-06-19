@@ -130,6 +130,17 @@ vec3 ClipToAABB(vec3 prevColor, vec3 minColor, vec3 maxColor)
     return denom > 1.0 ? pClip + vClip / denom : prevColor;
 }
 
+float ClipToAABB(float prevColor, float minColor, float maxColor)
+{
+    float pClip = 0.5 * (maxColor + minColor); 
+    float eClip = 0.5 * (maxColor - minColor); 
+    float vClip = prevColor - pClip;
+    float vUnit = vClip / eClip;
+    float aUnit = abs(vUnit);
+    float denom = aUnit;
+    return denom > 1.0 ? pClip + vClip / denom : prevColor;
+}
+
 vec3 RGB2YCoCg(in vec3 rgb)
 {
     float co = rgb.r - rgb.b;

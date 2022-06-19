@@ -169,6 +169,7 @@ void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 	shader.SetVector3f("u_ViewerPosition", glm::vec3(uniforms.InvView[3]));
 	shader.SetVector3f("u_Incident", glm::vec3(uniforms.InvView[3]));
 	shader.SetVector3f("u_SunDirection", uniforms.SunDirection);
+	shader.SetVector3f("u_LightDirection", uniforms.SunDirection);
 	shader.SetFloat("u_zNear", Camera.GetNearPlane());
 	shader.SetFloat("u_zFar", Camera.GetFarPlane());
 }
@@ -684,7 +685,7 @@ void Lumen::StartPipeline()
 		{
 			// We use a small 3x3 kernel, so we use more passes
 			// This is actually faster due to fewer cache hits
-			const int Passes = 6; 
+			const int Passes = 5; 
 			const int StepSizes[6] = { 1, 2, 4, 8, 16, 32 };
 
 			for (int Pass = 0; Pass < Passes; Pass++) {
@@ -757,16 +758,8 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_IndirectDiffuse", 7);
 		LightingShader.SetInteger("u_IndirectSpecular", 8);
 
-		LightingShader.SetMatrix4("u_Projection", Camera.GetProjectionMatrix());
-		LightingShader.SetMatrix4("u_View", Camera.GetViewMatrix());
-		LightingShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
-		LightingShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
 		LightingShader.SetMatrix4("u_LightVP",ShadowHandler::GetShadowViewProjectionMatrix(0));
 		LightingShader.SetVector2f("u_Dims", glm::vec2(app.GetWidth(), app.GetHeight()));
-
-
-		LightingShader.SetVector3f("u_LightDirection", SunDirection);
-		LightingShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 
 		LightingShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
 		LightingShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
@@ -774,6 +767,8 @@ void Lumen::StartPipeline()
 
 		LightingShader.SetInteger("u_SHDataA", 15);
 		LightingShader.SetInteger("u_SHDataB", 16);
+
+		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 
 		for (int i = 0; i < 5; i++) {
 

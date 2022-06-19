@@ -225,7 +225,7 @@ void main() {
 			ivec2 SamplePixel = Pixel + ivec2(vec2(x,y) * u_StepSize) + Jitter;
 
 			if (SamplePixel.x <= 1 || SamplePixel.x >= Size.x - 1 || SamplePixel.y <= 1 || SamplePixel.y >= Size.y - 1) {
-					continue;
+				continue;
 			}
 
 			ivec2 HighResPixel = SamplePixel * 2;
@@ -250,17 +250,18 @@ void main() {
 
 			// Diffuse Weights
 			float LumaWeight = pow(clamp(exp(-LumaError / (1.0f * PhiL + 0.0000001f)), 0.0f, 1.0f), 1.0f);
-			float AOWeightDetail = pow(clamp(exp(-AOError / 0.075f), 0.0f, 1.0f), 1.0f);
+			float AOWeightDetail = pow(clamp(exp(-AOError / 0.155f), 0.0f, 1.0f), 1.0f);
 
 			// Specular Weights 
 			float SpecLumaWeight = pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.));
 			float SpecLobeWeight = pow(GetLobeWeight(CenterRoughness, SampleRoughness, CenterHFNormal, SampleHFNormal, vec2(CenterSpec.w,SampleSpecular.w),Incident), 1.5f);
 
+			// Wavelet 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];
 
 			float RawWeight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
 			float DiffuseWeight = clamp(RawWeight * LumaWeight, 0.0f, 1.0f);
-			float SpecularWeight = clamp(DepthWeight * KernelWeight * SpecLobeWeight * SpecLumaWeight, 0.0f, 1.0f);
+			float SpecularWeight = clamp(DepthWeight * KernelWeight * pow(SpecLobeWeight, 1.0f), 0.0f, 1.0f);
 			float AOWeight = clamp(DepthWeight * NormalWeight * KernelWeight * AOWeightDetail, 0.0f, 1.0f);
 
 			Specular += SampleSpecular * SpecularWeight;
@@ -280,7 +281,7 @@ void main() {
 	Diffuse.w /= TotalAOWeight;
 
 	Specular /= TotalSpecularWeight;
-	Specular.w = CenterSpec.w;
+	Specular.w = CenterSpec.w; 
 
 	o_Diffuse = Diffuse;
 	o_Variance = Variance;

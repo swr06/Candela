@@ -123,7 +123,7 @@ vec3 StochasticReflectionDirection(vec3 Incident, vec3 Normal, float Roughness) 
 
 vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps, const float ThresholdMultiplier) {
 
-    float TraceDistance = 48.0f;
+    float TraceDistance = 32.0f;
 
     float StepSize = TraceDistance / Steps;
 
@@ -441,17 +441,22 @@ void main() {
 	vec3 Incident = normalize(WorldPosition - Player);
 
     vec3 RayOrigin = WorldPosition + Normal * mix(0.05f, 0.1f, clamp(PBR.x*1.4f,0.0f,1.0f));
-    vec3 RayDirection = StochasticReflectionDirection(Incident, NormalHF, PBR.x*0.825f); 
+    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x*0.825f); 
 
     vec3 FinalRadiance = vec3(0.0f);
     float FinalTransversal = -1.0f;
 
 	if (TRACE_MODE == 0 || TRACE_MODE == 1) {
 
+		//vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
+		//	int(mix(32, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
+		//	int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
+		//	mix(0.0045f, 0.0075f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
+
 		vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-			int(mix(32, 16, clamp(PBR.x * PBR.x * 1.2f, 0.0f, 1.0f))), // <- Step count 
-			int(mix(8, 8, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))), // <- Binary refine step count
-			mix(0.0045f, 0.0075f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
+			int(mix(32.0f, 24.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Step count 
+			7, // <- Binary refine step count
+		    0.00370f); // <- Error threshold
 
 		if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
 			    

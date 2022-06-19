@@ -78,7 +78,7 @@ vec3 Reprojection(vec3 WorldPos)
 
 }
 
-void GatherMinMax(ivec2 Pixel, out vec4 Min, out vec4 Max, out vec4 Mean, out vec4 Moments) {
+void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 Min, out vec4 Max, out vec4 Mean, out vec4 Moments) {
 	
 	Min = vec4(10000.0f);
 	Max = vec4(-10000.0f);
@@ -89,7 +89,7 @@ void GatherMinMax(ivec2 Pixel, out vec4 Min, out vec4 Max, out vec4 Mean, out ve
 		
 		for (int y = -1 ; y <= 1 ; y++) {
 			
-			vec4 Fetch = texelFetch(u_SpecularCurrent, Pixel + ivec2(x, y), 0);
+			vec4 Fetch = (x == 0 && y == 0) ? Center : texelFetch(Texture, Pixel + ivec2(x, y), 0);
 			Fetch.xyz = RGB2YCoCg(Fetch.xyz);
 			Min = min(Min, Fetch);
 			Max = max(Max, Fetch);
@@ -124,22 +124,25 @@ void main() {
 
 	vec2 Reprojected = MotionVector + v_TexCoords;
 
-	vec4 Current = texelFetch(u_DiffuseCurrent, Pixel, 0);
+	vec4 CurrentDiffuse = texelFetch(u_DiffuseCurrent, Pixel, 0);
 
-	float L = Luminance(Current.xyz);
+	float L = Luminance(CurrentDiffuse.xyz);
 
 	vec2 Moments;
 	Moments = vec2(L, L * L);
 
 	float DiffuseFrames = 1.0f;
 
-	o_Diffuse = Current;
+	o_Diffuse = CurrentDiffuse;
 	o_Moments = max(Moments, 0.0f);
 
 	bool DisocclusionSurface = true;
 
 	if (IsInScreenspaceBiased(Reprojected)) 
 	{
+		vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
+		GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff);
+
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;
 
@@ -150,8 +153,7 @@ void main() {
 
 		float BlendFactor = 0.0f;
 
-
-		float Tolerance = MotionLength <= 0.000001f ? 32.0f : (MotionLength > 0.001f ? 1.0f : 3.0f);
+		float Tolerance = MotionLength <= 0.0000001f ? 32.0f : (MotionLength > 0.001f ? 1.0f : 3.0f);
 
 		if (Error < Tolerance)
 		{
@@ -160,15 +162,16 @@ void main() {
 			DiffuseFrames = min((texelFetch(u_Utility, ReprojectedPixel.xy, 0).x * 255.0f), 128.0f) + 1.0f;
 			BlendFactor = 1.0f - (1.0f / DiffuseFrames);
 
-			vec4 History = CatmullRom(u_DiffuseHistory, Reprojected.xy);
-			o_Diffuse.xyz = mix(Current.xyz, History.xyz, BlendFactor);
+			vec4 History = texture(u_DiffuseHistory, Reprojected.xy);
+			o_Diffuse.xyz = mix(CurrentDiffuse.xyz, History.xyz, BlendFactor);
 
 			vec2 HistoryMoments = texture(u_MomentsHistory, Reprojected.xy).xy;
 			o_Moments = mix(Moments, HistoryMoments, BlendFactor);
 
 			if (Error < Tolerance * 0.8f) {
 				float MotionWeight = MotionLength > 0.001f ? clamp(exp(-length(MotionVector * vec2(Dimensions))) * 0.6f + 0.75f, 0.0f, 1.0f) : 1.0f;
-				o_Diffuse.w = mix(Current.w, History.w, min(BlendFactor * MotionWeight, 0.93f));
+				//History.w = ClipToAABB(History.w, MinDiff.w - 0.001f, MaxDiff.w + 0.001f);
+				o_Diffuse.w = mix(CurrentDiffuse.w, History.w, min(BlendFactor * MotionWeight, 0.9f));
 			}
 		}
 
@@ -183,7 +186,7 @@ void main() {
 	{
 		vec4 MinSpec, MaxSpec, MeanSpec, MomentsSpec;
 
-		GatherMinMax(Pixel, MinSpec, MaxSpec, MeanSpec, MomentsSpec);
+		GatherStatistics(u_SpecularCurrent, Pixel, CurrentSpecular, MinSpec, MaxSpec, MeanSpec, MomentsSpec);
 
 		vec4 Variance = sqrt(abs(MomentsSpec - MeanSpec * MeanSpec));
 		float Transversal = UntransformReflectionTransversal(MeanSpec.w);

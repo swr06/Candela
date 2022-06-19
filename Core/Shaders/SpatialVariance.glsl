@@ -49,6 +49,7 @@ void main() {
 
 		const float Atrous[3] = float[3]( 1.0f, 2.0f / 3.0f, 1.0f / 6.0f );
 		float TotalWeight = 1.0f;
+		float TotalAOWeight = 1.0f;
 		int Kernel = 2;
 
 		ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
@@ -79,9 +80,14 @@ void main() {
 				float LumaWeight = clamp(exp(-abs(Luminance(SampleDiffuse.xyz)-CenterL)/PhiL),0.0,1.0f);
 				float KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
-				float Weight = clamp(DepthWeight * NormalWeight * LumaWeight, 0.0f, 1.0f);
+				float AOError = abs(CenterDiffuse.w - SampleDiffuse.w);
+				float AOWeightDetail = pow(clamp(exp(-AOError / 0.015f), 0.0f, 1.0f), 1.0f);
 
-				Diffuse += SampleDiffuse * Weight;
+				float Weight = clamp(DepthWeight * NormalWeight * LumaWeight, 0.0f, 1.0f);
+				float AOWeight = clamp(DepthWeight * NormalWeight, 0.0f, 1.0f); 
+
+				Diffuse.xyz += SampleDiffuse.xyz * Weight;
+				Diffuse.w += SampleDiffuse.w * AOWeight;
 
 				vec2 CurrentMoments = vec2(Luminance(SampleDiffuse.xyz));
 				CurrentMoments = vec2(CurrentMoments.x, CurrentMoments.x * CurrentMoments.x);
@@ -89,12 +95,14 @@ void main() {
 
 				Moments += CurrentMoments * Weight;
 				TotalWeight += Weight;
+				TotalAOWeight += AOWeight;
 			}
 
 		}
 
 		Moments /= TotalWeight;
-		Diffuse /= TotalWeight;
+		Diffuse.xyz /= TotalWeight;
+		Diffuse.w /= TotalAOWeight;
 
 		o_Variance = abs(Moments.y - Moments.x * Moments.x) * 3.0f;
 	}
