@@ -9,11 +9,11 @@
 - Cascaded Shadow Mapping
 - Indirect Diffuse GI
 - Infinite bounce GI using irradiance probes
+- Hybrid Specular GI (SSR + World Space RT)
 - SVGF
-- SSR
+- TAA
 
 # Todo
-- TXAA (+ TAAU)
 - ReStir GI/DI
 - LTC
 - Compute based particle system (kD tree)
