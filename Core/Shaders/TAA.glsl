@@ -72,6 +72,10 @@ vec3 Tonemap(vec3 x) {
     return Reinhard(x);
 }
 
+vec3 InverseTonemap(vec3 x) {
+    return InverseReinhard(x);
+}
+
 void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 Min, out vec4 Max, out vec4 Mean, out vec4 Moments) {
 	
 	Min = vec4(10000.0f);
@@ -132,8 +136,9 @@ void main() {
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
     
     vec4 Current = texelFetch(u_CurrentColorTexture, Pixel, 0).xyzw;
+    //vec4 Current = CatmullRom(u_CurrentColorTexture, v_TexCoords).xyzw;
 
-    o_Color = vec4(Current);
+    o_Color = vec4(Current.xyz, 1.0f);
 
     if (Depth == 1.0f || !ENABLED) {
         return;
@@ -159,16 +164,27 @@ void main() {
         
         vec4 History = CatmullRom(u_PreviousColorTexture, Reprojected.xy);
 
+        float Frames = (History.w) + 1.0f;
+
         Current.xyz = Tonemap(Current.xyz);
         History.xyz = Tonemap(History.xyz);
 
-        float Bias = 0.0025f;
+        float Bias = 0.0f;
         History.xyz = ClipToAABB(History.xyz, Min.xyz - Bias, Max.xyz + Bias);
 
         float BlendFactor = exp(-length((MotionVector * Dimensions))) * 0.9f + 0.7f;
-		BlendFactor = clamp(BlendFactor, 0.0f, 0.98f);
+		BlendFactor = clamp(BlendFactor, 0.0f, 1.0f);
 
-        o_Color.xyz = InverseReinhard(mix(Current.xyz, History.xyz, BlendFactor));
-        o_Color.w = 1.0f;
+        float FrameBlend = 1.0f - clamp(1.0f / Frames, 0.0f, 1.0f);
+
+        float TemporalBlur = BlendFactor;
+
+        o_Color.xyz = InverseTonemap(mix(Current.xyz, History.xyz, TemporalBlur));
+        o_Color.w = (Frames * BlendFactor);
     }
+
+    if (!IsValid(o_Color)) {
+        o_Color = vec4(0.0f);
+    }
+
 }

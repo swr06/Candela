@@ -247,6 +247,7 @@
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl" />
     <None Include="Core\Shaders\BasicVert.glsl" />
+    <None Include="Core\Shaders\CAS.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\ColorPass.glsl" />
     <None Include="Core\Shaders\CopyVolume.glsl" />
@@ -254,7 +255,7 @@
     <None Include="Core\Shaders\DepthVert.glsl" />
     <None Include="Core\Shaders\DiffuseRayGenerate.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
-    <None Include="Core\Shaders\FBOFrag.glsl" />
+    <None Include="Core\Shaders\Tonemap.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />
     <None Include="Core\Shaders\GeometryFrag.glsl" />
     <None Include="Core\Shaders\GeometryVert.glsl" />

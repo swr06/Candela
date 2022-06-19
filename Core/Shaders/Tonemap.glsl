@@ -42,5 +42,4 @@ void main()
 {
     o_Color.xyz = texture(u_MainTexture, v_TexCoords).xyz;
     o_Color.xyz = ACESFitted(vec4(o_Color.xyz,1.0f), 1.5f).xyz;
-    o_Color.xyz = LinearToSRGB(o_Color);
 }

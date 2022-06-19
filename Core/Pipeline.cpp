@@ -178,7 +178,10 @@ void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 
 // Deferred
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true) };
-GLClasses::Framebuffer LightingPass(16, 16, {GL_RGB16F, GL_RGB, GL_FLOAT, true, true}, false, true);
+GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
+
+// Post 
+GLClasses::Framebuffer Tonemapped(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
 
 // For temporal 
 GLClasses::Framebuffer MotionVectors(16, 16, { GL_RG16F, GL_RG, GL_FLOAT, true, true }, false, true);
@@ -283,12 +286,13 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& GBufferShader = ShaderManager::GetShader("GBUFFER");
 	GLClasses::Shader& LightingShader = ShaderManager::GetShader("LIGHTING_PASS");
 	GLClasses::Shader& CheckerReconstructShader = ShaderManager::GetShader("CHECKER_UPSCALE");
-	GLClasses::Shader& FinalShader = ShaderManager::GetShader("FINAL");
+	GLClasses::Shader& TonemapShader = ShaderManager::GetShader("TONEMAP");
 	GLClasses::Shader& TemporalFilterShader = ShaderManager::GetShader("TEMPORAL");
 	GLClasses::Shader& MotionVectorShader = ShaderManager::GetShader("MOTION_VECTORS");
 	GLClasses::Shader& SpatialVarianceShader = ShaderManager::GetShader("SVGF_VARIANCE");
 	GLClasses::Shader& SpatialFilterShader = ShaderManager::GetShader("SPATIAL_FILTER");
 	GLClasses::Shader& TAAShader = ShaderManager::GetShader("TAA");
+	GLClasses::Shader& CASShader = ShaderManager::GetShader("CAS");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
 
@@ -342,12 +346,16 @@ void Lumen::StartPipeline()
 		SpecularCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 		SpecularCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 
+		// Temporal/Spatial resolve buffers
 		CheckerboardUpscaled.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		SpatialVariance.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		SpatialBuffers[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		SpatialBuffers[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		TemporalBuffersIndirect[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		TemporalBuffersIndirect[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+
+		// Other post buffers
+		Tonemapped.SetSize(app.GetWidth(), app.GetHeight());
 		
 		// Set FBO references
 		GLClasses::Framebuffer& GBuffer = FrameMod2 ? GBuffers[0] : GBuffers[1];
@@ -876,12 +884,12 @@ void Lumen::StartPipeline()
 		ScreenQuadVAO.Unbind();
 
 
-		// Final
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, app.GetWidth(), app.GetHeight());
+		// Tonemap
 
-		FinalShader.Use();
-		FinalShader.SetInteger("u_MainTexture", 0);
+		Tonemapped.Bind();
+
+		TonemapShader.Use();
+		TonemapShader.SetInteger("u_MainTexture", 0);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, TAA.GetTexture(0));
@@ -890,7 +898,24 @@ void Lumen::StartPipeline()
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
 
-		// Finish : 
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// CAS + Gamma correct 
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, app.GetWidth(), app.GetHeight());
+
+		CASShader.Use();
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Tonemapped.GetTexture(0));
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		// Finish 
+
 		glFinish();
 		app.FinishFrame();
 

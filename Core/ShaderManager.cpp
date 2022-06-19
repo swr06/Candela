@@ -8,7 +8,8 @@ void Lumen::ShaderManager::CreateShaders()
 {
 	AddShader("GBUFFER", "Core/Shaders/GeometryVert.glsl", "Core/Shaders/GeometryFrag.glsl");
 	AddShader("LIGHTING_PASS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/ColorPass.glsl");
-	AddShader("FINAL", "Core/Shaders/FBOVert.glsl", "Core/Shaders/FBOFrag.glsl");
+	AddShader("TONEMAP", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Tonemap.glsl");
+	AddShader("CAS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/CAS.glsl");
 	AddShader("DEPTH", "Core/Shaders/DepthVert.glsl", "Core/Shaders/DepthFrag.glsl");
 	AddShader("PROBE_FORWARD", "Core/Shaders/ProbeForwardVert.glsl", "Core/Shaders/ProbeForwardFrag.glsl");
 	AddComputeShader("DIFFUSE_TRACE", "Core/Shaders/DiffuseTrace.glsl");

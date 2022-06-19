@@ -9,6 +9,7 @@
 #include "Include/CookTorranceBRDF.glsl"
 #include "Include/SpatialUtility.glsl"
 #include "Include/Karis.glsl"
+#include "Include/Utility.glsl"
 
 layout (location = 0) out vec3 o_Color;
 
@@ -100,7 +101,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 {
 	int ClosestCascade = -1;
 	float Shadow = 0.0;
-	float VogelScales[5] = float[5](0.00225f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
+	float VogelScales[5] = float[5](0.003f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
 	
 	vec2 Hash = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
 
@@ -138,7 +139,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	
 	float Bias = 0.00f;
 
-	int SampleCount = 4;
+	int SampleCount = 5;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
@@ -192,7 +193,7 @@ void main()
 	vec3 DiffuseIndirect = vec3(0.0f);
 
 	#ifdef DO_INDIRECT
-		const vec2 IndirectStrength = vec2(1.0f, 1.3f); // x : diffuse strength, y : specular strength
+		const vec2 IndirectStrength = vec2(1.125f, 1.0f); // x : diffuse strength, y : specular strength
 
 		// Sample GI
 		vec4 GI = texture(u_IndirectDiffuse, v_TexCoords).xyzw; 
@@ -209,8 +210,12 @@ void main()
 		BRDFCoord = clamp(BRDFCoord, 0.0f, 1.0f);
 		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
-		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y;
+		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.05f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * GI.w * IndirectStrength.x;
+
+		mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
+		DiffuseIndirect = vec3(ColorTweakMatrix * vec4(DiffuseIndirect, 1.0f));
+
 	#endif
 
 	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), FilterShadows(WorldPosition, Normal)) * 0.5f;

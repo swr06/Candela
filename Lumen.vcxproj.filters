@@ -349,7 +349,7 @@
     <None Include="Core\Shaders\BasicVert.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\FBOFrag.glsl">
+    <None Include="Core\Shaders\Tonemap.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
     <None Include="Core\Shaders\FBOVert.glsl">
@@ -461,6 +461,9 @@
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
     <None Include="Core\Shaders\TAA.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\CAS.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>

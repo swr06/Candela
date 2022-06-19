@@ -486,11 +486,11 @@ void main() {
 			if (TUVW.x > 0.0f) 
 				FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
 			else 
-				FinalRadiance = texture(u_SkyCube, RayDirection).xyz;
+				FinalRadiance = texture(u_SkyCube, RayDirection).xyz * 2.4f;
 		}
 
 		else {
-		    FinalRadiance = Screentrace.w * texture(u_SkyCube, RayDirection).xyz * 2.0f;
+		    FinalRadiance = Screentrace.w * texture(u_SkyCube, RayDirection).xyz * 2.4f;
 		}
 	}
 
