@@ -37,6 +37,15 @@ uniform vec3 u_ProbeBoxOrigin;
 uniform usampler3D u_SHDataA;
 uniform usampler3D u_SHDataB;
 
+vec3 WorldPosFromDepth(float depth, vec2 txc)
+{
+    float z = depth * 2.0 - 1.0;
+    vec4 ClipSpacePosition = vec4(txc * 2.0 - 1.0, z, 1.0);
+    vec4 ViewSpacePosition = u_InverseProjection * ClipSpacePosition;
+    ViewSpacePosition /= ViewSpacePosition.w;
+    vec4 WorldPos = u_InverseView * ViewSpacePosition;
+    return WorldPos.xyz;
+}
 
 float[8] Trilinear(vec3 BoxMin, vec3 BoxMax, vec3 p) {
     float Weights[8];
@@ -123,16 +132,6 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 	return vec3(0.0f);
 }
 
-
-vec3 WorldPosFromDepth(float depth, vec2 txc)
-{
-    float z = depth * 2.0 - 1.0;
-    vec4 ClipSpacePosition = vec4(txc * 2.0 - 1.0, z, 1.0);
-    vec4 ViewSpacePosition = u_InverseProjection * ClipSpacePosition;
-    ViewSpacePosition /= ViewSpacePosition.w;
-    vec4 WorldPos = u_InverseView * ViewSpacePosition;
-    return WorldPos.xyz;
-}
 
 float SampleShadowMap(vec2 SampleUV, int Map) {
 

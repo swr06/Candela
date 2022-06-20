@@ -169,7 +169,7 @@ void main() {
         Current.xyz = Tonemap(Current.xyz);
         History.xyz = Tonemap(History.xyz);
 
-        float Bias = MotionLength > 0.00008f ? 0.0f : 0.01f;
+        float Bias = MotionLength > 0.00008f ? 0.0f : 0.003f;
 
         History.xyz = ClipToAABB(History.xyz, Min.xyz - Bias, Max.xyz + Bias);
 
