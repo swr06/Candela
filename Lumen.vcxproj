@@ -290,6 +290,7 @@
     <None Include="Core\Shaders\Temporal.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
     <None Include="Core\Shaders\UpdateRadianceProbes.glsl" />
+    <None Include="Core\Shaders\Volumetrics.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Shaders\Surfel\Readme.txt" />
