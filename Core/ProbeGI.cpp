@@ -28,7 +28,7 @@ namespace Lumen {
 		static GLuint _ProbeMapSSBO = 0;
 		static glm::vec3 LastOrigin = glm::vec3(0.0f);
 		static glm::vec3 _PreviousOrigin = glm::vec3(0.0f);
-		static glm::uvec2 _CurrentDataTextures;
+		static glm::uvec3 _CurrentDataTextures;
 		static GLuint _ProbeRawRadianceBuffers[2]; // <- Unprojected radiance
 	}
 }
@@ -134,6 +134,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 
 	_CurrentDataTextures.x = CurrentVolumeTextures[0];
 	_CurrentDataTextures.y = CurrentVolumeTextures[1];
+	_CurrentDataTextures.z = CurrentRawRadianceTexture;
 
 	ProbeUpdate.Use();
 
@@ -241,6 +242,11 @@ GLuint Lumen::ProbeGI::GetProbeDataSSBO()
 
 glm::uvec2 Lumen::ProbeGI::GetProbeDataTextures()
 {
-	return _CurrentDataTextures;
+	return glm::uvec2(_CurrentDataTextures);
+}
+
+GLuint Lumen::ProbeGI::GetProbeColorTexture()
+{
+	return _CurrentDataTextures.z;
 }
 

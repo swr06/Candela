@@ -182,6 +182,7 @@ GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true
 
 // Post 
 GLClasses::Framebuffer Tonemapped(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
+GLClasses::Framebuffer Volumetrics(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
 
 // For temporal 
 GLClasses::Framebuffer MotionVectors(16, 16, { GL_RG16F, GL_RG, GL_FLOAT, true, true }, false, true);
@@ -293,6 +294,7 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& SpatialFilterShader = ShaderManager::GetShader("SPATIAL_FILTER");
 	GLClasses::Shader& TAAShader = ShaderManager::GetShader("TAA");
 	GLClasses::Shader& CASShader = ShaderManager::GetShader("CAS");
+	GLClasses::Shader& VolumetricsShader = ShaderManager::GetShader("VOLUMETRICS");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
 
@@ -345,6 +347,9 @@ void Lumen::StartPipeline()
 		DiffuseCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 		SpecularCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 		SpecularCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+
+		// Volumetrics
+		Volumetrics.SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 
 		// Temporal/Spatial resolve buffers
 		CheckerboardUpscaled.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
@@ -433,6 +438,57 @@ void Lumen::StartPipeline()
 		ScreenQuadVAO.Unbind();
 
 		MotionVectors.Unbind();
+
+		// Volumetrics 
+
+		VolumetricsShader.Use();
+		Volumetrics.Bind();
+
+		VolumetricsShader.SetVector2f("u_Dims", glm::vec2(Volumetrics.GetWidth(), Volumetrics.GetHeight()));
+		VolumetricsShader.SetInteger("u_DepthTexture", 0);
+		VolumetricsShader.SetInteger("u_NormalTexture", 1);
+		VolumetricsShader.SetInteger("u_Skymap", 2);
+
+		VolumetricsShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
+		VolumetricsShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+		VolumetricsShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+		VolumetricsShader.SetInteger("u_ProbeRadiance", 14);
+
+		SetCommonUniforms<GLClasses::Shader>(VolumetricsShader, UniformBuffer);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
+
+		for (int i = 0; i < 5; i++) {
+
+			const int BindingPointStart = 4;
+
+			std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+			std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+			std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+
+			VolumetricsShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+			VolumetricsShader.SetInteger(NameTex, i + BindingPointStart);
+			VolumetricsShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+
+			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+		}
+
+		glActiveTexture(GL_TEXTURE14);
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		Volumetrics.Unbind();
 
 		// Indirect diffuse raytracing
 
@@ -793,6 +849,7 @@ void Lumen::StartPipeline()
 
 		LightingShader.SetInteger("u_SHDataA", 15);
 		LightingShader.SetInteger("u_SHDataB", 16);
+		LightingShader.SetInteger("u_Volumetrics", 17);
 
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 
@@ -835,6 +892,7 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE8);
 		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(2));
+		
 
 		// 8 - 13 occupied by shadow textures 
 
@@ -845,6 +903,9 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
 		
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
+
+		glActiveTexture(GL_TEXTURE17);
+		glBindTexture(GL_TEXTURE_2D, Volumetrics.GetTexture());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

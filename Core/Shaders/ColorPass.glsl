@@ -25,6 +25,8 @@ uniform samplerCube u_Skymap;
 uniform sampler2D u_IndirectDiffuse;
 uniform sampler2D u_IndirectSpecular;
 
+uniform sampler2D u_Volumetrics;
+
 uniform vec3 u_ViewerPosition;
 uniform vec3 u_LightDirection;
 uniform mat4 u_InverseView;
@@ -172,11 +174,14 @@ void main()
 {	
 	vec3 rO = u_InverseView[3].xyz;
 
+	vec4 Volumetrics = texture(u_Volumetrics, v_TexCoords).xyzw;
+
 	float Depth = texture(u_DepthTexture, v_TexCoords).x;
 
 	if (Depth > 0.999999f) {
 		vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 1.0f; // <----- pow2 done here 
+		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz * 0.2f;
 		return;
 	}
 
@@ -222,6 +227,6 @@ void main()
 	
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect;
 
-	o_Color = Combined;
+	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
 	
 }

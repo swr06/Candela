@@ -1,5 +1,4 @@
-
-#version 330 core 
+#version 400 core 
 #define PI 3.14159265359 
 
 #include "Include/Utility.glsl"
@@ -7,6 +6,8 @@
 #include "Include/Sampling.glsl"
 
 layout (location = 0) out vec4 o_Volumetrics; // w -> Transmittance 
+
+in vec2 v_TexCoords;
 
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
@@ -113,6 +114,8 @@ float GetDirectShadow(vec3 WorldPosition)
 }
 
 vec3 GetVolumeGI(vec3 Point) {
+
+	Point -= 0.5f;
 	
 	vec3 SamplePoint = (Point - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
@@ -132,6 +135,13 @@ vec2 hash2()
 
 float SampleDensity(vec3 P) {
 	return 1.0f;
+}
+
+vec3 Incident(vec2 screenspace)
+{
+	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
+	vec4 eye = vec4(vec2(u_InverseProjection * clip), -1.0, 0.0);
+	return normalize(vec3(u_InverseView * eye));
 }
 
 void main() {
@@ -157,10 +167,7 @@ void main() {
 	// Fetch 
     float Depth = texelFetch(u_DepthTexture, HighResPixel, 0).x;
 
-	if (Depth > 0.999999f || Depth == 1.0f) {
-		o_Volumetrics = vec4(0.0f);
-        return;
-    }
+	float Distance = 32.0f;
 
 	vec2 TexCoords = HighResUV;
 	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
@@ -168,12 +175,15 @@ void main() {
 	vec3 Player = u_InverseView[3].xyz;
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords);
-	vec3 Normal = normalize(texelFetch(u_NormalTexture, HighResPixel, 0).xyz);
 
-	vec3 Direction = normalize(WorldPosition - Player);
+	if (Depth != 1.0f) {
+		Distance = distance(WorldPosition, Player);
+    }
 
-	int Steps = 32;
-	float StepSize = 48.0f / float(Steps);
+	vec3 Direction = (Incident(v_TexCoords));
+
+	int Steps = 24;
+	float StepSize = Distance / float(Steps);
 
 	float HashAnimated = fract(fract(mod(float(u_Frame) + float(0.) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer16(gl_FragCoord.xy));
 
@@ -201,8 +211,8 @@ void main() {
         }
 
         float DirectVisibility = GetDirectShadow(RayPosition);
-        vec3 Direct = DirectVisibility * DirectPhase * SunColor;
-        vec3 Indirect = GetVolumeGI(RayPosition);
+        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 16.0f;
+        vec3 Indirect = GetVolumeGI(RayPosition) * 0.07f;
         vec3 S = (Direct + Indirect) * StepSize * Density * Transmittance;
 
         DirectScattering += S;
@@ -211,5 +221,7 @@ void main() {
     }
 
     vec4 Data = vec4(vec3(DirectScattering), Transmittance);
+
+	o_Volumetrics = Data;
 
 }

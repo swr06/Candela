@@ -20,6 +20,7 @@ void Lumen::ShaderManager::CreateShaders()
 	AddShader("SVGF_VARIANCE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/SpatialVariance.glsl");
 	AddShader("SPATIAL_FILTER", "Core/Shaders/FBOVert.glsl", "Core/Shaders/SpatialFilter.glsl");
 	AddShader("TAA", "Core/Shaders/FBOVert.glsl", "Core/Shaders/TAA.glsl");
+	AddShader("VOLUMETRICS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Volumetrics.glsl");
 	AddComputeShader("PROBE_UPDATE", "Core/Shaders/UpdateRadianceProbes.glsl");
 	AddComputeShader("COPY_VOLUME", "Core/Shaders/CopyVolume.glsl");
 }

@@ -26,6 +26,7 @@ namespace Lumen {
 		glm::vec3 GetProbeBoxOrigin();
 		GLuint GetProbeDataSSBO();
 		glm::uvec2 GetProbeDataTextures();
+		GLuint GetProbeColorTexture();
 	}
 
 }
