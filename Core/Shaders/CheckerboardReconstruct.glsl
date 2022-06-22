@@ -179,7 +179,7 @@ void main() {
 			}
 
 			if (MotionLength > 0.0001f) {
-				SpatialUpscaleSpecVol = true; // <- Spatially resolve specular if motion vector changed, we cant reliably reproject it for the checkerboard 
+				SpatialUpscaleSpecVol = true; // <- Spatially resolve specular and volumetrics if motion vector changed, we cant reliably reproject it for the checkerboard 
 			}
 
 			else {
