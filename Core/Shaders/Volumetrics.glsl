@@ -113,7 +113,7 @@ float GetDirectShadow(vec3 WorldPosition)
 		return 0.0f;
 	}
 	
-	float Bias = 0.0003f;
+	float Bias = 0.000f;
 	vec2 SampleUV = ProjectionCoordinates.xy;
 	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
 	return 1.0f - Shadow;
@@ -176,7 +176,7 @@ void main() {
 	vec3 Player = u_InverseView[3].xyz;
 
 	vec3 Normal = texelFetch(u_NormalTexture, HighResPixel, 0).xyz;
-	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords) + Normal * 0.1f;
+	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords) + Normal * 0.3f;
 
 	if (Depth != 1.0f) {
 		Distance = distance(WorldPosition, Player);
@@ -204,6 +204,8 @@ void main() {
 
     vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
 
+	float LightingStrength = 0.26f;
+
     for (int Step = 0 ; Step < Steps ; Step++) {
 
         float Density = SampleDensity(RayPosition);
@@ -215,9 +217,9 @@ void main() {
 		vec3 Hash3D = vec3(hash2(), hash2().x);
 
         float DirectVisibility = GetDirectShadow(RayPosition);
-        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 20.0f;
-        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.11111f;
-        vec3 S = (Direct + Indirect) * StepSize * Density * Transmittance;
+        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 24.0f;
+        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.18f;
+        vec3 S = (Direct + Indirect) * LightingStrength * StepSize * Density * Transmittance;
 
         DirectScattering += S;
         Transmittance *= exp(-(StepSize * Density) * SigmaE);

@@ -372,7 +372,7 @@ void main() {
 
 	float LambertSky = clamp(dot(DiffuseDirection, vec3(0.0f, 1.0f, 0.0f)), 0.0f, 1.0f);
 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 2.5f * LambertSky : GetDirect(iWorldPos, iNormal, Albedo);
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 3.1f : GetDirect(iWorldPos, iNormal, Albedo);
 
 	float Packed = 1.0f;
 

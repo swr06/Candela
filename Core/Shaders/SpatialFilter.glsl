@@ -9,6 +9,7 @@
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out float o_Variance;
 layout (location = 2) out vec4 o_Specular;
+layout (location = 3) out vec4 o_Volumetrics;
 
 in vec2 v_TexCoords;
 
@@ -19,6 +20,9 @@ uniform sampler2D u_PBR;
 
 uniform sampler2D u_Diffuse;
 uniform sampler2D u_Specular;
+uniform sampler2D u_Volumetrics;
+
+uniform bool u_FilterVolumetrics;
 
 uniform sampler2D u_Variance; // <- Diffuse variance 
 
@@ -170,8 +174,10 @@ void main() {
 
 	vec4 Diffuse = texelFetch(u_Diffuse, Pixel, 0);
 	vec4 Specular = texelFetch(u_Specular, Pixel, 0);
+	vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel, 0);
 	vec4 CenterDiffuse = Diffuse;
 	vec4 CenterSpec = Specular;
+	vec4 CenterVol = Volumetrics;
 
 	float Variance = texelFetch(u_Variance, Pixel, 0).x;
 
@@ -181,7 +187,6 @@ void main() {
 		o_Specular = Specular;
 		return;
 	}
-
 
 	float DepthFetch = texelFetch(u_Depth, Pixel * 2, 0).x;
 	float CenterDepth = LinearizeDepth(DepthFetch);
@@ -207,6 +212,7 @@ void main() {
 	 
 	float TotalDiffuseWeight = 1.0f;
 	float TotalSpecularWeight = 1.0f;
+	float TotalVolWeight = 1.0f;
 	float TotalAOWeight = 1.0f;
 
 	ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
@@ -273,9 +279,18 @@ void main() {
 
 			TotalDiffuseWeight += DiffuseWeight;
 			TotalAOWeight += AOWeight;
+
+			if (u_FilterVolumetrics) {
+				vec4 SampleVolumetrics = texelFetch(u_Volumetrics, SamplePixel, 0);
+				float VolumetricsWeight = clamp(DepthWeight * NormalWeight, 0.0f, 1.0f); //RawWeight;
+				Volumetrics += VolumetricsWeight * SampleVolumetrics;
+				TotalVolWeight += VolumetricsWeight;
+			}
+
 		}
 	}
 
+	Volumetrics /= TotalVolWeight;
 	Variance /= TotalDiffuseWeight * TotalDiffuseWeight;
 	Diffuse.xyz /= TotalDiffuseWeight;
 	Diffuse.w /= TotalAOWeight;
@@ -286,4 +301,5 @@ void main() {
 	o_Diffuse = Diffuse;
 	o_Variance = Variance;
 	o_Specular = Specular;
+	o_Volumetrics = Volumetrics;
 }
