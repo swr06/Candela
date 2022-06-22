@@ -5,6 +5,7 @@
 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out vec4 o_Specular;
+layout (location = 2) out vec4 o_Volumetrics;
 
 in vec2 v_TexCoords;
 
@@ -17,6 +18,9 @@ uniform sampler2D u_PreviousFrameTexture;
 
 uniform sampler2D u_CurrentFrameSpecular;
 uniform sampler2D u_PreviousFrameSpecular;
+
+uniform sampler2D u_CurrentFrameVolumetrics;
+uniform sampler2D u_PreviousFrameVolumetrics;
 
 uniform sampler2D u_MotionVectors;
 
@@ -122,6 +126,7 @@ void main() {
 		
 		o_Diffuse = texelFetch(u_CurrentFrameTexture, ivec2(gl_FragCoord.xy), 0);
 		o_Specular = texelFetch(u_CurrentFrameSpecular, ivec2(gl_FragCoord.xy), 0);
+		o_Volumetrics = texelFetch(u_CurrentFrameVolumetrics, ivec2(gl_FragCoord.xy), 0);
 		return;
 	}
 
@@ -135,7 +140,7 @@ void main() {
 	if (IsCheckerStep) {
 
 		bool SpatialUpscaleAll = false;
-		bool SpatialUpscaleSpec = false;
+		bool SpatialUpscaleSpecVol = false;
 
 		bool TryTemporalResample = true;
 		
@@ -173,12 +178,13 @@ void main() {
 				o_Diffuse = texelFetch(u_PreviousFrameTexture, ivec2(ReprojectedPixel.x,ReprojectedPixel.y), 0).xyzw;
 			}
 
-			if (MotionLength > 0.002f) {
-				SpatialUpscaleSpec = true; // <- Spatially resolve specular if motion vector changed, we cant reliably reproject it for the checkerboard 
+			if (MotionLength > 0.0001f) {
+				SpatialUpscaleSpecVol = true; // <- Spatially resolve specular if motion vector changed, we cant reliably reproject it for the checkerboard 
 			}
 
 			else {
 				o_Specular = texelFetch(u_PreviousFrameSpecular, ivec2(PixelXHalved), 0).xyzw;
+				o_Volumetrics = texelFetch(u_PreviousFrameVolumetrics, ivec2(PixelXHalved), 0);
 			}
 		}
 
@@ -193,6 +199,7 @@ void main() {
 			float TotalWeight = 0.0f;
 			vec4 TotalDiffuse = vec4(0.0f);
 			vec4 TotalSpec = vec4(0.0f);
+			vec4 TotalVolumetrics = vec4(0.0f);
 
 			for (int i = 0 ; i < 4 ; i++) {
 				
@@ -205,22 +212,26 @@ void main() {
 
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
+				vec4 SampleVol = texelFetch(u_CurrentFrameVolumetrics, Coord, 0).xyzw;
 
 				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), DEPTH_EXPONENT) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), NORMAL_EXPONENT);
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalDiffuse += SampleDiffuse * CurrentWeight;
 				TotalSpec += SampleSpecular * CurrentWeight;
+				TotalVolumetrics += SampleVol * CurrentWeight;
 				TotalWeight += CurrentWeight;
 			}
 
 			TotalDiffuse /= max(TotalWeight, 0.0000001f);
 			TotalSpec /= max(TotalWeight, 0.0000001f);
+			TotalVolumetrics /= max(TotalWeight, 0.0000001f);
 			o_Diffuse = TotalDiffuse;
 			o_Specular = TotalSpec;
+			o_Volumetrics = TotalVolumetrics;
 		}
 
-		else if (SpatialUpscaleSpec) {
+		else if (SpatialUpscaleSpecVol) {
 
 			ivec2 PixelHalvedX = Pixel;
 			PixelHalvedX.x /= 2;
@@ -230,6 +241,7 @@ void main() {
 
 			float TotalWeight = 0.0f;
 			vec4 TotalSpec = vec4(0.0f);
+			vec4 TotalVol = vec4(0.0f);
 
 			for (int i = 0 ; i < 4 ; i++) {
 				
@@ -242,16 +254,20 @@ void main() {
 
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
+				vec4 SampleVol = texelFetch(u_CurrentFrameVolumetrics, Coord, 0).xyzw;
 
 				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), DEPTH_EXPONENT) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), NORMAL_EXPONENT);
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalSpec += SampleSpecular * CurrentWeight;
+				TotalVol += SampleVol * CurrentWeight;
 				TotalWeight += CurrentWeight;
 			}
 
 			TotalSpec /= max(TotalWeight, 0.0000001f);
+			TotalVol /= max(TotalWeight, 0.0000001f);
 			o_Specular = TotalSpec;
+			o_Volumetrics = TotalVol;
 		}
 	}
 
@@ -261,5 +277,6 @@ void main() {
 		PixelHalvedX.x /= 2;
 		o_Diffuse = texelFetch(u_CurrentFrameTexture, PixelHalvedX, 0).xyzw;
 		o_Specular = texelFetch(u_CurrentFrameSpecular, PixelHalvedX, 0);
+		o_Volumetrics = texelFetch(u_CurrentFrameVolumetrics, PixelHalvedX, 0);
 	}
 }

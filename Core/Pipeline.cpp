@@ -182,7 +182,7 @@ GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true
 
 // Post 
 GLClasses::Framebuffer Tonemapped(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
-GLClasses::Framebuffer Volumetrics(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
+GLClasses::Framebuffer VolumetricsCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
 
 // For temporal 
 GLClasses::Framebuffer MotionVectors(16, 16, { GL_RG16F, GL_RG, GL_FLOAT, true, true }, false, true);
@@ -192,7 +192,7 @@ GLClasses::Framebuffer DiffuseCheckerboardBuffers[2]{ GLClasses::Framebuffer(16,
 GLClasses::Framebuffer SpecularCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
 
 // Upscaling 
-GLClasses::Framebuffer CheckerboardUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true },{ GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, true);
+GLClasses::Framebuffer CheckerboardUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true },{ GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, true);
 GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true) };
 
 // Denoiser 
@@ -349,7 +349,8 @@ void Lumen::StartPipeline()
 		SpecularCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 
 		// Volumetrics
-		Volumetrics.SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+		VolumetricsCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+		VolumetricsCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 
 		// Temporal/Spatial resolve buffers
 		CheckerboardUpscaled.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
@@ -374,6 +375,9 @@ void Lumen::StartPipeline()
 		
 		GLClasses::Framebuffer& IndirectTemporal = FrameMod2 ? TemporalBuffersIndirect[0] : TemporalBuffersIndirect[1];
 		GLClasses::Framebuffer& PreviousIndirectTemporal = FrameMod2 ? TemporalBuffersIndirect[1] : TemporalBuffersIndirect[0];
+
+		GLClasses::Framebuffer& Volumetrics = FrameMod2 ? VolumetricsCheckerboardBuffers[0] : VolumetricsCheckerboardBuffers[1];
+		GLClasses::Framebuffer& PreviousVolumetrics = FrameMod2 ? VolumetricsCheckerboardBuffers[1] : VolumetricsCheckerboardBuffers[0];
 
 		GLClasses::Framebuffer& TAA = FrameMod2 ? TAABuffers[0] : TAABuffers[1];
 		GLClasses::Framebuffer& PrevTAA = FrameMod2 ? TAABuffers[1] : TAABuffers[0];
@@ -628,6 +632,8 @@ void Lumen::StartPipeline()
 		CheckerReconstructShader.SetInteger("u_MotionVectors", 6);
 		CheckerReconstructShader.SetInteger("u_CurrentFrameSpecular", 7);
 		CheckerReconstructShader.SetInteger("u_PreviousFrameSpecular", 8);
+		CheckerReconstructShader.SetInteger("u_CurrentFrameVolumetrics", 9);
+		CheckerReconstructShader.SetInteger("u_PreviousFrameVolumetrics", 10);
 		CheckerReconstructShader.SetVector2f("u_Dimensions", glm::vec2(CheckerboardUpscaled.GetWidth(), CheckerboardUpscaled.GetHeight()));
 
 		SetCommonUniforms<GLClasses::Shader>(CheckerReconstructShader, UniformBuffer);
@@ -658,6 +664,12 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE8);
 		glBindTexture(GL_TEXTURE_2D, PreviousSpecularTrace.GetTexture());
+
+		glActiveTexture(GL_TEXTURE9);
+		glBindTexture(GL_TEXTURE_2D, Volumetrics.GetTexture());
+
+		glActiveTexture(GL_TEXTURE10);
+		glBindTexture(GL_TEXTURE_2D, PreviousVolumetrics.GetTexture());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -905,7 +917,7 @@ void Lumen::StartPipeline()
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 
 		glActiveTexture(GL_TEXTURE17);
-		glBindTexture(GL_TEXTURE_2D, Volumetrics.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, CheckerboardUpscaled.GetTexture(2));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

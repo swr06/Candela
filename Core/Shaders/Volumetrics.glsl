@@ -34,6 +34,12 @@ uniform vec3 u_ProbeBoxOrigin;
 
 uniform sampler3D u_ProbeRadiance;
 
+float HASH2SEED = 0.0f;
+vec2 hash2() 
+{
+	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
+}
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -113,9 +119,9 @@ float GetDirectShadow(vec3 WorldPosition)
 	return 1.0f - Shadow;
 }
 
-vec3 GetVolumeGI(vec3 Point) {
+vec3 GetVolumeGI(vec3 Point, vec3 Hash3D) {
 
-	Point -= 0.5f;
+	Point += Hash3D * 2.0f - 1.0f;
 	
 	vec3 SamplePoint = (Point - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
@@ -127,11 +133,6 @@ vec3 GetVolumeGI(vec3 Point) {
 	return vec3(0.0f);
 }
 
-float HASH2SEED = 0.0f;
-vec2 hash2() 
-{
-	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
-}
 
 float SampleDensity(vec3 P) {
 	return 1.0f;
@@ -167,14 +168,15 @@ void main() {
 	// Fetch 
     float Depth = texelFetch(u_DepthTexture, HighResPixel, 0).x;
 
-	float Distance = 32.0f;
+	float Distance = 40.0f;
 
 	vec2 TexCoords = HighResUV;
 	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
 
 	vec3 Player = u_InverseView[3].xyz;
 
-	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords);
+	vec3 Normal = texelFetch(u_NormalTexture, HighResPixel, 0).xyz;
+	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords) + Normal * 0.1f;
 
 	if (Depth != 1.0f) {
 		Distance = distance(WorldPosition, Player);
@@ -210,14 +212,16 @@ void main() {
             continue;
         }
 
+		vec3 Hash3D = vec3(hash2(), hash2().x);
+
         float DirectVisibility = GetDirectShadow(RayPosition);
-        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 16.0f;
-        vec3 Indirect = GetVolumeGI(RayPosition) * 0.07f;
+        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 20.0f;
+        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.11111f;
         vec3 S = (Direct + Indirect) * StepSize * Density * Transmittance;
 
         DirectScattering += S;
         Transmittance *= exp(-(StepSize * Density) * SigmaE);
-        RayPosition += Direction * StepSize;
+        RayPosition += Direction * StepSize; // * mix(1.0f, HashAnimated, 0.25f);
     }
 
     vec4 Data = vec4(vec3(DirectScattering), Transmittance);

@@ -174,9 +174,12 @@ void main()
 {	
 	vec3 rO = u_InverseView[3].xyz;
 
-	vec4 Volumetrics = texture(u_Volumetrics, v_TexCoords).xyzw;
+	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
-	float Depth = texture(u_DepthTexture, v_TexCoords).x;
+	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
+	vec4 Volumetrics = texture(u_Volumetrics, v_TexCoords);
+
+	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
 
 	if (Depth > 0.999999f) {
 		vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
@@ -186,9 +189,9 @@ void main()
 	}
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth,v_TexCoords).xyz;
-	vec3 Normal = normalize(texture(u_NormalTexture, v_TexCoords).xyz);
-	vec3 Albedo = texture(u_AlbedoTexture, v_TexCoords, -0.75f).xyz;
-	vec3 PBR = texture(u_PBRTexture, v_TexCoords).xyz;
+	vec3 Normal = normalize(texelFetch(u_NormalTexture, Pixel, 0).xyz);
+	vec3 Albedo = texelFetch(u_AlbedoTexture, Pixel, 0).xyz;
+	vec3 PBR = texelFetch(u_PBRTexture, Pixel, 0).xyz;
 
 	vec3 Incident = normalize(u_ViewerPosition - WorldPosition);
 
@@ -228,5 +231,4 @@ void main()
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect;
 
 	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
-	
 }

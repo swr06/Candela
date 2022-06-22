@@ -4,22 +4,32 @@
 
 #include "ShadowMapHandler.h"
 
+#define DEFAULT_PROBE_GI
 //#define LARGE_RANGE_PROBE_GI
+//#define STUPIDLY_HIGH_RES_PROBE_GI
 
 namespace Lumen {
 	namespace ProbeGI {
 
-#ifndef LARGE_RANGE_PROBE_GI
+#ifdef DEFAULT_PROBE_GI
 		const int ProbeGridX = 48;
 		const int ProbeGridY = 24;
 		const int ProbeGridZ = 48;
 		const glm::vec3 ProbeBoxSize = glm::vec3(24.0f, 12.0f, 24.0f);
-#else 
 
-		const int ProbeGridX = 64;
-		const int ProbeGridY = 32;
-		const int ProbeGridZ = 64;
-		const glm::vec3 ProbeBoxSize = glm::vec3(32.0f, 16.0f, 32.0f);
+#else
+	#ifdef LARGE_RANGE_PROBE_GI
+			const int ProbeGridX = 64;
+			const int ProbeGridY = 32;
+			const int ProbeGridZ = 64;
+			const glm::vec3 ProbeBoxSize = glm::vec3(32.0f, 16.0f, 32.0f);
+
+	#else 
+			const int ProbeGridX = 128;
+			const int ProbeGridY = 64;
+			const int ProbeGridZ = 128;
+			const glm::vec3 ProbeBoxSize = glm::vec3(32.0f, 16.0f, 32.0f);
+	#endif
 #endif
 
 		static GLuint _ProbeDataTextures[2] = { 0, 0 };
