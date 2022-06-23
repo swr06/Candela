@@ -193,7 +193,7 @@ GLClasses::Framebuffer SpecularCheckerboardBuffers[2]{ GLClasses::Framebuffer(16
 
 // Upscaling 
 GLClasses::Framebuffer CheckerboardUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true },{ GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, true);
-GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true) };
+GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true},  {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true},  {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true) };
 
 // Denoiser 
 GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, true);
@@ -694,6 +694,8 @@ void Lumen::StartPipeline()
 		TemporalFilterShader.SetInteger("u_SpecularCurrent", 9);
 		TemporalFilterShader.SetInteger("u_SpecularHistory", 10);
 		TemporalFilterShader.SetInteger("u_PBR", 11);
+		TemporalFilterShader.SetInteger("u_VolumetricsCurrent", 12);
+		TemporalFilterShader.SetInteger("u_VolumetricsHistory", 13);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
@@ -732,6 +734,12 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE11);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(2));
+
+		glActiveTexture(GL_TEXTURE12);
+		glBindTexture(GL_TEXTURE_2D, CheckerboardUpscaled.GetTexture(2));
+
+		glActiveTexture(GL_TEXTURE13);
+		glBindTexture(GL_TEXTURE_2D, PreviousIndirectTemporal.GetTexture(4));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -834,7 +842,7 @@ void Lumen::StartPipeline()
 				glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(2));
 
 				glActiveTexture(GL_TEXTURE8);
-				glBindTexture(GL_TEXTURE_2D, InitialPass ? CheckerboardUpscaled.GetTexture(2) : SpatialPrevious.GetTexture(3));
+				glBindTexture(GL_TEXTURE_2D, InitialPass ? IndirectTemporal.GetTexture(4) : SpatialPrevious.GetTexture(3));
 
 				ScreenQuadVAO.Bind();
 				glDrawArrays(GL_TRIANGLES, 0, 6);

@@ -204,7 +204,7 @@ void main() {
 
     vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
 
-	float LightingStrength = 0.26f;
+	float LightingStrength = 0.22f;
 
     for (int Step = 0 ; Step < Steps ; Step++) {
 
@@ -217,8 +217,8 @@ void main() {
 		vec3 Hash3D = vec3(hash2(), hash2().x);
 
         float DirectVisibility = GetDirectShadow(RayPosition);
-        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 24.0f;
-        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.18f;
+        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 28.0f;
+        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.16f;
         vec3 S = (Direct + Indirect) * LightingStrength * StepSize * Density * Transmittance;
 
         DirectScattering += S;

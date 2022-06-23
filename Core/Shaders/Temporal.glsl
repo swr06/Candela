@@ -3,10 +3,12 @@
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
 
+// Outputs 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out vec2 o_Utility;
 layout (location = 2) out vec2 o_Moments;
 layout (location = 3) out vec4 o_Specular;
+layout (location = 4) out vec4 o_Volumetrics;
 
 in vec2 v_TexCoords;
 
@@ -24,6 +26,9 @@ uniform sampler2D u_DiffuseHistory;
 
 uniform sampler2D u_SpecularCurrent;
 uniform sampler2D u_SpecularHistory;
+
+uniform sampler2D u_VolumetricsCurrent;
+uniform sampler2D u_VolumetricsHistory;
 
 uniform sampler2D u_Depth;
 uniform sampler2D u_Normals;
@@ -43,6 +48,7 @@ uniform float u_zFar;
 
 uniform vec3 u_ViewerPosition;
 
+// GBuffer
 float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
@@ -78,7 +84,8 @@ vec3 Reprojection(vec3 WorldPos)
 
 }
 
-void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 Min, out vec4 Max, out vec4 Mean, out vec4 Moments) {
+// Gathers statistics for a pixel using spatial data
+void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 Min, out vec4 Max, out vec4 Mean, out vec4 DiffuseMoments) {
 	
 	Min = vec4(10000.0f);
 	Max = vec4(-10000.0f);
@@ -94,14 +101,14 @@ void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 M
 			Min = min(Min, Fetch);
 			Max = max(Max, Fetch);
 			Mean += Fetch;
-			Moments += Fetch * Fetch;
+			DiffuseMoments += Fetch * Fetch;
 			TotalWeight += 1.0f;
 		}
 
 	}
 
 	Mean /= TotalWeight;
-	Moments /= TotalWeight;
+	DiffuseMoments /= TotalWeight;
 }
 
 void main() {
@@ -110,6 +117,7 @@ void main() {
 	ivec2 HighResPixel = Pixel * 2;
 	ivec2 Dimensions = textureSize(u_DiffuseHistory,0).xy;
 
+	// GBuffer
 	float Depth = texelFetch(u_Depth, HighResPixel, 0).x;
 	vec3 Normals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 	vec3 PBR = texelFetch(u_PBR, HighResPixel, 0).xyz;
@@ -119,25 +127,34 @@ void main() {
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth, v_TexCoords).xyz;
 
+	// Motion vectors
 	vec2 MotionVector = texelFetch(u_MotionVectors, HighResPixel, 0).xy;
 	float MotionLength = length(MotionVector);
 
+	// Reproject surface 
 	vec2 Reprojected = MotionVector + v_TexCoords;
 
+	// Sample current frame 
 	vec4 CurrentDiffuse = texelFetch(u_DiffuseCurrent, Pixel, 0);
+	vec4 CurrentSpecular = texelFetch(u_SpecularCurrent, Pixel, 0);
+	vec4 CurrentVolumetrics = texelFetch(u_VolumetricsCurrent, Pixel, 0);
+	
+	o_Diffuse = CurrentDiffuse;
+	o_Specular = CurrentSpecular;
+	o_Volumetrics = CurrentVolumetrics;
 
-	float L = Luminance(CurrentDiffuse.xyz);
-
-	vec2 Moments;
-	Moments = vec2(L, L * L);
-
+	float DiffuseLuminance = Luminance(CurrentDiffuse.xyz);
 	float DiffuseFrames = 1.0f;
 
-	o_Diffuse = CurrentDiffuse;
-	o_Moments = max(Moments, 0.0f);
+	// Generate moments 
+	vec2 DiffuseMoments;
+	DiffuseMoments = vec2(DiffuseLuminance, DiffuseLuminance * DiffuseLuminance);
+
+	o_Moments = max(DiffuseMoments, 0.0f);
 
 	bool DisocclusionSurface = true;
 
+	// Diffuse 
 	if (IsInScreenspaceBiased(Reprojected)) 
 	{
 		vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
@@ -166,7 +183,7 @@ void main() {
 			o_Diffuse.xyz = mix(CurrentDiffuse.xyz, History.xyz, BlendFactor);
 
 			vec2 HistoryMoments = texture(u_MomentsHistory, Reprojected.xy).xy;
-			o_Moments = mix(Moments, HistoryMoments, BlendFactor);
+			o_Moments = mix(DiffuseMoments, HistoryMoments, BlendFactor);
 
 			if (Error < Tolerance * 0.8f) {
 				float MotionWeight = MotionLength > 0.001f ? clamp(exp(-length(MotionVector * vec2(Dimensions))) * 0.6f + 0.75f, 0.0f, 1.0f) : 1.0f;
@@ -177,8 +194,7 @@ void main() {
 
 	}
 
-	vec4 CurrentSpecular = texelFetch(u_SpecularCurrent, Pixel, 0);
-	o_Specular = CurrentSpecular;
+	// Specular 
 
 	float SpecularFrames = 1.0f;
 
@@ -222,7 +238,15 @@ void main() {
 			o_Specular = vec4(0.0f);
 		}
 	}
-	
+
+	// Volumetrics 
+
+	if (!DisocclusionSurface) {
+		vec4 PrevVolumetrics = CatmullRom(u_VolumetricsHistory, Reprojected.xy);
+		o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, 0.95f);
+	}
+
 	o_Utility.x = DiffuseFrames / 255.0f;
 	o_Utility.y = SpecularFrames / 255.0f;
+	o_Utility = clamp(o_Utility, 0.0f, 100.0f);
 }
