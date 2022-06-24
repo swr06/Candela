@@ -48,10 +48,19 @@ uniform float u_zFar;
 
 uniform vec3 u_ViewerPosition;
 
+uniform bool u_DoVolumetrics;
+
 // GBuffer
 float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
+}
+
+vec3 GetIncident(vec2 screenspace)
+{
+	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
+	vec4 eye = vec4(vec2(u_InverseProjection * clip), -1.0, 0.0);
+	return vec3(u_InverseView * eye);
 }
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -85,7 +94,7 @@ vec3 Reprojection(vec3 WorldPos)
 }
 
 // Gathers statistics for a pixel using spatial data
-void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 Min, out vec4 Max, out vec4 Mean, out vec4 DiffuseMoments) {
+void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 Min, out vec4 Max, out vec4 Mean, out vec4 DiffuseMoments, bool ConvertToYCoCg) {
 	
 	Min = vec4(10000.0f);
 	Max = vec4(-10000.0f);
@@ -97,7 +106,11 @@ void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 M
 		for (int y = -1 ; y <= 1 ; y++) {
 			
 			vec4 Fetch = (x == 0 && y == 0) ? Center : texelFetch(Texture, Pixel + ivec2(x, y), 0);
-			Fetch.xyz = RGB2YCoCg(Fetch.xyz);
+			
+			if (ConvertToYCoCg) {
+				Fetch.xyz = RGB2YCoCg(Fetch.xyz);
+			}
+
 			Min = min(Min, Fetch);
 			Max = max(Max, Fetch);
 			Mean += Fetch;
@@ -118,6 +131,7 @@ void main() {
 	ivec2 Dimensions = textureSize(u_DiffuseHistory,0).xy;
 
 	// GBuffer
+	vec3 Incident = GetIncident(v_TexCoords);
 	float Depth = texelFetch(u_Depth, HighResPixel, 0).x;
 	vec3 Normals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 	vec3 PBR = texelFetch(u_PBR, HighResPixel, 0).xyz;
@@ -126,6 +140,7 @@ void main() {
 	vec2 DepthGradient = vec2(dFdx(LinearDepth), dFdy(LinearDepth));
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth, v_TexCoords).xyz;
+	float Distance = distance(WorldPosition, u_ViewerPosition);
 
 	// Motion vectors
 	vec2 MotionVector = texelFetch(u_MotionVectors, HighResPixel, 0).xy;
@@ -158,7 +173,7 @@ void main() {
 	if (IsInScreenspaceBiased(Reprojected)) 
 	{
 		vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
-		GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff);
+		GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff, true);
 
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;
@@ -202,7 +217,7 @@ void main() {
 	{
 		vec4 MinSpec, MaxSpec, MeanSpec, MomentsSpec;
 
-		GatherStatistics(u_SpecularCurrent, Pixel, CurrentSpecular, MinSpec, MaxSpec, MeanSpec, MomentsSpec);
+		GatherStatistics(u_SpecularCurrent, Pixel, CurrentSpecular, MinSpec, MaxSpec, MeanSpec, MomentsSpec, true);
 
 		vec4 Variance = sqrt(abs(MomentsSpec - MeanSpec * MeanSpec));
 		float Transversal = UntransformReflectionTransversal(MeanSpec.w);
@@ -240,10 +255,26 @@ void main() {
 	}
 
 	// Volumetrics 
+	if (u_DoVolumetrics) {
+		
 
-	if (!DisocclusionSurface) {
-		vec4 PrevVolumetrics = CatmullRom(u_VolumetricsHistory, Reprojected.xy);
-		o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, 0.95f);
+
+		float VolDistance = IsSky(Depth) ? 48.0f : Distance;
+		vec3 VolPosition = Reprojection(u_ViewerPosition + (Incident * VolDistance));
+
+		if (IsInScreenspaceBiased(VolPosition.xy) && !DisocclusionSurface) {
+			vec4 MinVol, MaxVol, MeanVol, MomentsVol;
+
+			GatherStatistics(u_VolumetricsCurrent, Pixel, CurrentSpecular, MinVol, MaxVol, MeanVol, MomentsVol, false);
+
+			vec4 VolVariance = sqrt(abs(MomentsVol - MeanVol * MeanVol));
+
+			vec4 PrevVolumetrics = texture(u_VolumetricsHistory, Reprojected.xy);
+			//PrevVolumetrics.xyz = ClipToAABB(PrevVolumetrics.xyz, MinVol.xyz, MaxVol.xyz);
+			//PrevVolumetrics.w = ClipToAABB(PrevVolumetrics.www, MinVol.www, MaxVol.www).x;
+			PrevVolumetrics = clamp(PrevVolumetrics, MinVol, MaxVol);
+			o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, 0.92f);
+		}
 	}
 
 	o_Utility.x = DiffuseFrames / 255.0f;

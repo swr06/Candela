@@ -31,6 +31,7 @@ uniform mat4 u_PrevInverseView;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform bool u_Enabled;
 
 uniform vec3 u_ViewerPosition;
 
@@ -125,7 +126,7 @@ ivec2 GetNearestFragment(ivec2 Pixel, out float ClosestDepth) {
     return BestTexel;
 }
 
-bool ENABLED = true;
+bool ENABLED = u_Enabled && true;
 
 void main() {
     

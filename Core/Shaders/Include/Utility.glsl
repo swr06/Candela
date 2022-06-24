@@ -149,6 +149,17 @@ vec3 ClipToAABB(vec3 prevColor, vec3 minColor, vec3 maxColor)
     return denom > 1.0 ? pClip + vClip / denom : prevColor;
 }
 
+vec4 ClipToAABB(vec4 prevColor, vec4 minColor, vec4 maxColor)
+{
+    vec4 pClip = 0.5 * (maxColor + minColor); 
+    vec4 eClip = 0.5 * (maxColor - minColor); 
+    vec4 vClip = prevColor - pClip;
+    vec4 vUnit = vClip / eClip;
+    vec4 aUnit = abs(vUnit);
+    float denom = max(aUnit.w, max(aUnit.x, max(aUnit.y, aUnit.z)));
+    return denom > 1.0 ? pClip + vClip / denom : prevColor;
+}
+
 float ClipToAABB(float prevColor, float minColor, float maxColor)
 {
     float pClip = 0.5 * (maxColor + minColor); 

@@ -24,6 +24,11 @@ uniform samplerCube u_Skymap;
 uniform int u_Frame;
 uniform float u_Time;
 
+uniform int u_Steps;
+uniform float u_Strength;
+uniform float u_DStrength;
+uniform float u_IStrength;
+
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
@@ -184,7 +189,7 @@ void main() {
 
 	vec3 Direction = (Incident(v_TexCoords));
 
-	int Steps = 24;
+	int Steps = u_Steps + 1;
 	float StepSize = Distance / float(Steps);
 
 	float HashAnimated = fract(fract(mod(float(u_Frame) + float(0.) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer16(gl_FragCoord.xy));
@@ -204,7 +209,7 @@ void main() {
 
     vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
 
-	float LightingStrength = 0.22f;
+	float LightingStrength = u_Strength * 0.22f;
 
     for (int Step = 0 ; Step < Steps ; Step++) {
 
@@ -217,8 +222,8 @@ void main() {
 		vec3 Hash3D = vec3(hash2(), hash2().x);
 
         float DirectVisibility = GetDirectShadow(RayPosition);
-        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 28.0f;
-        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.16f;
+        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 32.0f * u_DStrength;
+        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.13f * u_IStrength;
         vec3 S = (Direct + Indirect) * LightingStrength * StepSize * Density * Transmittance;
 
         DirectScattering += S;

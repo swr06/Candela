@@ -37,6 +37,8 @@ uniform vec2 u_Dims;
 
 uniform int u_Frame;
 
+uniform bool u_DoVolumetrics;
+
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
@@ -109,8 +111,6 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	Hash.xy = mod(Hash.xy + 1.61803398874f * (u_Frame % 100), 1.0f);
 
-	vec2 TexelSize = 1.0 / textureSize(u_ShadowTextures[ClosestCascade], 0);
-
 	vec4 ProjectionCoordinates;
 
 	float HashBorder = 0.95f - Hash.y * 0.03f; 
@@ -141,11 +141,13 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	
 	float Bias = 0.00f;
 
-	int SampleCount = 5;
+	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
+
+	int SampleCount = 4;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
-		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x);
+		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x) + (Hash.xy * TexelSize * 1.4f);
 		
 		if (SampleUV != clamp(SampleUV, 0.000001f, 0.999999f))
 		{ 
@@ -177,14 +179,14 @@ void main()
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
 	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
-	vec4 Volumetrics = texture(u_Volumetrics, v_TexCoords);
+	vec4 Volumetrics = u_DoVolumetrics ? texture(u_Volumetrics, v_TexCoords) : vec4(vec3(0.0f), 1.0f);
 
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
 
 	if (Depth > 0.999999f) {
 		vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 1.0f; // <----- pow2 done here 
-		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz * 0.2f;
+		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz * 0.5f;
 		return;
 	}
 
@@ -219,7 +221,7 @@ void main()
 		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
 		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.05f);
-		DiffuseIndirect = kD * GI.xyz * Albedo * pow(GI.w, 3.0f) * IndirectStrength.x;
+		DiffuseIndirect = kD * GI.xyz * Albedo * clamp(pow(GI.w, 1.5f) + 0.01f, 0.0f, 1.0f) * IndirectStrength.x;
 
 		mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
 		DiffuseIndirect = vec3(ColorTweakMatrix * vec4(DiffuseIndirect, 1.0f));

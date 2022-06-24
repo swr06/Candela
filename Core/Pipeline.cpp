@@ -37,12 +37,20 @@ static bool vsync = false;
 static float SunTick = 50.0f;
 static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
+// Options
+static bool DoTAA = true;
+
+static bool DoVolumetrics = true;
+static float VolumetricsGlobalStrength = 1.0f;
+static float VolumetricsDirectStrength = 1.0f;
+static float VolumetricsIndirectStrength = 1.0f;
+static int VolumetricsSteps = 24;
+static bool VolumetricsTemporal = true;
+
 // Timings
 float CurrentTime = glfwGetTime();
 float Frametime = 0.0f;
 float DeltaTime = 0.0f;
-
-static glm::vec3 DragonSlider = glm::vec3(0.);
 
 class RayTracerApp : public Lumen::Application
 {
@@ -94,7 +102,20 @@ public:
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
 		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
 		ImGui::SliderFloat3("Sun Dir : ", &_SunDirection[0], -1.0f, 1.0f);
-		ImGui::SliderFloat3("Dragon Slider : ", &DragonSlider[0], -15.0f, 15.0f);
+		ImGui::NewLine();
+		ImGui::NewLine();
+		ImGui::Checkbox("Volumetrics?", &DoVolumetrics);
+		
+		if (DoVolumetrics) {
+			ImGui::SliderFloat("Volumetrics Strength", &VolumetricsGlobalStrength, 0.1f, 4.0f);
+			ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.1f, 4.0f);
+			ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.1f, 4.0f);
+			ImGui::SliderInt("Volumetrics Steps", &VolumetricsSteps, 4, 128);
+			ImGui::Checkbox("Temporally Filter Volumetrics? (Cleaner, more temporal lag)", &VolumetricsTemporal);
+		}
+
+		ImGui::NewLine();
+		ImGui::Checkbox("TAA?", &DoTAA);
 	}
 
 	void OnEvent(Lumen::Event e) override
@@ -102,6 +123,13 @@ public:
 		if (e.type == Lumen::EventTypes::MouseMove && GetCursorLocked())
 		{
 			Camera.UpdateOnMouseMovement(e.mx, e.my);
+		}
+
+		if (e.type == Lumen::EventTypes::MouseScroll)
+		{
+			float Sign = e.msy < 0.0f ? 1.0f : -1.0f;
+			Camera.SetFov(Camera.GetFov() + 2.0f * Sign);
+			Camera.SetFov(glm::clamp(Camera.GetFov(), 1.0f, 89.0f));
 		}
 
 		if (e.type == Lumen::EventTypes::WindowResize)
@@ -323,7 +351,7 @@ void Lumen::StartPipeline()
 		// Prepare 
 		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
-		DragonEntity.m_Model = glm::translate(glm::mat4(1.), DragonSlider);
+		DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(0.0f, 0.5f, 0.0f));
 		DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.3f));
 
 		// Prepare Intersector
@@ -407,7 +435,7 @@ void Lumen::StartPipeline()
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
 
-		glm::mat4 TAAMatrix = GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions());
+		glm::mat4 TAAMatrix = DoTAA ? GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions()) : glm::mat4(1.0f);
 
 		GBuffer.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -445,54 +473,60 @@ void Lumen::StartPipeline()
 
 		// Volumetrics 
 
-		VolumetricsShader.Use();
-		Volumetrics.Bind();
+		if (DoVolumetrics) {
+			VolumetricsShader.Use();
+			Volumetrics.Bind();
 
-		VolumetricsShader.SetVector2f("u_Dims", glm::vec2(Volumetrics.GetWidth(), Volumetrics.GetHeight()));
-		VolumetricsShader.SetInteger("u_DepthTexture", 0);
-		VolumetricsShader.SetInteger("u_NormalTexture", 1);
-		VolumetricsShader.SetInteger("u_Skymap", 2);
+			VolumetricsShader.SetVector2f("u_Dims", glm::vec2(Volumetrics.GetWidth(), Volumetrics.GetHeight()));
+			VolumetricsShader.SetInteger("u_DepthTexture", 0);
+			VolumetricsShader.SetInteger("u_NormalTexture", 1);
+			VolumetricsShader.SetInteger("u_Skymap", 2);
+			VolumetricsShader.SetInteger("u_Steps", VolumetricsSteps);
 
-		VolumetricsShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
-		VolumetricsShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
-		VolumetricsShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
-		VolumetricsShader.SetInteger("u_ProbeRadiance", 14);
+			VolumetricsShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
+			VolumetricsShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+			VolumetricsShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+			VolumetricsShader.SetInteger("u_ProbeRadiance", 14);
+			VolumetricsShader.SetFloat("u_Strength", VolumetricsGlobalStrength);
+			VolumetricsShader.SetFloat("u_DStrength", VolumetricsDirectStrength);
+			VolumetricsShader.SetFloat("u_IStrength", VolumetricsIndirectStrength);
 
-		SetCommonUniforms<GLClasses::Shader>(VolumetricsShader, UniformBuffer);
+			SetCommonUniforms<GLClasses::Shader>(VolumetricsShader, UniformBuffer);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
 
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
 
-		for (int i = 0; i < 5; i++) {
+			for (int i = 0; i < 5; i++) {
 
-			const int BindingPointStart = 4;
+				const int BindingPointStart = 4;
 
-			std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
-			std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
-			std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+				std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+				std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+				std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
 
-			VolumetricsShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
-			VolumetricsShader.SetInteger(NameTex, i + BindingPointStart);
-			VolumetricsShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+				VolumetricsShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+				VolumetricsShader.SetInteger(NameTex, i + BindingPointStart);
+				VolumetricsShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
-			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
-			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+				glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+				glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+			}
+
+			glActiveTexture(GL_TEXTURE14);
+			glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
+
+			ScreenQuadVAO.Bind();
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			ScreenQuadVAO.Unbind();
+
+			Volumetrics.Unbind();
 		}
-
-		glActiveTexture(GL_TEXTURE14);
-		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
-
-		ScreenQuadVAO.Bind();
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		ScreenQuadVAO.Unbind();
-
-		Volumetrics.Unbind();
 
 		// Indirect diffuse raytracing
 
@@ -696,6 +730,7 @@ void Lumen::StartPipeline()
 		TemporalFilterShader.SetInteger("u_PBR", 11);
 		TemporalFilterShader.SetInteger("u_VolumetricsCurrent", 12);
 		TemporalFilterShader.SetInteger("u_VolumetricsHistory", 13);
+		TemporalFilterShader.SetBool("u_DoVolumetrics", DoVolumetrics && VolumetricsTemporal);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
@@ -813,7 +848,7 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Volumetrics", 8);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SpatialFilterShader.SetInteger("u_Pass", Pass);
-				SpatialFilterShader.SetBool("u_FilterVolumetrics", InitialPass);
+				SpatialFilterShader.SetBool("u_FilterVolumetrics", InitialPass && DoVolumetrics);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
 
@@ -875,6 +910,7 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_SHDataA", 15);
 		LightingShader.SetInteger("u_SHDataB", 16);
 		LightingShader.SetInteger("u_Volumetrics", 17);
+		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 
@@ -946,6 +982,7 @@ void Lumen::StartPipeline()
 		TAAShader.SetInteger("u_DepthTexture", 2);
 		TAAShader.SetInteger("u_PreviousDepthTexture", 3);
 		TAAShader.SetInteger("u_MotionVectors", 4);
+		TAAShader.SetBool("u_Enabled", DoTAA);
 		TAAShader.SetVector2f("u_CurrentJitter", GetTAAJitter(app.GetCurrentFrame()));
 
 		SetCommonUniforms<GLClasses::Shader>(TAAShader, UniformBuffer);
