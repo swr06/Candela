@@ -1,0 +1,6 @@
+WSAD/Shift/Space -> Move around 
+Mouse -> Pan
+Scroll Wheel -> Zoom
+F1 -> Lock/Unlock mouse
+F2 -> Recompile changed shaders
+F3 -> Recompile all shaders 
