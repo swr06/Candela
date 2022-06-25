@@ -167,7 +167,7 @@ vec3 SampleIncidentRayDirection(vec2 screenspace)
 {
 	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
 	vec4 eye = vec4(vec2(u_InverseProjection * clip), -1.0, 0.0);
-	return vec3(u_InverseView * eye);
+	return normalize(vec3(u_InverseView * eye));
 }
 
 const vec3 SunColor = vec3(16.0f);
@@ -179,7 +179,7 @@ void main()
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
 	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
-	vec4 Volumetrics = u_DoVolumetrics ? texture(u_Volumetrics, v_TexCoords) : vec4(vec3(0.0f), 1.0f);
+	vec4 Volumetrics = u_DoVolumetrics ? texelFetch(u_Volumetrics, Pixel, 0) : vec4(vec3(0.0f), 1.0f);
 
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
 
@@ -206,8 +206,8 @@ void main()
 		const vec2 IndirectStrength = vec2(1.125f, 1.0f); // x : diffuse strength, y : specular strength
 
 		// Sample GI
-		vec4 GI = texture(u_IndirectDiffuse, v_TexCoords).xyzw; 
-		vec4 SpecGI = texture(u_IndirectSpecular, v_TexCoords).xyzw; 
+		vec4 GI = texelFetch(u_IndirectDiffuse, Pixel, 0).xyzw; 
+		vec4 SpecGI = texelFetch(u_IndirectSpecular, Pixel, 0).xyzw; 
 
 		vec3 FresnelTerm = FresnelSchlickRoughness(max(dot(Incident, Normal.xyz), 0.000001f), vec3(F0), PBR.x); 
 		FresnelTerm = clamp(FresnelTerm, 0.0f, 1.0f);
@@ -233,4 +233,5 @@ void main()
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect;
 
 	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
+
 }

@@ -222,22 +222,22 @@ float SampleShadowMap(vec2 SampleUV, int Map) {
 	switch (Map) {
 		
 		case 0 :
-			return texture(u_ShadowTextures[0], SampleUV).x; break;
+			return TexelFetchNormalized(u_ShadowTextures[0], SampleUV).x; break;
 
 		case 1 :
-			return texture(u_ShadowTextures[1], SampleUV).x; break;
+			return TexelFetchNormalized(u_ShadowTextures[1], SampleUV).x; break;
 
 		case 2 :
-			return texture(u_ShadowTextures[2], SampleUV).x; break;
+			return TexelFetchNormalized(u_ShadowTextures[2], SampleUV).x; break;
 
 		case 3 :
-			return texture(u_ShadowTextures[3], SampleUV).x; break;
+			return TexelFetchNormalized(u_ShadowTextures[3], SampleUV).x; break;
 
 		case 4 :
-			return texture(u_ShadowTextures[4], SampleUV).x; break;
+			return TexelFetchNormalized(u_ShadowTextures[4], SampleUV).x; break;
 	}
 
-	return texture(u_ShadowTextures[4], SampleUV).x;
+	return TexelFetchNormalized(u_ShadowTextures[4], SampleUV).x;
 }
 
 bool IsInBox(vec3 point, vec3 Min, vec3 Max) {
@@ -441,7 +441,7 @@ void main() {
 	vec3 Incident = normalize(WorldPosition - Player);
 
     vec3 RayOrigin = WorldPosition + Normal * mix(0.05f, 0.1f, clamp(PBR.x*1.4f,0.0f,1.0f));
-    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x*0.825f); 
+    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x*0.78f); 
 
     vec3 FinalRadiance = vec3(0.0f);
     float FinalTransversal = -1.0f;

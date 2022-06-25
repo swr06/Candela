@@ -225,6 +225,7 @@ GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16
 
 // Denoiser 
 GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, true);
+GLClasses::Framebuffer SpatialUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true);
 GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true) };
 
 // Antialiasing 
@@ -323,6 +324,7 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& TAAShader = ShaderManager::GetShader("TAA");
 	GLClasses::Shader& CASShader = ShaderManager::GetShader("CAS");
 	GLClasses::Shader& VolumetricsShader = ShaderManager::GetShader("VOLUMETRICS");
+	GLClasses::Shader& SpatialUpscaleShader = ShaderManager::GetShader("SPATIAL_UPSCALE");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
 
@@ -381,6 +383,7 @@ void Lumen::StartPipeline()
 		VolumetricsCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
 
 		// Temporal/Spatial resolve buffers
+		SpatialUpscaled.SetSize(app.GetWidth(), app.GetHeight());
 		CheckerboardUpscaled.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		SpatialVariance.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 		SpatialBuffers[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
@@ -885,8 +888,51 @@ void Lumen::StartPipeline()
 			}
 		}
 
+		// Spatial Upscale 
 
-		// Lighting pass : 
+		SpatialUpscaleShader.Use();
+		SpatialUpscaled.Bind();
+
+		SpatialUpscaleShader.SetInteger("u_Depth", 0);
+		SpatialUpscaleShader.SetInteger("u_Normals", 1);
+
+		SpatialUpscaleShader.SetInteger("u_Diffuse", 2);
+		SpatialUpscaleShader.SetInteger("u_Specular", 3);
+		SpatialUpscaleShader.SetInteger("u_Volumetrics", 4);
+
+		SpatialUpscaleShader.SetInteger("u_PBR", 5);
+		SpatialUpscaleShader.SetInteger("u_NormalsHF", 6);
+
+		SetCommonUniforms<GLClasses::Shader>(SpatialUpscaleShader, UniformBuffer);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(2));
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(3));
+
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(2));
+
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(1));
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		SpatialUpscaled.Unbind();
+
+		// Light Combiner 
 
 		LightingShader.Use();
 		LightingPass.Bind();
@@ -949,10 +995,10 @@ void Lumen::StartPipeline()
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
 		
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(0));
+		glBindTexture(GL_TEXTURE_2D, SpatialUpscaled.GetTexture(0));
 
 		glActiveTexture(GL_TEXTURE8);
-		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(2));
+		glBindTexture(GL_TEXTURE_2D, SpatialUpscaled.GetTexture(1));
 		
 
 		// 8 - 13 occupied by shadow textures 
@@ -966,7 +1012,7 @@ void Lumen::StartPipeline()
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 
 		glActiveTexture(GL_TEXTURE17);
-		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(3));
+		glBindTexture(GL_TEXTURE_2D, SpatialUpscaled.GetTexture(2));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

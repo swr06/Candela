@@ -219,7 +219,7 @@ void main() {
 
 	const float PhiLMult = 1.0f; //0.0000001f;
 	float FrameFactor = clamp(8.0f / float(Frames), 0.05f, 8.0f);
-	float PhiLFrameFactor = 6.25f; //mix(6.5f,3.75f,clamp(float(Frames)/20.0f,0.0f,1.0f));
+	float PhiLFrameFactor = 5.2f; //mix(6.5f,3.75f,clamp(float(Frames)/20.0f,0.0f,1.0f));
 	float PhiL = PhiLMult * PhiLFrameFactor * sqrt(max(0.0f, 0.00000001f + VarianceGaussian));
 
 	for (int x = -Kernel ; x <= Kernel ; x++) 

@@ -469,6 +469,9 @@
     <None Include="Core\Shaders\Volumetrics.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
+    <None Include="Core\Shaders\SpatialUpscale.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Shaders\Surfel\Readme.txt">
