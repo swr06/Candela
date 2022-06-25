@@ -40,7 +40,7 @@ uniform int u_Frame;
 uniform bool u_DoVolumetrics;
 
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
-uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
+uniform sampler2DShadow u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
 struct ProbeMapPixel {
@@ -72,7 +72,7 @@ vec2 GetVogelDiskSample(int sampleIndex, int sampleCount, float phi)
     return sincos.xy * r;
 }
 
-float SampleShadowMap(vec2 SampleUV, int Map) {
+float SampleShadowMap(vec3 SampleUV, int Map) {
 
 	switch (Map) {
 		
@@ -117,7 +117,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
-		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.025f, 1.0f);
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.035f, 1.0f);
 
 		if (abs(ProjectionCoordinates.x) < HashBorder && abs(ProjectionCoordinates.y) < HashBorder && ProjectionCoordinates.z < 1.0f 
 		    && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
@@ -143,7 +143,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
 
-	int SampleCount = 4;
+	int SampleCount = 8;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
@@ -154,7 +154,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 			continue;
 		}
 
-		Shadow += float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
+		Shadow += 1.0f - SampleShadowMap(vec3(SampleUV, ProjectionCoordinates.z - Bias), ClosestCascade); 
 		
 	}
 
