@@ -117,7 +117,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
-		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.035f, 1.0f);
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.05f, 1.0f);
 
 		if (abs(ProjectionCoordinates.x) < HashBorder && abs(ProjectionCoordinates.y) < HashBorder && ProjectionCoordinates.z < 1.0f 
 		    && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)

@@ -280,7 +280,7 @@ void main() {
 			TotalDiffuseWeight += DiffuseWeight;
 			TotalAOWeight += AOWeight;
 
-			if (u_FilterVolumetrics) {
+			if (u_FilterVolumetrics && false) {
 				vec4 SampleVolumetrics = texelFetch(u_Volumetrics, SamplePixel, 0);
 				float VolumetricsWeight = clamp(DepthWeight * NormalWeight, 0.0f, 1.0f); //RawWeight;
 				Volumetrics += VolumetricsWeight * SampleVolumetrics;

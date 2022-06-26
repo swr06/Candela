@@ -272,8 +272,19 @@ void main() {
 			vec4 PrevVolumetrics = texture(u_VolumetricsHistory, Reprojected.xy);
 			//PrevVolumetrics.xyz = ClipToAABB(PrevVolumetrics.xyz, MinVol.xyz, MaxVol.xyz);
 			//PrevVolumetrics.w = ClipToAABB(PrevVolumetrics.www, MinVol.www, MaxVol.www).x;
-			PrevVolumetrics = clamp(PrevVolumetrics, MinVol, MaxVol);
-			o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, 0.92f);
+
+			float Bias = MotionLength > 0.0001f ? 0.035f : 0.05f;
+
+			PrevVolumetrics = clamp(PrevVolumetrics, MinVol - Bias, MaxVol + Bias);
+
+			float BlendFactorVol = 0.95f;
+
+			if (MotionLength > 0.0001f) {
+				BlendFactorVol = 0.75f;
+			}
+
+			o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, BlendFactorVol);
+
 		}
 	}
 
