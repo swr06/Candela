@@ -157,7 +157,7 @@ vec3 GetVolumeGI(vec3 Point, vec3 Hash3D) {
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
 
 	if (SamplePoint == clamp(SamplePoint, 0.0001f, 0.9999f)) {
-		return texture(u_ProbeRadiance, SamplePoint).xyz * 1.8f;
+		return texture(u_ProbeRadiance, SamplePoint).xyz * 1.95f;
 	}
 
 	return vec3(0.0f);
@@ -246,11 +246,21 @@ void main() {
 			break;
 		}
 
-		vec3 Hash3D = vec3(hash2(), hash2().x);
+		vec3 VolumeHash;
+		
+		if (false) {
+			VolumeHash = vec3(hash2(), hash2().x);
+		}
+
+		else {
+			VolumeHash.x = fract(fract(mod(float(u_Frame) + float((Step * 3) + 0) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer32(gl_FragCoord.xy));
+			VolumeHash.y = fract(fract(mod(float(u_Frame) + float((Step * 3) + 1) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer64(gl_FragCoord.xy));
+			VolumeHash.z = fract(fract(mod(float(u_Frame) + float((Step * 3) + 2) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer16(gl_FragCoord.xy));
+		}
 
         float DirectVisibility = GetDirectShadow(RayPosition);
         vec3 Direct = DirectVisibility * DirectPhase * SunColor * 32.0f * u_DStrength;
-        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * IndirectPhase * u_IStrength;
+        vec3 Indirect = GetVolumeGI(RayPosition, VolumeHash) * IndirectPhase * u_IStrength;
         vec3 S = (Direct + Indirect) * LightingStrength * StepSize * Density * Transmittance;
 
         TotalScattering += S;
@@ -260,5 +270,10 @@ void main() {
     }
 
     vec4 Data = vec4(vec3(TotalScattering), Transmittance);
+
+	if (!IsValid(Data)) {
+		Data = vec4(vec3(0.0f), 1.0f);
+	}
+
 	o_Volumetrics = Data;
 }

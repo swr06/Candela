@@ -273,14 +273,14 @@ void main() {
 			//PrevVolumetrics.xyz = ClipToAABB(PrevVolumetrics.xyz, MinVol.xyz, MaxVol.xyz);
 			//PrevVolumetrics.w = ClipToAABB(PrevVolumetrics.www, MinVol.www, MaxVol.www).x;
 
-			float Bias = MotionLength > 0.0001f ? 0.04f : 0.05f;
+			float Bias = MotionLength > 0.0001f ? 0.05f : 0.05f;
 
 			PrevVolumetrics = clamp(PrevVolumetrics, MinVol - Bias, MaxVol + Bias);
 
 			float BlendFactorVol = 0.95f;
 
 			if (MotionLength > 0.0001f) {
-				BlendFactorVol = 0.75f;
+				BlendFactorVol = 0.6f;
 			}
 
 			o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, BlendFactorVol);

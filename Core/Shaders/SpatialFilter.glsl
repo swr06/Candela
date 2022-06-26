@@ -185,6 +185,7 @@ void main() {
 		o_Diffuse = Diffuse;
 		o_Variance = Variance;
 		o_Specular = Specular;
+		o_Volumetrics = Volumetrics;
 		return;
 	}
 
