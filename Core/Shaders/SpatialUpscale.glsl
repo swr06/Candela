@@ -30,6 +30,10 @@ uniform float u_Time;
 
 uniform vec3 u_ViewerPosition;
 
+uniform bool u_Enabled;
+
+bool ENABLED = u_Enabled;
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -52,13 +56,11 @@ float GradientNoise()
 	return noise;
 }
 
-
 void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, vec3 Incident, out vec4 Diffuse, out vec4 Specular, out vec4 Volumetrics) {
 
 	const float Atrous[3] = float[3]( 1.0f, 2.0f / 3.0f, 1.0f / 6.0f );
 	const ivec2 Kernel = ivec2(1, 1); // <- Kernel size 
 	
-	const bool ENABLED = true;
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 	ivec2 PixelDownscaled = Pixel / 2;

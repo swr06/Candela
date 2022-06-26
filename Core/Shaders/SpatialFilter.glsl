@@ -43,7 +43,9 @@ uniform float u_Time;
 
 uniform int u_Pass;
 
-const bool SPATIAL_OFF = false;
+uniform bool u_Enabled;
+
+bool SPATIAL_OFF = !u_Enabled;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {

@@ -28,7 +28,6 @@
 
 #include "Utility.h"
 
-
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
 Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f, 0.05f, 750.0f);
@@ -39,6 +38,10 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 // Options
 static bool DoTAA = true;
+
+static bool DoSpatial = true;
+
+static bool DoSpatialUpscaling = true;
 
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
@@ -103,6 +106,10 @@ public:
 		ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 		ImGui::NewLine();
 		ImGui::NewLine();
+		ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
+		ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
+		ImGui::NewLine();
+
 		ImGui::Checkbox("Volumetrics?", &DoVolumetrics);
 		
 		if (DoVolumetrics) {
@@ -852,6 +859,7 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SpatialFilterShader.SetInteger("u_Pass", Pass);
 				SpatialFilterShader.SetBool("u_FilterVolumetrics", InitialPass && DoVolumetrics);
+				SpatialFilterShader.SetBool("u_Enabled", DoSpatial);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
 
@@ -902,6 +910,7 @@ void Lumen::StartPipeline()
 
 		SpatialUpscaleShader.SetInteger("u_PBR", 5);
 		SpatialUpscaleShader.SetInteger("u_NormalsHF", 6);
+		SpatialUpscaleShader.SetBool("u_Enabled", DoSpatialUpscaling);
 
 		SetCommonUniforms<GLClasses::Shader>(SpatialUpscaleShader, UniformBuffer);
 

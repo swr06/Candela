@@ -241,5 +241,4 @@ void main()
 
 	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
 
-
 }

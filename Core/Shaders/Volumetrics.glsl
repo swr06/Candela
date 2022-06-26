@@ -64,8 +64,7 @@ float SampleDensity(vec3 p)
 
     float Altitude = ((p.y - AltitudeMin) / Thickness);
     float AltitudeAttenuation = remap(Altitude, 0.0f, 0.2f, 0.0f, 1.0f) * remap(Altitude, 0.9f, 1.0f, 1.0f, 0.0f);
-    float DensityAnimation = 1.0f;
-    float FinalDensity = DensityAnimation * AltitudeAttenuation * Coverage - (2.0f * AltitudeAttenuation * Altitude * 0.5f + 0.5f);
+    float FinalDensity = AltitudeAttenuation * Coverage - (2.0f * AltitudeAttenuation * Altitude * 0.5f + 0.5f);
 	FinalDensity *= exp2(-max(p.y - AltitudeMin, 0.0f) * 0.35f);
     return clamp(FinalDensity, 0.0f, 1.0f) * DensityMultiplier;
 }

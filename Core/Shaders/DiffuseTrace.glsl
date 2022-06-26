@@ -197,7 +197,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 		return 0.0f;
 	}
 	
-	float Bias = 0.00f;
+	float Bias = 0.00001f;
 	vec2 SampleUV = ProjectionCoordinates.xy;
 	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
 	return 1.0f - Shadow;
