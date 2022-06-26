@@ -231,7 +231,7 @@ void main() {
 
     vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
 
-	float LightingStrength = u_Strength * 0.22f;
+	float LightingStrength = u_Strength * 0.182f;
 
     for (int Step = 0 ; Step < Steps ; Step++) {
 

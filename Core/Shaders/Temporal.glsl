@@ -201,9 +201,9 @@ void main() {
 			o_Moments = mix(DiffuseMoments, HistoryMoments, BlendFactor);
 
 			if (Error < Tolerance * 0.8f) {
-				float MotionWeight = MotionLength > 0.001f ? clamp(exp(-length(MotionVector * vec2(Dimensions))) * 0.6f + 0.75f, 0.0f, 1.0f) : 1.0f;
+				float MotionWeight = MotionLength > 0.001f ? clamp(exp(-length(MotionVector * vec2(Dimensions))) * 0.6f + 0.7f, 0.0f, 1.0f) : 1.0f;
 				//History.w = ClipToAABB(History.w, MinDiff.w - 0.001f, MaxDiff.w + 0.001f);
-				o_Diffuse.w = mix(CurrentDiffuse.w, History.w, min(BlendFactor * MotionWeight, 0.9f));
+				o_Diffuse.w = mix(CurrentDiffuse.w, History.w, min(0.9f * MotionWeight, 0.9f));
 			}
 		}
 
@@ -255,14 +255,14 @@ void main() {
 	}
 
 	// Volumetrics 
-	if (u_DoVolumetrics) {
+	if (u_DoVolumetrics && !DisocclusionSurface) {
 		
 
 
 		float VolDistance = IsSky(Depth) ? 48.0f : Distance;
 		vec3 VolPosition = Reprojection(u_ViewerPosition + (Incident * VolDistance));
 
-		if (IsInScreenspaceBiased(VolPosition.xy) && !DisocclusionSurface) {
+		if (IsInScreenspaceBiased(VolPosition.xy)) {
 			vec4 MinVol, MaxVol, MeanVol, MomentsVol;
 
 			GatherStatistics(u_VolumetricsCurrent, Pixel, CurrentSpecular, MinVol, MaxVol, MeanVol, MomentsVol, false);
@@ -273,7 +273,7 @@ void main() {
 			//PrevVolumetrics.xyz = ClipToAABB(PrevVolumetrics.xyz, MinVol.xyz, MaxVol.xyz);
 			//PrevVolumetrics.w = ClipToAABB(PrevVolumetrics.www, MinVol.www, MaxVol.www).x;
 
-			float Bias = MotionLength > 0.0001f ? 0.035f : 0.05f;
+			float Bias = MotionLength > 0.0001f ? 0.04f : 0.05f;
 
 			PrevVolumetrics = clamp(PrevVolumetrics, MinVol - Bias, MaxVol + Bias);
 

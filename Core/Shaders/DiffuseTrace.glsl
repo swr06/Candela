@@ -319,7 +319,7 @@ void main() {
 		}
 	}
 
-	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.25f, 0.0f, 1.0f), 1.0f) : 1.0f;
+	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.5f, 0.0f, 1.0f), 1.0f) : 1.0f;
 
 	if (!IsValid(FinalRadiance)) {
 		FinalRadiance = vec3(0.0f);
