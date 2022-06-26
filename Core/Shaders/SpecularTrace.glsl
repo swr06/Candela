@@ -463,10 +463,10 @@ void main() {
 			vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
 			FinalTransversal = Screentrace.z;
 
-			vec3 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy).xyz;
+			vec4 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy);
 			vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
 
-			FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal, IntersectionAlbedo);
+			FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal.xyz, IntersectionAlbedo) + (IntersectionNormal.w * IntersectionAlbedo);
 		}
 
 		// Screenspace trace failed, intersect full geometry.
@@ -476,7 +476,7 @@ void main() {
 			int IntersectedMesh = -1;
 			int IntersectedTri = -1;
 			vec4 TUVW = vec4(-1.0f);
-			vec3 IntersectionAlbedo = vec3(0.0f);
+			vec4 IntersectionAlbedo = vec4(0.0f);
 			vec3 IntersectionNormal = vec3(-1.0f);
 					
 			// Intersect ray 
@@ -484,7 +484,7 @@ void main() {
 			FinalTransversal = TUVW.x;
 
 			if (TUVW.x > 0.0f) 
-				FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
+				FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo.xyz) + (IntersectionAlbedo.w * IntersectionAlbedo.xyz);
 			else 
 				FinalRadiance = texture(u_SkyCube, RayDirection).xyz * 2.4f;
 		}
@@ -500,14 +500,14 @@ void main() {
 		int IntersectedMesh = -1;
 		int IntersectedTri = -1;
 		vec4 TUVW = vec4(-1.0f);
-		vec3 IntersectionAlbedo = vec3(0.0f);
+		vec4 IntersectionAlbedo = vec4(0.0f);
 		vec3 IntersectionNormal = vec3(-1.0f);
 			
 		// Intersect ray 
 		IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, IntersectionAlbedo, IntersectionNormal);
 		FinalTransversal = TUVW.x;
 
-		FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo);
+		FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo.xyz) + (IntersectionAlbedo.w * IntersectionAlbedo.xyz);
 	}
 
 	if (!IsValid(FinalRadiance)) {

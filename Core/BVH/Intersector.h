@@ -43,7 +43,7 @@ namespace Lumen {
 		glm::mat4 InverseMatrix; // 64
 		int NodeOffset;
 		int NodeCount;
-		int Padding[14]; 
+		int Data[14]; 
 	};
 
 	struct _ObjectData {
@@ -200,6 +200,7 @@ void Lumen::RayIntersector<T>::PushEntity(const Entity& entity)
 	push.InverseMatrix = glm::inverse(entity.m_Model);
 	push.NodeOffset = m_ObjectData[(int)entity.m_Object->m_ObjectID].NodeOffset;
 	push.NodeCount = m_ObjectData[(int)entity.m_Object->m_ObjectID].NodeCount;
+	push.Data[0] = glm::floatBitsToInt(entity.m_EmissiveAmount);
 
 	m_Entities.push_back(push);
 }

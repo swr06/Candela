@@ -264,15 +264,16 @@ void main() {
 	// Outputs 
 	int IntersectedMesh = -1;
 	int IntersectedTri = -1;
-	vec4 TUVW = vec4(-1.0f);
-	vec3 Albedo = vec3(0.0f);
+	vec4 TUVW = vec4(-1.0f); 
+	vec4 Albedo = vec4(0.0f);
 	vec3 iNormal = vec3(-1.0f);
 		
 	// Intersect ray 
 	IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
 	// Compute radiance 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f : GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo);
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f :
+						 (GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo.xyz) + Albedo.xyz * Albedo.w);
 
 	// Handle multibounce lighting 
 	if (DO_SECOND_BOUNCE) {
@@ -289,13 +290,13 @@ void main() {
 				int SecondIntersectedMesh = -1;
 				int SecondIntersectedTri = -1;
 				vec4 SecondTUVW = vec4(-1.0f);
-				vec3 SecondAlbedo = vec3(0.0f);
+				vec4 SecondAlbedo = vec4(0.0f);
 				vec3 SecondiNormal = vec3(-1.0f);
 
 				vec3 SecondRayOrigin = HitPosition+iNormal*0.02f;
 				vec3 SecondRayDirection = CosWeightedHemisphere(iNormal,hash2());
 				IntersectRay(SecondRayOrigin, SecondRayDirection, SecondTUVW, SecondIntersectedMesh, SecondIntersectedTri, SecondAlbedo, SecondiNormal);
-				Bounced += TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.0f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo);
+				Bounced += TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.0f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo.xyz);
 			}
 
 			Bounced /= float(Samples);
@@ -310,12 +311,12 @@ void main() {
 
 		float RayProbability = clamp(dot(Normal, RayDirection), 0.0f, 1.0f);
 		if (RayProbability > 0.000001f) {
-			vec3 Throughput = Albedo / RayProbability; 
+			vec3 Throughput = Albedo.xyz / RayProbability; 
 			FinalRadiance += Bounced * clamp(Throughput, 0.0f, 5.0f);
 		}
 
 		else {
-			FinalRadiance += Bounced * (1.0f / PI) * Albedo;
+			FinalRadiance += Bounced * (1.0f / PI) * Albedo.xyz;
 		}
 	}
 

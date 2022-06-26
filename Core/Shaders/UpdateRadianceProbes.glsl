@@ -362,7 +362,7 @@ void main() {
     int IntersectedMesh = -1;
     int IntersectedTri = -1;
 	vec4 TUVW = vec4(-1.0f);
-	vec3 Albedo = vec3(0.0f);
+	vec4 Albedo = vec4(0.0f);
 	vec3 iNormal = vec3(-1.0f);
 	
 	IntersectRay(RayOrigin, DiffuseDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
@@ -372,7 +372,8 @@ void main() {
 
 	float LambertSky = clamp(dot(DiffuseDirection, vec3(0.0f, 1.0f, 0.0f)), 0.0f, 1.0f);
 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 3.1f : GetDirect(iWorldPos, iNormal, Albedo);
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 3.25f : 
+						 (GetDirect(iWorldPos, iNormal, Albedo.xyz) + (Albedo.xyz*Albedo.w*1.0f));
 
 	float Packed = 1.0f;
 

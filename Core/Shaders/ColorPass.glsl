@@ -17,6 +17,7 @@ in vec2 v_TexCoords;
 
 uniform sampler2D u_AlbedoTexture;
 uniform sampler2D u_NormalTexture;
+uniform sampler2D u_NormalLFTexture;
 uniform sampler2D u_PBRTexture;
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_BlueNoise;
@@ -193,6 +194,7 @@ void main()
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth,v_TexCoords).xyz;
 	vec3 Normal = normalize(texelFetch(u_NormalTexture, Pixel, 0).xyz);
+	vec4 NormalLF = texelFetch(u_NormalLFTexture, Pixel, 0);
 	vec3 Albedo = texelFetch(u_AlbedoTexture, Pixel, 0).xyz;
 	vec3 PBR = texelFetch(u_PBRTexture, Pixel, 0).xyz;
 
@@ -221,7 +223,7 @@ void main()
 		BRDFCoord = clamp(BRDFCoord, 0.0f, 1.0f);
 		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
-		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.05f);
+		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * clamp(pow(GI.w, 2.2f) + 0.01f, 0.0f, 1.0f) * IndirectStrength.x;
 
 		mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
@@ -233,8 +235,11 @@ void main()
 
 	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), Shadows) ;
 	
-	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect;
+	vec3 EmissiveColor = Albedo * NormalLF.w;
+
+	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect + EmissiveColor;
 
 	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
+
 
 }

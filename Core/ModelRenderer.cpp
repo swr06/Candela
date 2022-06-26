@@ -52,6 +52,7 @@ void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader)
 		shader.SetBool("u_UsesMetalnessMap", mesh->m_MetalnessMap.GetID() > 0);
 		shader.SetBool("u_UsesNormalMap", mesh->m_NormalMap.GetID() > 0);
 		shader.SetVector3f("u_EmissiveColor", mesh->m_EmissivityColor);
+		shader.SetFloat("u_EmissivityAmount", entity.m_EmissiveAmount);
 		shader.SetVector3f("u_ModelColor", mesh->m_Color);
 		shader.SetFloat("u_ModelEmission", entity.m_EmissiveAmount);
 		shader.SetFloat("u_EntityRoughness", entity.m_EntityRoughness);

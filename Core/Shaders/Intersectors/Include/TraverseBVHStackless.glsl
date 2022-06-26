@@ -33,7 +33,7 @@ struct BVHEntity {
 	mat4 InverseMatrix; // 64
 	int NodeOffset;
 	int NodeCount;
-    int Padding[14];
+    int Data[14];
 };
 
 struct TextureReferences {
@@ -275,7 +275,7 @@ float IntersectBVHStackless(vec3 RayOrigin, vec3 RayDirection, in const int Node
     return ClosestTraversal;
 }
 
-vec4 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh, out int TriangleIdx) {
+vec4 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh, out int TriangleIdx, out int Entity_) {
 
     float ClosestT = -1.0f;
 
@@ -283,7 +283,7 @@ vec4 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh, out int Tri
 
     int Mesh_ = -1;
     int Tri_ = -1;
-    int Entity_ = -1;
+    Entity_ = -1;
 
     for (int i = 0 ; i < u_EntityCount ; i++)
     {
@@ -323,7 +323,14 @@ vec3 UnpackNormal(in const uvec2 Packed) {
     return vec3(unpackHalf2x16(Packed.x).xy, unpackHalf2x16(Packed.y).x);
 }
 
-void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, out vec3 Normal, out vec3 Albedo) {
+void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, in const int EntityIdx, out vec3 Normal, out vec3 Albedo, out float Emissivity) {
+
+    if (TUVW.x < 0.0f || Mesh < 0) {
+        Normal = vec3(-1.0f);
+        Albedo = vec3(0.0f);
+        Emissivity = 0.0f;
+        return;
+    }
 
     Triangle triangle = BVHTris[TriangleIndex];
 
@@ -346,12 +353,15 @@ void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, 
     else {
         Albedo = BVHTextureReferences[Mesh].ModelColor.xyz;
     }
+
+    Emissivity = intBitsToFloat(BVHEntities[EntityIdx].Data[0]);
 }
 
-void IntersectRay(vec3 RayOrigin, vec3 RayDirection, out vec4 TUVW, out int Mesh, out int TriangleIdx, out vec3 Albedo, out vec3 Normal) {
+void IntersectRay(vec3 RayOrigin, vec3 RayDirection, out vec4 TUVW, out int Mesh, out int TriangleIdx, out vec4 Albedo, out vec3 Normal) {
     
-    TUVW = IntersectScene(RayOrigin, RayDirection, Mesh, TriangleIdx);
-    GetData(TUVW, Mesh, TriangleIdx, Normal, Albedo);
+    int IntersectedEntity = -1;
+    TUVW = IntersectScene(RayOrigin, RayDirection, Mesh, TriangleIdx, IntersectedEntity);
+    GetData(TUVW, Mesh, TriangleIdx, IntersectedEntity, Normal, Albedo.xyz, Albedo.w);
 }
 
 

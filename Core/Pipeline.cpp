@@ -292,6 +292,7 @@ void Lumen::StartPipeline()
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
 
 	Entity DragonEntity(&Dragon);
+	DragonEntity.m_EmissiveAmount = 20.0f;
 
 	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity };
 
@@ -955,6 +956,7 @@ void Lumen::StartPipeline()
 		LightingShader.SetInteger("u_SHDataA", 15);
 		LightingShader.SetInteger("u_SHDataB", 16);
 		LightingShader.SetInteger("u_Volumetrics", 17);
+		LightingShader.SetInteger("u_NormalLFTexture", 18);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
@@ -1008,10 +1010,14 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE16);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
 		
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 
 		glActiveTexture(GL_TEXTURE17);
 		glBindTexture(GL_TEXTURE_2D, SpatialUpscaled.GetTexture(2));
+
+		glActiveTexture(GL_TEXTURE18);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
