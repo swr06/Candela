@@ -292,7 +292,7 @@ void Lumen::StartPipeline()
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
 
 	Entity DragonEntity(&Dragon);
-	DragonEntity.m_EmissiveAmount = 20.0f;
+	DragonEntity.m_EmissiveAmount = 15.0f;
 
 	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity };
 
@@ -353,8 +353,8 @@ void Lumen::StartPipeline()
 		// Prepare 
 		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
-		DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(0.0f, 0.5f, 0.0f));
-		DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.3f));
+		DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
+		DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
 
 		// Prepare Intersector
 		Intersector.PushEntities(EntityRenderList);
