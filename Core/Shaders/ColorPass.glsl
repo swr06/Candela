@@ -106,6 +106,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	int ClosestCascade = -1;
 	float Shadow = 0.0;
 	float VogelScales[5] = float[5](0.003f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
+	float Biases[5] = float[5](0.01f, 0.02f, 0.03f, 0.04f, 0.05f);
 	
 	vec2 Hash = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
 
@@ -117,7 +118,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
-		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.05f, 1.0f);
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * Biases[Cascade], 1.0f);
 
 		if (abs(ProjectionCoordinates.x) < HashBorder && abs(ProjectionCoordinates.y) < HashBorder && ProjectionCoordinates.z < 1.0f 
 		    && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
@@ -139,7 +140,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 		return 1.0f;
 	}
 	
-	float Bias = 0.00f;
+	float Bias = 0.0000f;
 
 	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
 
@@ -160,7 +161,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	Shadow /= float(SampleCount);
 
-	return 1.0f - clamp(pow(Shadow, 1.0f), 0.0f, 1.0f);
+	return 1.0f - clamp(pow(Shadow, 1.25f), 0.0f, 1.0f);
 }
 
 vec3 SampleIncidentRayDirection(vec2 screenspace)
@@ -186,7 +187,7 @@ void main()
 	if (Depth > 0.999999f) {
 		vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 1.0f; // <----- pow2 done here 
-		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz * 0.5f;
+		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz;
 		return;
 	}
 
@@ -228,7 +229,9 @@ void main()
 
 	#endif
 
-	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), FilterShadows(WorldPosition, Normal)) * 0.5f;
+	float Shadows = FilterShadows(WorldPosition, Normal);
+
+	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), Shadows) ;
 	
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect;
 

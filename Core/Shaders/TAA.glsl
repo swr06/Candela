@@ -126,7 +126,7 @@ ivec2 GetNearestFragment(ivec2 Pixel, out float ClosestDepth) {
     return BestTexel;
 }
 
-bool ENABLED = u_Enabled && true;
+bool ENABLED = u_Enabled;
 
 void main() {
     

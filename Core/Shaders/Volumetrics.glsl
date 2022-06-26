@@ -4,6 +4,7 @@
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
 #include "Include/Sampling.glsl"
+#include "Include/3DNoise.glsl"
 
 layout (location = 0) out vec4 o_Volumetrics; // w -> Transmittance 
 
@@ -43,6 +44,30 @@ float HASH2SEED = 0.0f;
 vec2 hash2() 
 {
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
+}
+
+bool RayBoxIntersect(vec3 origin, vec3 direction, vec3 mins, vec3 maxs, out float tIn, out float tOut)
+{
+	vec3 t1 = (mins - origin) / direction;
+	vec3 t2 = (maxs - origin) / direction;
+	tIn = vmax(min(t1, t2));
+	tOut = vmin(max(t1, t2));
+	return tIn < tOut && tOut > 0;
+}
+
+float SampleDensity(vec3 p)
+{
+	const float AltitudeMin = -1.4f;
+	const float Thickness = 48.0f;
+	const float Coverage = 2.0f;
+	const float DensityMultiplier = 1.2f;
+
+    float Altitude = ((p.y - AltitudeMin) / Thickness);
+    float AltitudeAttenuation = remap(Altitude, 0.0f, 0.2f, 0.0f, 1.0f) * remap(Altitude, 0.9f, 1.0f, 1.0f, 0.0f);
+    float DensityAnimation = 1.0f;
+    float FinalDensity = DensityAnimation * AltitudeAttenuation * Coverage - (2.0f * AltitudeAttenuation * Altitude * 0.5f + 0.5f);
+	FinalDensity *= exp2(-max(p.y - AltitudeMin, 0.0f) * 0.35f);
+    return clamp(FinalDensity, 0.0f, 1.0f) * DensityMultiplier;
 }
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -118,7 +143,7 @@ float GetDirectShadow(vec3 WorldPosition)
 		return 0.0f;
 	}
 	
-	float Bias = 0.000f;
+	float Bias = 0.000166f;
 	vec2 SampleUV = ProjectionCoordinates.xy;
 	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
 	return 1.0f - Shadow;
@@ -131,16 +156,11 @@ vec3 GetVolumeGI(vec3 Point, vec3 Hash3D) {
 	vec3 SamplePoint = (Point - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
 
-	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
-		return texture(u_ProbeRadiance, SamplePoint).xyz;
+	if (SamplePoint == clamp(SamplePoint, 0.0001f, 0.9999f)) {
+		return texture(u_ProbeRadiance, SamplePoint).xyz * 1.8f;
 	}
 
 	return vec3(0.0f);
-}
-
-
-float SampleDensity(vec3 P) {
-	return 1.0f;
 }
 
 vec3 Incident(vec2 screenspace)
@@ -199,13 +219,15 @@ void main() {
     const float G = 0.7f;
 
     float CosTheta = dot(-Direction, normalize(u_SunDirection));
-    float DirectPhase = 0.25f / PI;//clamp(CornetteShanks(CosTheta, G), 0.0f, IsotropicPhase());
 
-    vec3 Transmittance = vec3(1.0f);
+    float DirectPhase = 0.25f / PI;
+	float IndirectPhase = 0.25f / PI; // Isotropic 
 
-    vec3 DirectScattering = vec3(0.0f);
+    float Transmittance = 1.0f;
 
-    float SigmaE = 0.0f; 
+    vec3 TotalScattering = vec3(0.0f);
+
+    float SigmaE = 0.04f; 
 
     vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
 
@@ -216,23 +238,27 @@ void main() {
         float Density = SampleDensity(RayPosition);
 
         if (Density <= 0.0f) {
+			RayPosition += Direction * StepSize;
             continue;
         }
+
+		if (Transmittance < 0.00125f) {
+			break;
+		}
 
 		vec3 Hash3D = vec3(hash2(), hash2().x);
 
         float DirectVisibility = GetDirectShadow(RayPosition);
         vec3 Direct = DirectVisibility * DirectPhase * SunColor * 32.0f * u_DStrength;
-        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * 0.13f * u_IStrength;
+        vec3 Indirect = GetVolumeGI(RayPosition, Hash3D) * IndirectPhase * u_IStrength;
         vec3 S = (Direct + Indirect) * LightingStrength * StepSize * Density * Transmittance;
 
-        DirectScattering += S;
-        Transmittance *= exp(-(StepSize * Density) * SigmaE);
-        RayPosition += Direction * StepSize; // * mix(1.0f, HashAnimated, 0.25f);
+        TotalScattering += S;
+        Transmittance *= exp(-(StepSize * Density * SigmaE));
+
+        RayPosition += Direction * StepSize; 
     }
 
-    vec4 Data = vec4(vec3(DirectScattering), Transmittance);
-
+    vec4 Data = vec4(vec3(TotalScattering), Transmittance);
 	o_Volumetrics = Data;
-
 }

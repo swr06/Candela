@@ -255,6 +255,8 @@
     <None Include="Core\Shaders\DepthVert.glsl" />
     <None Include="Core\Shaders\DiffuseRayGenerate.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
+    <None Include="Core\Shaders\Include\3DNoise.glsl" />
+    <None Include="Core\Shaders\Include\DiffuseSH.glsl" />
     <None Include="Core\Shaders\SpatialUpscale.glsl" />
     <None Include="Core\Shaders\Tonemap.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />

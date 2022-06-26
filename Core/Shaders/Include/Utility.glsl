@@ -411,3 +411,12 @@ vec4 TexelFetchNormalized(sampler2D tex, vec2 uv) {
     vec2 res = textureSize(tex,0).xy;
     return texelFetch(tex, ivec2(res*uv), 0);
 }
+
+float vmin(vec3 v) { return min(v.x, min(v.y, v.z)); }
+
+float vmax(vec3 v) { return max(v.x, max(v.y, v.z)); }
+
+float remap(float x, float a, float b, float c, float d)
+{
+    return (((x - a) / (b - a)) * (d - c)) + c;
+}

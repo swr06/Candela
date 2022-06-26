@@ -100,8 +100,7 @@ public:
 	{
 		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
-		ImGui::SliderFloat("Sun Time ", &SunTick, 0.1f, 256.0f);
-		ImGui::SliderFloat3("Sun Dir : ", &_SunDirection[0], -1.0f, 1.0f);
+		ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 		ImGui::NewLine();
 		ImGui::NewLine();
 		ImGui::Checkbox("Volumetrics?", &DoVolumetrics);

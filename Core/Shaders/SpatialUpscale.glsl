@@ -26,6 +26,8 @@ uniform mat4 u_InverseProjection;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform float u_Time;
+
 uniform vec3 u_ViewerPosition;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -42,6 +44,14 @@ float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
 }
+
+float GradientNoise()
+{
+	vec2 coord = gl_FragCoord.xy + mod(u_Time * 100.493850275f, 500.0f);
+	float noise = fract(52.9829189f * fract(0.06711056f * coord.x + 0.00583715f * coord.y));
+	return noise;
+}
+
 
 void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, vec3 Incident, out vec4 Diffuse, out vec4 Specular, out vec4 Volumetrics) {
 
@@ -63,6 +73,8 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 
 	float TotalWeight = 1.0f;
 
+	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(1)/sqrt(2.0f)));
+
 	//SG CenterRSG = RoughnessLobe(Roughness, Normal, Incident);
 
 	Diffuse = texelFetch(u_Diffuse, PixelDownscaled, 0).xyzw;
@@ -79,7 +91,7 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			
 			KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
-			ivec2 SampleCoord = PixelDownscaled + ivec2(x, y);
+			ivec2 SampleCoord = PixelDownscaled + ivec2(x, y) + Jitter;
 			ivec2 SampleCoordHighRes = SampleCoord * 2;
 
 			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, SampleCoordHighRes, 0).x);
@@ -87,7 +99,7 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			vec3 SampleNormalHF = texelFetch(u_NormalsHF, SampleCoordHighRes, 0).xyz;
 			vec3 SamplePBR = texelFetch(u_PBR, SampleCoordHighRes, 0).xyz;
 
-			float DepthWeight = pow(exp(-abs(Depth - SampleDepth)), 384.0f);
+			float DepthWeight = pow(exp(-abs(Depth - SampleDepth)), 420.0f);
 			float NormalWeight = pow(max(dot(SampleNormal, Normal), 0.0f), 32.0f);
 			float NormalWeightHF = pow(max(dot(SampleNormalHF, NormalHF), 0.0f), 32.0f);
 			float RoughnessWeight = pow(clamp(1.0f-(abs(SamplePBR.x-Roughness)/4.0f), 0.0f, 1.0f), 24.0f);
@@ -109,7 +121,7 @@ vec3 SampleIncidentRayDirection(vec2 screenspace)
 {
 	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
 	vec4 eye = vec4(vec2(u_InverseProjection * clip), -1.0, 0.0);
-	return vec3(u_InverseView * eye);
+	return normalize(vec3(u_InverseView * eye));
 }
 
 void main() {
