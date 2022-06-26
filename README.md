@@ -10,9 +10,10 @@
 - Indirect Diffuse GI
 - Infinite bounce GI using irradiance probes
 - Hybrid Specular GI (SSR + World Space RT)
-- SVGF
+- SVGF + Specialized Specular Denoiser
 - TAA
 - Volumetrics
+- Upscaling (Temporal/Spatial)
 
 # Todo
 - ReStir GI/DI
