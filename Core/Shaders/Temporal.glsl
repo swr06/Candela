@@ -257,30 +257,27 @@ void main() {
 	// Volumetrics 
 	if (u_DoVolumetrics && !DisocclusionSurface) {
 		
+		float PlaneDistance = clamp(IsSky(Depth) ? 48.0f : Distance, 0.0f, 40.0f);
+		vec3 ReprojectedPlane = Reprojection(u_ViewerPosition + (Incident * PlaneDistance));
 
+		if (IsInScreenspaceBiased(ReprojectedPlane.xy)) {
 
-		float VolDistance = IsSky(Depth) ? 48.0f : Distance;
-		vec3 VolPosition = Reprojection(u_ViewerPosition + (Incident * VolDistance));
-
-		if (IsInScreenspaceBiased(VolPosition.xy)) {
 			vec4 MinVol, MaxVol, MeanVol, MomentsVol;
 
 			GatherStatistics(u_VolumetricsCurrent, Pixel, CurrentSpecular, MinVol, MaxVol, MeanVol, MomentsVol, false);
 
 			vec4 VolVariance = sqrt(abs(MomentsVol - MeanVol * MeanVol));
 
-			vec4 PrevVolumetrics = texture(u_VolumetricsHistory, Reprojected.xy);
-			//PrevVolumetrics.xyz = ClipToAABB(PrevVolumetrics.xyz, MinVol.xyz, MaxVol.xyz);
-			//PrevVolumetrics.w = ClipToAABB(PrevVolumetrics.www, MinVol.www, MaxVol.www).x;
+			vec4 PrevVolumetrics = texture(u_VolumetricsHistory, ReprojectedPlane.xy);
 
 			float Bias = MotionLength > 0.0001f ? 0.05f : 0.05f;
 
 			PrevVolumetrics = clamp(PrevVolumetrics, MinVol - Bias, MaxVol + Bias);
 
-			float BlendFactorVol = 0.95f;
+			float BlendFactorVol = 0.825f;
 
 			if (MotionLength > 0.0001f) {
-				BlendFactorVol = 0.6f;
+				BlendFactorVol = 0.66f;
 			}
 
 			o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, BlendFactorVol);
