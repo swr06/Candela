@@ -553,6 +553,7 @@ void Lumen::StartPipeline()
 		DiffuseShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 		DiffuseShader.SetInteger("u_SHDataA", 14);
 		DiffuseShader.SetInteger("u_SHDataB", 15);
+		DiffuseShader.SetInteger("u_Albedo", 16);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
@@ -586,6 +587,9 @@ void Lumen::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE15);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
+
+		glActiveTexture(GL_TEXTURE16);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
 
 		Intersector.BindEverything(DiffuseShader, app.GetCurrentFrame() < 60);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);

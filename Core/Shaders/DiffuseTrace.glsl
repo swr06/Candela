@@ -11,16 +11,18 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 
-uniform mat4 u_InverseView;
-uniform mat4 u_InverseProjection;
 uniform mat4 u_Projection;
 uniform mat4 u_View;
+uniform mat4 u_InverseProjection;
+uniform mat4 u_InverseView;
+uniform mat4 u_ViewProjection;
 
 uniform vec2 u_Dims;
 uniform vec3 u_SunDirection;
 
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_NormalTexture;
+uniform sampler2D u_Albedo;
 uniform samplerCube u_Skymap;
 
 uniform int u_Frame;
@@ -37,6 +39,9 @@ uniform vec3 u_ProbeBoxOrigin;
 uniform usampler3D u_SHDataA;
 uniform usampler3D u_SHDataB;
 
+uniform float u_zNear;
+uniform float u_zFar;
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -45,6 +50,132 @@ vec3 WorldPosFromDepth(float depth, vec2 txc)
     ViewSpacePosition /= ViewSpacePosition.w;
     vec4 WorldPos = u_InverseView * ViewSpacePosition;
     return WorldPos.xyz;
+}
+
+vec3 ProjectToScreenSpace(vec3 WorldPos) 
+{
+	vec4 ProjectedPosition = u_ViewProjection * vec4(WorldPos, 1.0f);
+	ProjectedPosition.xyz /= ProjectedPosition.w;
+	ProjectedPosition.xyz = ProjectedPosition.xyz * 0.5f + 0.5f;
+	return ProjectedPosition.xyz;
+}
+
+vec3 ProjectToClipSpace(vec3 WorldPos) 
+{
+	vec4 ProjectedPosition = u_ViewProjection * vec4(WorldPos, 1.0f);
+	ProjectedPosition.xyz /= ProjectedPosition.w;
+	return ProjectedPosition.xyz;
+}
+
+float LinearizeDepth(float depth)
+{
+	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
+}
+
+float HASH2SEED = 0.0f;
+vec2 hash2() 
+{
+	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
+}
+
+vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps, const float ThresholdMultiplier) {
+
+    float TraceDistance = 32.0f;
+
+    float StepSize = TraceDistance / Steps;
+
+	vec2 Hash = hash2();
+    vec3 RayPosition = Origin + Direction * Hash.x;
+
+    vec3 FinalProjected = vec3(0.0f);
+    float FinalDepth = 0.0f;
+
+    bool FoundIntersection = false;
+    int SkyHits = 0;
+
+    for (int Step = 0 ; Step < Steps ; Step++) {
+
+        vec3 ProjectedRayScreenspace = ProjectToClipSpace(RayPosition); 
+		
+		if(abs(ProjectedRayScreenspace.x) > 1.0f || abs(ProjectedRayScreenspace.y) > 1.0f || abs(ProjectedRayScreenspace.z) > 1.0f) 
+		{
+			return vec4(vec3(-1.0f),SkyHits>4);
+		}
+		
+		ProjectedRayScreenspace.xyz = ProjectedRayScreenspace.xyz * 0.5f + 0.5f; 
+
+		// Depth texture uses nearest filtering
+        float DepthAt = texture(u_DepthTexture, ProjectedRayScreenspace.xy).x; 
+
+        if (DepthAt == 1.0f) {
+            SkyHits += 1;
+        }
+
+		float CurrentRayDepth = LinearizeDepth(ProjectedRayScreenspace.z); 
+		float Error = abs(LinearizeDepth(DepthAt) - CurrentRayDepth);
+
+        if (Error < StepSize * ThresholdMultiplier * 6.0f && ProjectedRayScreenspace.z > DepthAt) 
+		{
+
+			vec3 BinaryStepVector = (Direction * StepSize) / 2.0f;
+            RayPosition -= (Direction * StepSize) * 0.5f; // <- Step back a bit 
+			    
+            for (int BinaryStep = 0 ; BinaryStep < BinarySteps ; BinaryStep++) {
+			    		
+			    BinaryStepVector /= 2.0f;
+
+			    vec3 Projected = ProjectToClipSpace(RayPosition); 
+			    Projected = Projected * 0.5f + 0.5f;
+                FinalProjected = Projected;
+
+				// Depth texture uses nearest filtering
+                float Fetch = texture(u_DepthTexture, Projected.xy).x;
+                FinalDepth = Fetch;
+
+			    float BinaryDepthAt = LinearizeDepth(Fetch); 
+			    float BinaryRayDepth = LinearizeDepth(Projected.z); 
+
+			    if (BinaryDepthAt < BinaryRayDepth) 
+                {
+			    	RayPosition -= BinaryStepVector;
+			    }
+
+			    else
+                {
+			    	RayPosition += BinaryStepVector;
+			    }
+			}
+
+			Error = abs(LinearizeDepth(FinalDepth) - LinearizeDepth(FinalProjected.z));
+
+			if (Error < StepSize * ThresholdMultiplier) {
+				FoundIntersection = true; 
+			}
+
+            break;
+        }
+
+        if (ProjectedRayScreenspace.z > DepthAt) {  
+            FoundIntersection = false;
+            break;
+        }
+
+        RayPosition += StepSize * Direction;
+    }
+
+    if (!FoundIntersection) {
+        return vec4(vec3(-1.0f), SkyHits>4);
+    }
+
+	float T = distance(RayPosition, Origin);
+
+	vec3 Pos = Origin + Direction * T;
+
+	if (distance(RayPosition, Pos) > 0.025f) {
+		return vec4(vec3(-1.0f), SkyHits>4);
+	}
+
+    return vec4(FinalProjected.xy, FinalDepth == 1.0f ? -1.0f : T, FinalDepth == 1.0f ? 1.0f : float(SkyHits>4));
 }
 
 float[8] Trilinear(vec3 BoxMin, vec3 BoxMax, vec3 p) {
@@ -209,15 +340,10 @@ vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 	return vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
 }
 
-float HASH2SEED = 0.0f;
-vec2 hash2() 
-{
-	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
-}
-
 const bool CHECKERBOARD = true;
 const bool DO_SECOND_BOUNCE = true;
 const bool RT_SECOND_BOUNCE = false;
+const bool DO_SCREENTRACE = true;
 
 void main() {
 
@@ -261,19 +387,47 @@ void main() {
 	vec3 RayOrigin = WorldPosition + Normal * 0.05f;
 	vec3 RayDirection = CosWeightedHemisphere(Normal, hash2());
 
-	// Outputs 
-	int IntersectedMesh = -1;
-	int IntersectedTri = -1;
+	// First bounce intersection outputs 
 	vec4 TUVW = vec4(-1.0f); 
 	vec4 Albedo = vec4(0.0f);
 	vec3 iNormal = vec3(-1.0f);
 		
-	// Intersect ray 
-	IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
+	vec3 FinalRadiance = vec3(0.0f);
 
-	// Compute radiance 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f :
+	vec4 Screentrace = vec4(-10.0f);
+	
+	if (DO_SCREENTRACE) 
+	{ 
+		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 24, 15, 0.000875f);
+	}
+
+	if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
+			    
+		vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
+		TUVW.x = Screentrace.z;
+
+		vec4 NormalFetchSS = TexelFetchNormalized(u_NormalTexture, Screentrace.xy);
+
+		iNormal = NormalFetchSS.xyz;
+		Albedo = vec4(TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz, NormalFetchSS.w);
+
+		Albedo.xyz = pow(Albedo.xyz, vec3(1.0f / 2.2f));
+
+		FinalRadiance = GetDirect(IntersectionPosition, iNormal.xyz, Albedo.xyz) + (NormalFetchSS.w * Albedo.xyz);
+	}
+
+	// Screenspace trace failed, intersect full geometry.
+	else if (true) {
+
+		int IntersectedMesh = -1;
+		int IntersectedTri = -1;
+			
+		// Intersect ray 
+		IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
+
+		FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f :
 						 (GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo.xyz) + Albedo.xyz * Albedo.w);
+	}
 
 	// Handle multibounce lighting 
 	if (DO_SECOND_BOUNCE) {

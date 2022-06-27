@@ -127,8 +127,7 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 
     float StepSize = TraceDistance / Steps;
 
-    vec2 Hash = hash2();
-
+	vec2 Hash = hash2();
     vec3 RayPosition = Origin + Direction * Hash.x;
 
     vec3 FinalProjected = vec3(0.0f);
@@ -158,12 +157,11 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 		float CurrentRayDepth = LinearizeDepth(ProjectedRayScreenspace.z); 
 		float Error = abs(LinearizeDepth(DepthAt) - CurrentRayDepth);
 
-        if (Error < StepSize * ThresholdMultiplier && ProjectedRayScreenspace.z > DepthAt) 
+        if (Error < StepSize * ThresholdMultiplier * 6.0f && ProjectedRayScreenspace.z > DepthAt) 
 		{
-            FoundIntersection = true; 
 
 			vec3 BinaryStepVector = (Direction * StepSize) / 2.0f;
-            RayPosition -= (Direction * StepSize) / 2.0f; // <- Step back a bit 
+            RayPosition -= (Direction * StepSize) * 0.5f; // <- Step back a bit 
 			    
             for (int BinaryStep = 0 ; BinaryStep < BinarySteps ; BinaryStep++) {
 			    		
@@ -189,6 +187,12 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
                 {
 			    	RayPosition += BinaryStepVector;
 			    }
+			}
+
+			Error = abs(LinearizeDepth(FinalDepth) - LinearizeDepth(FinalProjected.z));
+
+			if (Error < StepSize * ThresholdMultiplier) {
+				FoundIntersection = true; 
 			}
 
             break;
@@ -454,9 +458,9 @@ void main() {
 		//	mix(0.0045f, 0.0075f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
 
 		vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-			int(mix(32.0f, 24.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Step count 
-			7, // <- Binary refine step count
-		    0.00370f); // <- Error threshold
+			int(mix(32.0f, 20.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Step count 
+			int(mix(16.0f, 12.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Binary refine step count
+		    mix(0.001f, 0.0025f, PBR.x * PBR.x)); // <- Error threshold
 
 		if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
 			    
@@ -465,6 +469,8 @@ void main() {
 
 			vec4 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy);
 			vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
+
+			IntersectionAlbedo.xyz = pow(IntersectionAlbedo.xyz, vec3(1.0f / 2.2f));
 
 			FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal.xyz, IntersectionAlbedo) + (IntersectionNormal.w * IntersectionAlbedo);
 		}
