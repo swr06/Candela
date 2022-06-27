@@ -230,6 +230,106 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 	glUseProgram(0);
 }
 
+void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap)
+{
+	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
+	GLClasses::ComputeShader& CopyVolume = ShaderManager::GetComputeShader("COPY_VOLUME");
+
+	bool Checkerboard = Frame % 2 == 0;
+	GLuint CurrentVolumeTextures[2] = { Checkerboard ? _ProbeDataTextures[0] : _PrevProbeDataTextures[0], Checkerboard ? _ProbeDataTextures[1] : _PrevProbeDataTextures[1] };
+	GLuint PreviousVolumeTextures[2] = { (!Checkerboard) ? _ProbeDataTextures[0] : _PrevProbeDataTextures[0], (!Checkerboard) ? _ProbeDataTextures[1] : _PrevProbeDataTextures[1] };
+
+	GLuint CurrentRawRadianceTexture = Checkerboard ? _ProbeRawRadianceBuffers[0] : _ProbeRawRadianceBuffers[1];
+	GLuint PreviousRawRadianceTexture = Checkerboard ? _ProbeRawRadianceBuffers[1] : _ProbeRawRadianceBuffers[0];
+
+	_CurrentDataTextures.x = CurrentVolumeTextures[0];
+	_CurrentDataTextures.y = CurrentVolumeTextures[1];
+	_CurrentDataTextures.z = CurrentRawRadianceTexture;
+
+	ProbeUpdate.Use();
+
+	_PreviousOrigin = LastOrigin;
+
+	LastOrigin = glm::vec3(uniforms.InvView[3]);
+	LastOrigin.x = Align(LastOrigin.x, 1.0f);
+	LastOrigin.y = Align(LastOrigin.y, 1.0f);
+	LastOrigin.z = Align(LastOrigin.z, 1.0f);
+
+	ProbeUpdate.SetVector3f("u_SunDirection", uniforms.SunDirection);
+	ProbeUpdate.SetVector3f("u_BoxOrigin", LastOrigin);
+	ProbeUpdate.SetVector3f("u_Resolution", glm::vec3(ProbeGridX, ProbeGridY, ProbeGridZ));
+	ProbeUpdate.SetVector3f("u_Size", ProbeBoxSize);
+	ProbeUpdate.SetVector3f("u_PreviousOrigin", _PreviousOrigin);
+	ProbeUpdate.SetFloat("u_Time", glfwGetTime());
+
+	ProbeUpdate.SetInteger("u_Skymap", 4);
+
+	ProbeUpdate.SetInteger("u_PreviousSHA", 5);
+	ProbeUpdate.SetInteger("u_PreviousSHB", 6);
+
+	for (int i = 0; i < 5; i++) {
+
+		const int BindingPointStart = 8;
+
+		std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+		std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+		std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+
+		ProbeUpdate.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+		ProbeUpdate.SetInteger(NameTex, i + BindingPointStart);
+		ProbeUpdate.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+
+		glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+		glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+	}
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap);
+
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_3D, PreviousVolumeTextures[0]);
+
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_3D, PreviousVolumeTextures[1]);
+
+	glBindImageTexture(0, CurrentVolumeTextures[0], 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32UI);
+	glBindImageTexture(1, CurrentVolumeTextures[1], 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32UI);
+
+	glBindImageTexture(2, CurrentRawRadianceTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R11F_G11F_B10F);
+	glBindImageTexture(3, PreviousRawRadianceTexture, 0, GL_TRUE, 0, GL_READ_ONLY, GL_R11F_G11F_B10F);
+
+	glBindImageTexture(4, _PrevFrameDataTextures[0], 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32UI);
+	glBindImageTexture(5, _PrevFrameDataTextures[1], 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32UI);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _ProbeMapSSBO);
+
+	Intersector.BindEverything(ProbeUpdate, uniforms.Frame < 128);
+
+	glDispatchCompute(ProbeGridX / 8, ProbeGridY / 4, ProbeGridZ / 8);
+
+	glUseProgram(0);
+
+	// Copy data to buffer (feedback loop)
+
+	CopyVolume.Use();
+
+	CopyVolume.SetInteger("u_CurrentSHA", 0);
+	CopyVolume.SetInteger("u_CurrentSHB", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, CurrentVolumeTextures[0]);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_3D, CurrentVolumeTextures[1]);
+
+	glBindImageTexture(2, _PrevFrameDataTextures[0], 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32UI);
+	glBindImageTexture(3, _PrevFrameDataTextures[1], 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32UI);
+
+	glDispatchCompute(ProbeGridX / 8, ProbeGridY / 4, ProbeGridZ / 8);
+
+	glUseProgram(0);
+}
+
 glm::vec3 Lumen::ProbeGI::GetProbeGridSize()
 {
 	return ProbeBoxSize;

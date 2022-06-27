@@ -21,6 +21,7 @@ namespace Lumen {
 		void Initialize();
 
 		void UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap);
+		void UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap);
 		glm::vec3 GetProbeGridSize();
 		glm::vec3 GetProbeGridRes();
 		glm::vec3 GetProbeBoxOrigin();
