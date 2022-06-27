@@ -240,5 +240,4 @@ void main()
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect + EmissiveColor;
 
 	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
-
 }

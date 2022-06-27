@@ -411,7 +411,7 @@ void main() {
 		iNormal = NormalFetchSS.xyz;
 		Albedo = vec4(TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz, NormalFetchSS.w);
 
-		Albedo.xyz = pow(Albedo.xyz, vec3(1.0f / 2.2f));
+		//Albedo.xyz = pow(Albedo.xyz, vec3(1.0f / 2.2f));
 
 		FinalRadiance = GetDirect(IntersectionPosition, iNormal.xyz, Albedo.xyz) + (NormalFetchSS.w * Albedo.xyz);
 	}

@@ -470,8 +470,6 @@ void main() {
 			vec4 IntersectionNormal = TexelFetchNormalized(u_LFNormals, Screentrace.xy);
 			vec3 IntersectionAlbedo = TexelFetchNormalized(u_Albedo, Screentrace.xy).xyz;
 
-			IntersectionAlbedo.xyz = pow(IntersectionAlbedo.xyz, vec3(1.0f / 2.2f));
-
 			FinalRadiance = SampleLighting(Screentrace.xy, IntersectionPosition, IntersectionNormal.xyz, IntersectionAlbedo) + (IntersectionNormal.w * IntersectionAlbedo);
 		}
 
