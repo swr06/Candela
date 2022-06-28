@@ -223,7 +223,7 @@ void main()
 		BRDFCoord = clamp(BRDFCoord, 0.0f, 1.0f);
 		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
-		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.25f);
+		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.125f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * clamp(pow(GI.w, 2.2f) + 0.01f, 0.0f, 1.0f) * IndirectStrength.x;
 
 		mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);

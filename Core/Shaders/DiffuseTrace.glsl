@@ -114,7 +114,7 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 		float CurrentRayDepth = LinearizeDepth(ProjectedRayScreenspace.z); 
 		float Error = abs(LinearizeDepth(DepthAt) - CurrentRayDepth);
 
-        if (Error < StepSize * ThresholdMultiplier * 6.0f && ProjectedRayScreenspace.z > DepthAt) 
+        if (Error < StepSize * ThresholdMultiplier * 8.0f && ProjectedRayScreenspace.z > DepthAt) 
 		{
 
 			vec3 BinaryStepVector = (Direction * StepSize) / 2.0f;
@@ -398,7 +398,7 @@ void main() {
 	
 	if (DO_SCREENTRACE) 
 	{ 
-		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 24, 15, 0.000875f);
+		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 24, 16, 0.00095f);
 	}
 
 	if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
