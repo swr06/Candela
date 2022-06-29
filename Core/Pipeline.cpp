@@ -435,9 +435,9 @@ void Lumen::StartPipeline()
 
 		// Collide
 		CollisionQuery Query;
-		Query.Min = glm::vec4(Camera.GetPosition(), 1.0f);
+		Query.Min = glm::vec4(Camera.GetPosition() - 0.1f, 1.0f);
 		Query.Max = glm::vec4(Camera.GetPosition() + 0.1f, 1.0f);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionResultSSBO);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionQuerySSBO);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(CollisionQuery) * 1, &Query);
 
 		CollisionShader.Use();
@@ -452,7 +452,8 @@ void Lumen::StartPipeline()
 		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::ivec4) * 1, &Retrieved);;
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-		std::cout << "\n" << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
+		if (app.GetCurrentFrame() % 6 == 0)
+			std::cout << "\n" << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
 
 		app.OnUpdate();
 

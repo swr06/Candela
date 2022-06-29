@@ -154,10 +154,7 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
 
         if (CollidedBox) 
         {
-
             if (IsLeafNode(CurrentNode)) {
-
-                return true;
 
                 int Packed = floatBitsToInt(CurrentNode.Min.w);
                 

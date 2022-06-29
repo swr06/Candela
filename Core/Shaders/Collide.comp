@@ -5,7 +5,7 @@
 #include "Include/Physics.glsl"
 #include "TraverseBVH.glsl"
 
-layout(local_size_x = 1) in;
+layout(local_size_x = 128) in;
 
 uniform int u_QueryCount;
 
@@ -22,7 +22,7 @@ void main() {
 	
 	int Index = int(gl_GlobalInvocationID.x);
 
-	if (Index < 0 || Index > u_QueryCount) {
+	if (Index < 0 || Index >= u_QueryCount) {
 		return;
 	}
 

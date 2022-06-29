@@ -22,7 +22,7 @@
 
 	#else 
 
-		#include "Intersectors/Include/TraverseBVHStackless.glsl"
+		#include "Intersectors/Include/TraverseBVHStack.glsl"
 
 	#endif
 
