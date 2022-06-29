@@ -40,6 +40,8 @@ uniform vec3 u_ProbeBoxOrigin;
 
 uniform sampler3D u_ProbeRadiance;
 
+uniform bool u_Checker;
+
 float HASH2SEED = 0.0f;
 vec2 hash2() 
 {
@@ -179,7 +181,7 @@ void main() {
 	}
 
 	// Handle checkerboard 
-	if (true) {
+	if (u_Checker) {
 		Pixel.x *= 2;
 		bool IsCheckerStep = Pixel.x % 2 == int(Pixel.y % 2 == (u_Frame % 2));
 		Pixel.x += int(IsCheckerStep);

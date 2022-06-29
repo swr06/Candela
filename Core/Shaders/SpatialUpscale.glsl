@@ -56,11 +56,16 @@ float GradientNoise()
 	return noise;
 }
 
+float HASH2SEED = 0.0f;
+vec2 hash2() 
+{
+	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
+}
+
 void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, vec3 Incident, out vec4 Diffuse, out vec4 Specular, out vec4 Volumetrics) {
 
 	const float Atrous[3] = float[3]( 1.0f, 2.0f / 3.0f, 1.0f / 6.0f );
 	const ivec2 Kernel = ivec2(1, 1); // <- Kernel size 
-	
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 	ivec2 PixelDownscaled = Pixel / 2;
@@ -75,13 +80,13 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 
 	float TotalWeight = 1.0f;
 
-	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(1)/sqrt(2.0f)));
-
 	//SG CenterRSG = RoughnessLobe(Roughness, Normal, Incident);
 
 	Diffuse = texelFetch(u_Diffuse, PixelDownscaled, 0).xyzw;
 	Specular = texelFetch(u_Specular, PixelDownscaled, 0);
 	Volumetrics = texelFetch(u_Volumetrics, PixelDownscaled, 0).xyzw;
+
+	vec2 HashV = hash2() * 2.0f - 1.0f;
 
 	for (int x = -Kernel.x ; x <= Kernel.x ; x++) {
 
@@ -93,7 +98,8 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			
 			KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
-			ivec2 SampleCoord = PixelDownscaled + ivec2(x, y) + Jitter;
+			vec2 SampleCoordF = vec2(PixelDownscaled) + vec2(x, y);
+			ivec2 SampleCoord = ivec2(SampleCoordF);
 			ivec2 SampleCoordHighRes = SampleCoord * 2;
 
 			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, SampleCoordHighRes, 0).x);
@@ -109,7 +115,7 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 
 			Diffuse += texelFetch(u_Diffuse, SampleCoord, 0).xyzw * Weight;
 			Specular += texelFetch(u_Specular, SampleCoord, 0) * Weight;
-			Volumetrics += texelFetch(u_Volumetrics, SampleCoord, 0).xyzw * Weight;
+			Volumetrics += texelFetch(u_Volumetrics, SampleCoord, 0) * Weight;
 			TotalWeight += Weight;
 		}
 	}
@@ -129,6 +135,10 @@ vec3 SampleIncidentRayDirection(vec2 screenspace)
 void main() {
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
+
+	vec2 UV = (vec2(Pixel) / textureSize(u_Depth, 0).xy);
+
+	HASH2SEED = UV.x * UV.y * 64.0 * u_Time;
 	
 	float Depth = texelFetch(u_Depth, Pixel, 0).x;
 	vec3 Normal = texelFetch(u_Normals, Pixel, 0).xyz;

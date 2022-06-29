@@ -50,6 +50,8 @@ uniform vec3 u_ViewerPosition;
 
 uniform bool u_DoVolumetrics;
 
+uniform bool u_Enabled;
+
 // GBuffer
 float LinearizeDepth(float depth)
 {
@@ -164,8 +166,16 @@ void main() {
 	// Generate moments 
 	vec2 DiffuseMoments;
 	DiffuseMoments = vec2(DiffuseLuminance, DiffuseLuminance * DiffuseLuminance);
+	DiffuseMoments = max(DiffuseMoments, 0.0f);
 
-	o_Moments = max(DiffuseMoments, 0.0f);
+	if (!u_Enabled) {
+		o_Diffuse = CurrentDiffuse;
+		o_Specular = CurrentSpecular;
+		o_Volumetrics = CurrentVolumetrics;
+		o_Utility = vec2(0.0f);
+		o_Moments = DiffuseMoments;
+		return;
+	}
 
 	bool DisocclusionSurface = true;
 

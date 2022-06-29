@@ -50,6 +50,8 @@ uniform vec3 u_ProbeBoxOrigin;
 uniform usampler3D u_SHDataA;
 uniform usampler3D u_SHDataB;
 
+uniform bool u_Checker;
+
 float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
@@ -406,7 +408,7 @@ void main() {
 	}
 
 	// Handle checkerboard 
-	if (true) {
+	if (u_Checker) {
 		Pixel.x *= 2;
 		bool IsCheckerStep = Pixel.x % 2 == int(Pixel.y % 2 == (u_Frame % 2));
 		Pixel.x += int(IsCheckerStep);

@@ -42,6 +42,8 @@ uniform usampler3D u_SHDataB;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform bool u_Checker;
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -340,7 +342,6 @@ vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 	return vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
 }
 
-const bool CHECKERBOARD = true;
 const bool DO_SECOND_BOUNCE = true;
 const bool RT_SECOND_BOUNCE = false;
 const bool DO_SCREENTRACE = true;
@@ -355,7 +356,7 @@ void main() {
 	}
 
 	// Handle checkerboard 
-	if (CHECKERBOARD) {
+	if (u_Checker) {
 		Pixel.x *= 2;
 		bool IsCheckerStep = Pixel.x % 2 == int(Pixel.y % 2 == (u_Frame % 2));
 		Pixel.x += int(IsCheckerStep);

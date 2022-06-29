@@ -39,6 +39,8 @@ uniform float u_zFar;
 
 uniform vec2 u_Dimensions;
 
+uniform bool u_Enabled;
+
 const ivec2 UpscaleOffsets[4] = ivec2[](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1)); 
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -120,7 +122,7 @@ vec3 SearchBestPixel(vec3 WorldPosition, vec2 Reprojected) {
 
 void main() {
 	
-	bool OutputRaw = false;
+	bool OutputRaw = !u_Enabled;
 
 	if (OutputRaw) {
 		

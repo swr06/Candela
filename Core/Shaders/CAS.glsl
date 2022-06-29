@@ -1,4 +1,5 @@
 #version 330 core
+
 #define EPSILON 0.01f
 
 #include "Include/Utility.glsl"
@@ -58,6 +59,6 @@ void main()
     vec3 Processed = ContrastAdaptiveSharpening(u_Texture, Pixel, SharpeningAmount+0.02f);
     
     o_Color = LinearToSRGB(Processed);
-    o_Color = clamp(o_Color,0.0f,1.0f);
+    o_Color = clamp(o_Color, 0.0f, 1.0f);
 	BasicColorDither(o_Color);
 }

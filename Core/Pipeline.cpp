@@ -37,7 +37,12 @@ static float SunTick = 50.0f;
 static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 // Options
+
+static bool DoCheckering = true;
+
 static bool DoTAA = true;
+
+static bool DoTemporal = true;
 
 static bool DoSpatial = true;
 
@@ -105,6 +110,10 @@ public:
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
 		ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 		ImGui::NewLine();
+		ImGui::NewLine();
+		ImGui::Checkbox("Checkerboard? (effectively computes lighting for half the pixels)", &DoCheckering);
+		ImGui::NewLine();
+		ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
 		ImGui::NewLine();
 		ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
 		ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
@@ -380,14 +389,15 @@ void Lumen::StartPipeline()
 		TAABuffers[1].SetSize(app.GetWidth(), app.GetHeight());
 
 		// Diffuse FBOs
-		DiffuseCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
-		DiffuseCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
-		SpecularCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
-		SpecularCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+		int Denominator = DoCheckering ? 4 : 2;
+		DiffuseCheckerboardBuffers[0].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
+		DiffuseCheckerboardBuffers[1].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
+		SpecularCheckerboardBuffers[0].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
+		SpecularCheckerboardBuffers[1].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
 
 		// Volumetrics
-		VolumetricsCheckerboardBuffers[0].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
-		VolumetricsCheckerboardBuffers[1].SetSize(app.GetWidth() / 4, app.GetHeight() / 2);
+		VolumetricsCheckerboardBuffers[0].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
+		VolumetricsCheckerboardBuffers[1].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
 
 		// Temporal/Spatial resolve buffers
 		SpatialUpscaled.SetSize(app.GetWidth(), app.GetHeight());
@@ -500,6 +510,7 @@ void Lumen::StartPipeline()
 			VolumetricsShader.SetFloat("u_Strength", VolumetricsGlobalStrength);
 			VolumetricsShader.SetFloat("u_DStrength", VolumetricsDirectStrength);
 			VolumetricsShader.SetFloat("u_IStrength", VolumetricsIndirectStrength);
+			VolumetricsShader.SetBool("u_Checker", DoCheckering);
 
 			SetCommonUniforms<GLClasses::Shader>(VolumetricsShader, UniformBuffer);
 
@@ -554,6 +565,7 @@ void Lumen::StartPipeline()
 		DiffuseShader.SetInteger("u_SHDataA", 14);
 		DiffuseShader.SetInteger("u_SHDataB", 15);
 		DiffuseShader.SetInteger("u_Albedo", 16);
+		DiffuseShader.SetBool("u_Checker", DoCheckering);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
@@ -613,6 +625,7 @@ void Lumen::StartPipeline()
 		SpecularShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 		SpecularShader.SetInteger("u_SHDataA", 14);
 		SpecularShader.SetInteger("u_SHDataB", 15);
+		SpecularShader.SetBool("u_Checker", DoCheckering);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -682,6 +695,7 @@ void Lumen::StartPipeline()
 		CheckerReconstructShader.SetInteger("u_PreviousFrameSpecular", 8);
 		CheckerReconstructShader.SetInteger("u_CurrentFrameVolumetrics", 9);
 		CheckerReconstructShader.SetInteger("u_PreviousFrameVolumetrics", 10);
+		CheckerReconstructShader.SetBool("u_Enabled", DoCheckering);
 		CheckerReconstructShader.SetVector2f("u_Dimensions", glm::vec2(CheckerboardUpscaled.GetWidth(), CheckerboardUpscaled.GetHeight()));
 
 		SetCommonUniforms<GLClasses::Shader>(CheckerReconstructShader, UniformBuffer);
@@ -745,6 +759,7 @@ void Lumen::StartPipeline()
 		TemporalFilterShader.SetInteger("u_VolumetricsCurrent", 12);
 		TemporalFilterShader.SetInteger("u_VolumetricsHistory", 13);
 		TemporalFilterShader.SetBool("u_DoVolumetrics", DoVolumetrics && VolumetricsTemporal);
+		TemporalFilterShader.SetBool("u_Enabled", DoTemporal);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
