@@ -219,6 +219,9 @@
     <ClInclude Include="Core\AABB.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
+    <ClInclude Include="Core\CollisionHandler.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -348,6 +351,9 @@
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
     <ClCompile Include="Core\Player.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CollisionHandler.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
   </ItemGroup>
@@ -492,6 +498,12 @@
     </None>
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStackless.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Intersectors\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\Collide.comp">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\Include\Physics.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

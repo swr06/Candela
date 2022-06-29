@@ -48,7 +48,7 @@ layout (std430, binding = (SSBO_BINDING_STARTINDEX + 3)) buffer SSBO_Entities {
 	BVHEntity BVHEntities[];
 };
 
-struct AABB {
+struct C_AABB {
     vec3 Min;
     vec3 Max;
 };
@@ -63,13 +63,13 @@ float min3(vec3 val)
     return min(val.x, min(val.y, val.z));
 }
 
-bool AABBAABBOverlap(AABB a, AABB b) 
+bool AABBAABBOverlap(C_AABB a, C_AABB b) 
 {
-    return (a.Min.x <= b.Max.x && a.Max.x >= b.Min.x) && (a.Min.y <= b.Max.y && a.Max.y >= b.Min.y) && 
-           (a.Min.z <= b.Max.z && a.Max.z >= b.Min.z);
+    return ((a.Min.x <= b.Max.x && a.Max.x >= b.Min.x) && (a.Min.y <= b.Max.y && a.Max.y >= b.Min.y) && 
+           (a.Min.z <= b.Max.z && a.Max.z >= b.Min.z));
 }
 
-bool BoxTriangleOverlap(vec3 v0, vec3 v1, vec3 v2, AABB aabb) {
+bool BoxTriangleOverlap(vec3 v0, vec3 v1, vec3 v2, C_AABB aabb) {
     vec3 c = (aabb.Min + aabb.Max) / 2.0f;
     vec3 e = aabb.Max - aabb.Min;
 
@@ -123,20 +123,18 @@ int GetStartIdx(in Node node) {
 }
 
 
-bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, float TMax, out int Mesh, out int TriangleIndex) {
+bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, out int Mesh, out int TriangleIndex) {
 
     CMin = vec3(InverseMatrix * vec4(CMin.xyz, 1.0f));
     CMax = vec3(InverseMatrix * vec4(CMax.xyz, 1.0f));
     
-    AABB aabb = AABB(CMin, CMax);
+    C_AABB aabb = C_AABB(CMin, CMax);
 
     int Iterations = 0;
 
     const int MaxIterations = 1024;
 
     int Pointer = NodeStartIndex;
-
-    float ClosestTraversal = -1.0f;
 
     Mesh = -1;
     TriangleIndex = -1;
@@ -152,11 +150,14 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
 
         Node CurrentNode = BVHNodes[Pointer];
 
-        bool CollidedBox = AABBAABBOverlap(AABB(CurrentNode.Min.xyz, CurrentNode.Max.xyz), aabb);
+        bool CollidedBox = AABBAABBOverlap(C_AABB(CurrentNode.Min.xyz, CurrentNode.Max.xyz), aabb);
 
-        if (CollidedBox) {
+        if (CollidedBox) 
+        {
 
             if (IsLeafNode(CurrentNode)) {
+
+                return true;
 
                 int Packed = floatBitsToInt(CurrentNode.Min.w);
                 
@@ -219,11 +220,9 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
     return false;
 }
 
-bool CollideScene(AABB aabb, out int Mesh, out int TriangleIdx, out int Entity_) {
+bool CollideScene(in const vec3 Min, in const vec3 Max, out int Mesh, out int TriangleIdx, out int Entity_) {
 
-    float ClosestT = -1.0f;
-
-    float TMax = 1000000.0f;
+    C_AABB aabb = C_AABB(Min, Max);
 
     int Mesh_ = -1;
     int Tri_ = -1;
@@ -231,7 +230,7 @@ bool CollideScene(AABB aabb, out int Mesh, out int TriangleIdx, out int Entity_)
 
     for (int i = 0 ; i < u_EntityCount ; i++)
     {
-        bool Collided = CollideBVH(aabb.Min, aabb.Max, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax, Mesh_, Tri_);
+        bool Collided = CollideBVH(aabb.Min, aabb.Max, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, Mesh_, Tri_);
 
         if (Collided) {
             Mesh = Mesh_;

@@ -327,6 +327,7 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& SpatialUpscaleShader = ShaderManager::GetShader("SPATIAL_UPSCALE");
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
+	GLClasses::ComputeShader& CollisionShader = ShaderManager::GetComputeShader("COLLISIONS");
 
 	// Matrices
 	glm::mat4 PreviousView;
@@ -335,6 +336,19 @@ void Lumen::StartPipeline()
 	glm::mat4 Projection;
 	glm::mat4 InverseView;
 	glm::mat4 InverseProjection;
+
+	// Collisions 
+	GLuint CollisionQuerySSBO = 0;
+	glGenBuffers(1, &CollisionQuerySSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionQuerySSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(CollisionQuery) * 16, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	GLuint CollisionResultSSBO = 0;
+	glGenBuffers(1, &CollisionResultSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionResultSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::ivec4) * 16, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Generate shadow maps
 	ShadowHandler::GenerateShadowMaps();
@@ -347,6 +361,7 @@ void Lumen::StartPipeline()
 
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
+
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -417,6 +432,27 @@ void Lumen::StartPipeline()
 		// App update 
 		PreviousProjection = Camera.GetProjectionMatrix();
 		PreviousView = Camera.GetViewMatrix();
+
+		// Collide
+		CollisionQuery Query;
+		Query.Min = glm::vec4(Camera.GetPosition(), 1.0f);
+		Query.Max = glm::vec4(Camera.GetPosition() + 0.1f, 1.0f);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionResultSSBO);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(CollisionQuery) * 1, &Query);
+
+		CollisionShader.Use();
+		CollisionShader.SetInteger("u_QueryCount", 1);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, CollisionQuerySSBO);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, CollisionResultSSBO);
+		Intersector.BindEverything(CollisionShader, false);
+		glDispatchCompute(1, 1, 1);
+
+		glm::ivec4 Retrieved;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionResultSSBO);
+		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::ivec4) * 1, &Retrieved);;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		std::cout << "\n" << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
 
 		app.OnUpdate();
 

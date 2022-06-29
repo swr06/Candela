@@ -153,6 +153,7 @@
     <ClInclude Include="Core\Application\Logger.h" />
     <ClInclude Include="Core\BVH\BVHConstructor.h" />
     <ClInclude Include="Core\BVH\Intersector.h" />
+    <ClInclude Include="Core\CollisionHandler.h" />
     <ClInclude Include="Core\Player.h" />
     <ClInclude Include="Core\ProbeGI.h" />
     <ClInclude Include="Core\Entity.h" />
@@ -204,6 +205,7 @@
     <ClCompile Include="Core\Application\Logger.cpp" />
     <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
     <ClCompile Include="Core\BVH\Intersector.cpp" />
+    <ClCompile Include="Core\CollisionHandler.cpp" />
     <ClCompile Include="Core\Player.cpp" />
     <ClCompile Include="Core\ProbeGI.cpp" />
     <ClCompile Include="Core\FpsCamera.cpp" />
@@ -252,6 +254,7 @@
     <None Include="Core\Shaders\BasicVert.glsl" />
     <None Include="Core\Shaders\CAS.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
+    <None Include="Core\Shaders\Collide.comp" />
     <None Include="Core\Shaders\ColorPass.glsl" />
     <None Include="Core\Shaders\CopyVolume.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
@@ -260,6 +263,7 @@
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
     <None Include="Core\Shaders\Include\3DNoise.glsl" />
     <None Include="Core\Shaders\Include\DiffuseSH.glsl" />
+    <None Include="Core\Shaders\Include\Physics.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStack.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStackless.glsl" />
     <None Include="Core\Shaders\SpatialUpscale.glsl" />

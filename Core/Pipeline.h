@@ -11,6 +11,8 @@
 #include "GLClasses/IndexBuffer.h"
 #include "GLClasses/Shader.h"
 
+#include "CollisionHandler.h"
+
 namespace Lumen {
 
 	void StartPipeline();

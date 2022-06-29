@@ -1,0 +1,39 @@
+#version 450 core 
+
+#define BVH_COLLISION
+
+#include "Include/Physics.glsl"
+#include "TraverseBVH.glsl"
+
+layout(local_size_x = 1) in;
+
+uniform int u_QueryCount;
+
+layout (std430, binding = 0) buffer CollisionQueries {
+	CollisionQuery Queries[];
+};
+
+layout (std430, binding = 1) buffer CollisionTestOutputs {
+	CollisionResult Outputs[];
+};
+
+
+void main() {
+	
+	int Index = int(gl_GlobalInvocationID.x);
+
+	if (Index < 0 || Index > u_QueryCount) {
+		return;
+	}
+
+	CollisionQuery CurrentQuery = Queries[Index];
+
+	int Mesh, Triangle, Entity;
+
+	bool Collided = CollideScene(CurrentQuery.Box.Min.xyz, CurrentQuery.Box.Max.xyz, Mesh, Triangle, Entity);
+
+	CollisionResult Result;
+	Result.Data = ivec4(int(Collided), Entity, Mesh, Triangle);
+
+	Outputs[Index] = Result;
+}
