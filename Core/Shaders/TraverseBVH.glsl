@@ -4,11 +4,27 @@
 
 #ifdef STACKLESS
 
-	#include "Intersectors/Include/TraverseBVHStackless.glsl"
+	#ifdef BVH_COLLISION
+
+		#include "Intersectors/Include/CollideBVHStackless.glsl"
+
+	#else 
+
+		#include "Intersectors/Include/TraverseBVHStackless.glsl"
+
+	#endif
 
 #else 
 
-	#include "Intersectors/Include/TraverseBVHStack.glsl"
+	#ifdef BVH_COLLISION
+
+		#include "Intersectors/Include/CollideBVHStack.glsl"
+
+	#else 
+
+		#include "Intersectors/Include/TraverseBVHStackless.glsl"
+
+	#endif
 
 #endif
 

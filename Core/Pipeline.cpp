@@ -28,9 +28,12 @@
 
 #include "Utility.h"
 
+#include "Player.h"
+
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
-Lumen::FPSCamera Camera(90.0f, 800.0f / 600.0f, 0.05f, 750.0f);
+Lumen::Player Player;
+Lumen::FPSCamera& Camera = Player.Camera;
 
 static bool vsync = false;
 static float SunTick = 50.0f;
@@ -80,28 +83,9 @@ public:
 		glfwSwapInterval((int)vsync);
 
 		GLFWwindow* window = GetWindow();
-		float camera_speed = DeltaTime * 6.0f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f));
+		float camera_speed = DeltaTime * 23.0f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f));
 
-		if (GetCursorLocked()) {
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-				Camera.ChangePosition(Camera.GetFront() * camera_speed);
-
-			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-				Camera.ChangePosition(-(Camera.GetFront() * camera_speed));
-
-			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-				Camera.ChangePosition(-(Camera.GetRight() * camera_speed));
-
-			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-				Camera.ChangePosition(Camera.GetRight() * camera_speed);
-
-			if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-				Camera.ChangePosition(Camera.GetUp() * camera_speed);
-
-			if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-				Camera.ChangePosition(-(Camera.GetUp() * camera_speed));
-
-		}
+		Player.OnUpdate(window, DeltaTime, camera_speed, GetCurrentFrame());
 	}
 
 	void OnImguiRender(double ts) override
