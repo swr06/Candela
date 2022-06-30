@@ -624,7 +624,7 @@ void Lumen::StartPipeline()
 		glActiveTexture(GL_TEXTURE16);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
 
-		Intersector.BindEverything(DiffuseShader, app.GetCurrentFrame() < 60);
+		Intersector.BindEverything(DiffuseShader, true);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 		glDispatchCompute((int)floor(float(DiffuseTrace.GetWidth()) / 16.0f) + 1, (int)(floor(float(DiffuseTrace.GetHeight())) / 16.0f) + 1, 1);
 
@@ -695,7 +695,7 @@ void Lumen::StartPipeline()
 
 		SetCommonUniforms<GLClasses::ComputeShader>(SpecularShader, UniformBuffer);
 
-		Intersector.BindEverything(SpecularShader, app.GetCurrentFrame() < 60);
+		Intersector.BindEverything(SpecularShader, true);
 		glBindImageTexture(0, SpecularTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 		glDispatchCompute((int)floor(float(SpecularTrace.GetWidth()) / 16.0f) + 1, (int)(floor(float(SpecularTrace.GetHeight())) / 16.0f) + 1, 1);
 

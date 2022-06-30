@@ -49,6 +49,7 @@ namespace GLClasses
 
 	void ComputeShader::Compile()
 	{
+		_BVHTextureFlag = false;
         m_ID = glCreateProgram();
         GLuint m_ComputeID = glCreateShader(GL_COMPUTE_SHADER);
 
@@ -183,6 +184,8 @@ namespace GLClasses
 
 		if (m_ComputeHash != PrevHash || m_ComputeSize != PrevSize) {
 
+			_BVHTextureFlag = false;
+
 			Location_map.clear();
 			glDeleteProgram(m_ID);
 			glDeleteShader(m_ComputeID);
@@ -198,6 +201,8 @@ namespace GLClasses
 
 	void ComputeShader::ForceRecompile()
 	{
+		_BVHTextureFlag = false;
+
 		this->CreateComputeShader(m_ComputePath);
 
 		Location_map.clear();

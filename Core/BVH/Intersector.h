@@ -109,6 +109,8 @@ namespace Lumen {
 		std::vector<BVH::TextureReferences> m_MeshTextureReferences;
 		std::map<GLuint64, int> m_TextureHandleReferenceMap;
 
+		std::unordered_map<uint64_t, bool> m_TextureBoundFlagMap;
+
 		GLClasses::Texture m_MiscTex;
 
 		void _BindTextures();
@@ -274,7 +276,11 @@ void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader, 
 	Shader.SetInteger("u_EntityCount", m_EntityPushed);
 	Shader.SetInteger("u_TotalNodes", m_NodeCountBuffered);
 
-	_BindTextures(Shader);
+	if (ShouldBindTextures && !Shader._BVHTextureFlag) {
+		_BindTextures(Shader);
+		Shader._BVHTextureFlag = true;
+		std::cout << "BOUND";
+	}
 }
 
 template<typename T>

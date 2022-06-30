@@ -203,7 +203,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _ProbeMapSSBO);
 
-	Intersector.BindEverything(ProbeUpdate, uniforms.Frame < 128);
+	Intersector.BindEverything(ProbeUpdate, true);
 
 	glDispatchCompute(ProbeGridX / 8, ProbeGridY / 4, ProbeGridZ / 8);
 
@@ -303,7 +303,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalN
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _ProbeMapSSBO);
 
-	Intersector.BindEverything(ProbeUpdate, uniforms.Frame < 128);
+	Intersector.BindEverything(ProbeUpdate, true);
 
 	glDispatchCompute(ProbeGridX / 8, ProbeGridY / 4, ProbeGridZ / 8);
 

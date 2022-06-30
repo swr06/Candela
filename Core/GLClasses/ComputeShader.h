@@ -70,6 +70,8 @@ namespace GLClasses
 
 		GLuint GetProgram() { return m_ID; }
 
+		bool _BVHTextureFlag = false; // Internal.
+
 	private :
 
 		std::unordered_map<std::string, GLint> Location_map; // To avoid unnecessary calls to glGetUniformLocation()

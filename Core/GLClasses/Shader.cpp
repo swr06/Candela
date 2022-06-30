@@ -19,6 +19,7 @@ namespace GLClasses
 
 	void Shader::CompileShaders()
 	{
+		_BVHTextureFlag = false;
 		m_Program = 0;
 		auto start = std::chrono::steady_clock::now();
 
@@ -227,6 +228,7 @@ namespace GLClasses
 
 	void Shader::Destroy()
 	{
+		_BVHTextureFlag = false;
 		Location_map.clear();
 		glDeleteProgram(m_Program);
 		glUseProgram(0);
@@ -276,6 +278,8 @@ namespace GLClasses
 			PrevGHash != m_GeometryCRC || PrevVSize != m_VertexSize ||
 			PrevFSize != m_FragmentSize || PrevGSize != m_GeometrySize) {
 			
+			_BVHTextureFlag = false;
+
 			Location_map.clear();
 			glDeleteProgram(m_Program);
 			glUseProgram(0);
@@ -289,6 +293,8 @@ namespace GLClasses
 
 	void Shader::ForceRecompile()
 	{
+		_BVHTextureFlag = false;
+
 		CreateShaderProgramFromFile(m_VertexPath, m_FragmentPath, m_GeometryPath);
 		
 		Location_map.clear();
