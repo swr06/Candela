@@ -48,6 +48,30 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
+float CornetteShanks(float cosTheta, float g)
+{
+    const float cornette = 3.0f / (8.0f * PI);
+    float gg = g*g;
+    float num   = (1.0f - gg) * (1.0f + pow(cosTheta, 2.0f));
+    float denom = (2.0f + gg) * pow(1.0f + gg - 2.0f * g * cosTheta, 1.5f);
+    return cornette * (num / denom);
+}
+
+float HGNormalized(float cosa, float g) // Normalized HG
+{
+	float g_sqr = g * g;
+	float num = (1 - abs(g));
+	float denom = sqrt(max(1 - 2 * g*cosa + g_sqr, 0));
+	float frac = num / denom;
+	float scale = g_sqr + (1 - g_sqr) / (4 * PI);
+	return scale * (frac*frac*frac);
+}
+
+float HG(float Cos, float g) {
+	float Denominator = (4.0f * PI * pow(1.0f + pow(g, 2.0f) - 2.0f * g * Cos, 1.5f));
+    return ((1.0f - g) * (1.0f - g)) / Denominator;
+}
+
 bool RayBoxIntersect(vec3 origin, vec3 direction, vec3 mins, vec3 maxs, out float tIn, out float tOut)
 {
 	vec3 t1 = (mins - origin) / direction;
@@ -158,7 +182,7 @@ vec3 GetVolumeGI(vec3 Point, vec3 Hash3D) {
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
 
 	if (SamplePoint == clamp(SamplePoint, 0.0001f, 0.9999f)) {
-		return texture(u_ProbeRadiance, SamplePoint).xyz * 1.95f;
+		return texture(u_ProbeRadiance, SamplePoint).xyz;
 	}
 
 	return vec3(0.0f);
@@ -207,7 +231,6 @@ void main() {
 	if (Depth != 1.0f) {
 		Distance = distance(WorldPosition, Player);
     }
-
 	vec3 Direction = (Incident(v_TexCoords));
 
 	int Steps = u_Steps + 1;
@@ -217,22 +240,26 @@ void main() {
 
 	vec3 RayPosition = Player + Direction * HashAnimated * 1.0f; 
 
-    const float G = 0.7f;
+    float CosTheta = clamp(dot(-Direction, u_SunDirection), 0.0f, 1.0f);
 
-    float CosTheta = dot(-Direction, normalize(u_SunDirection));
+    const float G1 = 0.8f;
+    const float G2 = 0.4f;
 
-    float DirectPhase = 0.25f / PI;
-	float IndirectPhase = 0.25f / PI; // Isotropic 
+	float PhaseA = HGNormalized(CosTheta, G1);
+    float PhaseB = HGNormalized(CosTheta, G2);
+    float DirectPhase = mix(PhaseA, PhaseB, 0.5);
+
+	float IndirectPhase = 0.25f / PI; 
 
     float Transmittance = 1.0f;
 
     vec3 TotalScattering = vec3(0.0f);
 
-    float SigmaE = 0.04f; 
+    float SigmaE = 0.034f; 
 
     vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
 
-	float LightingStrength = u_Strength * 0.182f;
+	float LightingStrength = u_Strength * 0.2f;
 
     for (int Step = 0 ; Step < Steps ; Step++) {
 
@@ -260,7 +287,7 @@ void main() {
 		}
 
         float DirectVisibility = GetDirectShadow(RayPosition);
-        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 26.0f * u_DStrength;
+        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 36.0f * u_DStrength;
         vec3 Indirect = GetVolumeGI(RayPosition, VolumeHash) * IndirectPhase * u_IStrength;
         vec3 S = (Direct + Indirect) * LightingStrength * StepSize * Density * Transmittance;
 
@@ -269,6 +296,9 @@ void main() {
 
         RayPosition += Direction * StepSize; 
     }
+
+	Transmittance = clamp(Transmittance, 0.0f, 1.0f);
+	TotalScattering = max(TotalScattering, 0.0f);
 
     vec4 Data = vec4(vec3(TotalScattering), Transmittance);
 

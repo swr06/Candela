@@ -55,3 +55,31 @@ float simplex3d_fractal(vec3 m) {
 			+0.1333333*simplex3d(4.0*m*rot3)
 			+0.0666667*simplex3d(8.0*m);
 }
+
+float hash(vec3 p)
+{
+    p  = fract( p*0.3183099+.1 );
+	p *= 17.0;
+    return fract( p.x*p.y*p.z*(p.x+p.y+p.z) );
+}
+
+float noise( in vec3 x )
+{
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = f*f*(3.0-2.0*f);
+	
+    return mix(mix(mix( hash(p+vec3(0,0,0)), 
+                        hash(p+vec3(1,0,0)),f.x),
+                   mix( hash(p+vec3(0,1,0)), 
+                        hash(p+vec3(1,1,0)),f.x),f.y),
+               mix(mix( hash(p+vec3(0,0,1)), 
+                        hash(p+vec3(1,0,1)),f.x),
+                   mix( hash(p+vec3(0,1,1)), 
+                        hash(p+vec3(1,1,1)),f.x),f.y),f.z);
+}
+
+float layeredNoise(in vec3 x) {
+    x += vec3(10.0, 5.0, 6.0);
+    return 0.6*noise(x*5.0) + 0.4*noise(x*10.0) + 0.2*noise(x*16.0) - 0.2;
+}

@@ -8,6 +8,8 @@ layout (location = 0) out vec3 o_Color;
 
 uniform sampler2D u_Texture; // <- Tonemapped input
 
+uniform bool u_Enabled;
+
 float GetSat(vec3 x) { 
     return length(x); 
 }
@@ -55,8 +57,8 @@ void main()
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
     vec3 OriginalColor = texelFetch(u_Texture, Pixel, 0).xyz;
 
-    float SharpeningAmount = 0.4f;
-    vec3 Processed = ContrastAdaptiveSharpening(u_Texture, Pixel, SharpeningAmount+0.02f);
+    float SharpeningAmount = 0.425f;
+    vec3 Processed = u_Enabled ? ContrastAdaptiveSharpening(u_Texture, Pixel, SharpeningAmount) : OriginalColor;
     
     o_Color = LinearToSRGB(Processed);
     o_Color = clamp(o_Color, 0.0f, 1.0f);

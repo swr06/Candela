@@ -45,6 +45,8 @@ static bool DoCheckering = true;
 
 static bool DoTAA = true;
 
+static bool DoCAS = true;
+
 static bool DoTemporal = true;
 
 static bool DoSpatial = true;
@@ -54,7 +56,7 @@ static bool DoSpatialUpscaling = true;
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.0f;
-static float VolumetricsIndirectStrength = 1.0f;
+static float VolumetricsIndirectStrength = 1.2f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 
@@ -118,6 +120,7 @@ public:
 
 		ImGui::NewLine();
 		ImGui::Checkbox("TAA?", &DoTAA);
+		ImGui::Checkbox("CAS?", &DoCAS);
 	}
 
 	void OnEvent(Lumen::Event e) override
@@ -1135,6 +1138,8 @@ void Lumen::StartPipeline()
 		glViewport(0, 0, app.GetWidth(), app.GetHeight());
 
 		CASShader.Use();
+
+		CASShader.SetBool("u_Enabled", DoCAS);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Tonemapped.GetTexture(0));

@@ -41,7 +41,10 @@ uniform vec2 u_Dimensions;
 
 uniform bool u_Enabled;
 
-const ivec2 UpscaleOffsets[4] = ivec2[](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1)); 
+const ivec2 UpscaleOffsets[4] = ivec2[](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
+
+float CDEPTH_EXP = 256.0f;
+float CNORMAL_EXP = 16.0f;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -216,7 +219,7 @@ void main() {
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
 				vec4 SampleVol = texelFetch(u_CurrentFrameVolumetrics, Coord, 0).xyzw;
 
-				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), DEPTH_EXPONENT) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), NORMAL_EXPONENT);
+				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), CDEPTH_EXP) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), CNORMAL_EXP);
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalDiffuse += SampleDiffuse * CurrentWeight;
@@ -258,7 +261,7 @@ void main() {
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
 				vec4 SampleVol = texelFetch(u_CurrentFrameVolumetrics, Coord, 0).xyzw;
 
-				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), DEPTH_EXPONENT) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), NORMAL_EXPONENT);
+				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), CDEPTH_EXP) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), CNORMAL_EXP);
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalSpec += SampleSpecular * CurrentWeight;
