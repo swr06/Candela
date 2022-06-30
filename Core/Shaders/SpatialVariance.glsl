@@ -17,6 +17,8 @@ uniform sampler2D u_TemporalMoments;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform bool u_Enabled;
+
 const bool SPATIAL_OFF = false;
 
 float LinearizeDepth(float depth)
@@ -33,7 +35,7 @@ void main() {
 	vec4 CenterDiffuse = Diffuse;
 	float VarianceBoost = 8.0f / max(float(Frames), 1.0f);
 
-	if (Frames <= 8) {
+	if (Frames <= 8 && u_Enabled) {
 		
 		float CenterL = Luminance(Diffuse.xyz);
 

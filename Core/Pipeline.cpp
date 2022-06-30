@@ -110,7 +110,10 @@ public:
 			ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.1f, 4.0f);
 			ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.1f, 4.0f);
 			ImGui::SliderInt("Volumetrics Steps", &VolumetricsSteps, 4, 128);
-			ImGui::Checkbox("Temporally Filter Volumetrics? (Cleaner, more temporal lag)", &VolumetricsTemporal);
+
+			if (DoTemporal) {
+				ImGui::Checkbox("Temporally Filter Volumetrics? (Cleaner, more temporal lag)", &VolumetricsTemporal);
+			}
 		}
 
 		ImGui::NewLine();
@@ -452,8 +455,8 @@ void Lumen::StartPipeline()
 		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::ivec4) * 1, &Retrieved);;
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-		if (app.GetCurrentFrame() % 6 == 0)
-			std::cout << "\n" << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
+		if (app.GetCurrentFrame() % 16 == 0)
+			std::cout << "\nPlayer Collision Test Result : " << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
 
 		app.OnUpdate();
 
@@ -515,6 +518,8 @@ void Lumen::StartPipeline()
 		// Volumetrics 
 
 		if (DoVolumetrics) {
+			VolumetricsTemporal = VolumetricsTemporal && DoTemporal;
+
 			VolumetricsShader.Use();
 			Volumetrics.Bind();
 
@@ -843,6 +848,7 @@ void Lumen::StartPipeline()
 			SpatialVarianceShader.SetInteger("u_Diffuse", 2);
 			SpatialVarianceShader.SetInteger("u_FrameCounters", 3);
 			SpatialVarianceShader.SetInteger("u_TemporalMoments", 4);
+			SpatialVarianceShader.SetBool("u_Enabled", DoSpatial);
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());

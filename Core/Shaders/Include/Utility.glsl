@@ -52,7 +52,7 @@ bool IsInScreenspace(vec2 x) {
 }   
 
 bool IsInScreenspaceBiased(vec2 x) {
-    const float bias = 0.0025f;
+    const float bias = 0.005f;
     if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias) {
         return true;
     }
