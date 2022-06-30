@@ -3,8 +3,6 @@
 #extension GL_ARB_bindless_texture : require
 #extension GL_ARB_bindless_texture : enable
 
-layout(bindless_sampler) uniform sampler2D Textures[512];
-
 uniform int u_EntityCount; 
 uniform int u_TotalNodes;
 
@@ -44,11 +42,9 @@ struct BVHEntity {
     int Data[14];
 };
 
-struct TextureReferences {
-	vec4 ModelColor;
-	int Albedo;
-	int Normal;
-	int Pad[2];
+struct C_AABB {
+    vec3 Min;
+    vec3 Max;
 };
 
 // SSBOs
@@ -68,17 +64,6 @@ layout (std430, binding = (SSBO_BINDING_STARTINDEX + 3)) buffer SSBO_Entities {
 	BVHEntity BVHEntities[];
 };
 
-layout (std430, binding = (SSBO_BINDING_STARTINDEX + 4)) buffer SSBO_TextureReferences {
-    TextureReferences BVHTextureReferences[];
-};
-
-
-struct C_AABB {
-    vec3 Min;
-    vec3 Max;
-};
-
-
 float max3(vec3 val) 
 {
     return max(max(val.x, val.y), val.z);
@@ -89,6 +74,19 @@ float min3(vec3 val)
     return min(val.x, min(val.y, val.z));
 }
 
+int GetStartIdx(in Bounds x) {
+    return floatBitsToInt(x.Min.w);
+}
+
+bool IsLeaf(in Bounds x) {
+    return floatBitsToInt(x.Min.w) != -1;
+}
+
+float DistanceSqr(vec3 x, vec3 y) {
+    vec3 d = y - x;
+    return dot(d, d);
+}
+
 bool AABBAABBOverlap(C_AABB a, C_AABB b) 
 {
     return ((a.Min.x <= b.Max.x && a.Max.x >= b.Min.x) && (a.Min.y <= b.Max.y && a.Max.y >= b.Min.y) && 
@@ -97,10 +95,10 @@ bool AABBAABBOverlap(C_AABB a, C_AABB b)
 
 float AABBAABBOverlapF(C_AABB a, C_AABB b) 
 {
-    bool r = ((a.Min.x <= b.Max.x && a.Max.x >= b.Min.x) && (a.Min.y <= b.Max.y && a.Max.y >= b.Min.y) && 
+    bool Intersected = ((a.Min.x <= b.Max.x && a.Max.x >= b.Min.x) && (a.Min.y <= b.Max.y && a.Max.y >= b.Min.y) && 
            (a.Min.z <= b.Max.z && a.Max.z >= b.Min.z));
-
-    return r ? 1.0f : -1.0f;
+    float Distance = DistanceSqr((a.Min.xyz + a.Max.xyz) / 2.0f, (b.Min.xyz + b.Max.xyz) / 2.0f);
+    return Intersected ? Distance : -1.0f;
 }
 
 bool BoxTriangleOverlap(vec3 v0, vec3 v1, vec3 v2, C_AABB aabb) {
@@ -149,16 +147,7 @@ bool BoxTriangleOverlap(vec3 v0, vec3 v1, vec3 v2, C_AABB aabb) {
 }
 
 
-int GetStartIdx(in Bounds x) {
-    return floatBitsToInt(x.Min.w);
-}
-
-bool IsLeaf(in Bounds x) {
-    return floatBitsToInt(x.Min.w) != -1;
-}
-
-
-bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, out int oMesh, out int oTriangleIndex) {
+bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int NodeCount, in const mat4 InverseMatrix, out int Mesh, out int TriangleIndex) {
 
     CMin = vec3(InverseMatrix * vec4(CMin.xyz, 1.0f));
     CMax = vec3(InverseMatrix * vec4(CMax.xyz, 1.0f));
@@ -201,7 +190,7 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
         bool RightLeaf = IsLeaf(CurrentNode.RightChildData);
 
         // Avoid intersecting if leaf nodes (we'd need to traverse the pushed nodes anyway)
-        LeftTraversal = LeftLeaf ? -1.0f : AABBAABBOverlapF(C_AABB(CurrentNode.LeftChildData.Min.xyz, CurrentNode.LeftChildData.Max.xyz), aabb);
+        LeftTraversal = LeftLeaf ? -1.0f :  AABBAABBOverlapF(C_AABB(CurrentNode.LeftChildData.Min.xyz, CurrentNode.LeftChildData.Max.xyz), aabb);
         RightTraversal = RightLeaf ? -1.0f : AABBAABBOverlapF(C_AABB(CurrentNode.RightChildData.Min.xyz, CurrentNode.RightChildData.Max.xyz), aabb);
 
         // Intersect triangles if leaf node
@@ -225,10 +214,8 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
                 
                 if (BoxTriangleOverlap(VertexA, VertexB, VertexC, aabb))
                 {
-                    IntersectMesh = triangle.PackedData[3];
-                    IntersectTriangleIdx = Idx + StartIdx;
-                    oMesh = IntersectMesh;
-                    oTriangleIndex = IntersectTriangleIdx;
+                    Mesh = triangle.PackedData[3];
+                    TriangleIndex = Idx;
                     return true;
                 }
             }
@@ -237,7 +224,7 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
 
         // Right 
         if (RightLeaf) {
-             
+            
             int Packed = GetStartIdx(CurrentNode.RightChildData);
             int StartIdx = Packed >> 4;
                     
@@ -254,10 +241,8 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
                 
                 if (BoxTriangleOverlap(VertexA, VertexB, VertexC, aabb))
                 {
-                    IntersectMesh = triangle.PackedData[3];
-                    IntersectTriangleIdx = Idx + StartIdx;
-                    oMesh = IntersectMesh;
-                    oTriangleIndex = IntersectTriangleIdx;
+                    Mesh = triangle.PackedData[3];
+                    TriangleIndex = Idx;
                     return true;
                 }
             }
@@ -268,6 +253,14 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
 
             CurrentNodeIndex = floatBitsToInt(CurrentNode.LeftChildData.Max.w) + NodeStartIndex;
             Postponed = floatBitsToInt(CurrentNode.RightChildData.Max.w) + NodeStartIndex;
+
+            // Was the right node closer? if so then swap.
+            if (RightTraversal < LeftTraversal)
+            {
+                int Temp = CurrentNodeIndex;
+                CurrentNodeIndex = Postponed;
+                Postponed = Temp;
+            }
 
             if (StackPointer >= 63) {
                 break;
@@ -295,8 +288,8 @@ bool CollideBVH(vec3 CMin, vec3 CMax, in const int NodeStartIndex, in const int 
         CurrentNodeIndex = Stack[--StackPointer];
 	}
 
-    oMesh = IntersectMesh;
-    oTriangleIndex = IntersectTriangleIdx;
+    Mesh = IntersectMesh;
+    TriangleIndex = IntersectTriangleIdx;
 
     return false;
 }
@@ -324,4 +317,6 @@ bool CollideScene(in const vec3 Min, in const vec3 Max, out int Mesh, out int Tr
 
     return false;
 }
+
+
 
