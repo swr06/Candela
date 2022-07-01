@@ -59,6 +59,7 @@ static float VolumetricsDirectStrength = 1.1f;
 static float VolumetricsIndirectStrength = 1.2f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
+static bool VolumetricsSpatial = true;
 
 // Timings
 float CurrentTime = glfwGetTime();
@@ -115,6 +116,10 @@ public:
 
 			if (DoTemporal) {
 				ImGui::Checkbox("Temporally Filter Volumetrics? (Cleaner, more temporal lag)", &VolumetricsTemporal);
+			}
+
+			if (DoSpatial) {
+				ImGui::Checkbox("Spatially Filter Volumetrics?", &VolumetricsSpatial);
 			}
 		}
 
@@ -907,7 +912,7 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Volumetrics", 8);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SpatialFilterShader.SetInteger("u_Pass", Pass);
-				SpatialFilterShader.SetBool("u_FilterVolumetrics", InitialPass && DoVolumetrics);
+				SpatialFilterShader.SetBool("u_FilterVolumetrics", InitialPass && DoVolumetrics && VolumetricsSpatial);
 				SpatialFilterShader.SetBool("u_Enabled", DoSpatial);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
