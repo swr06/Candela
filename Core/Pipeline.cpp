@@ -41,6 +41,10 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 // Options
 
+static bool DoSecondBounce = true;
+static bool DoInfiniteBounceGI = true;
+static bool UpdateIrradianceVolume = true;
+
 static bool DoCheckering = true;
 
 static bool DoTAA = true;
@@ -56,7 +60,7 @@ static bool DoSpatialUpscaling = true;
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.1f;
-static float VolumetricsIndirectStrength = 1.2f;
+static float VolumetricsIndirectStrength = 1.0f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
@@ -99,6 +103,14 @@ public:
 		ImGui::NewLine();
 		ImGui::NewLine();
 		ImGui::Checkbox("Checkerboard? (effectively computes lighting for half the pixels)", &DoCheckering);
+		ImGui::NewLine();
+		ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
+		ImGui::NewLine();
+		ImGui::Checkbox("Do Diffuse Second Bounce?", &DoSecondBounce);
+
+		if (DoSecondBounce)
+			ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
+
 		ImGui::NewLine();
 		ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
 		ImGui::NewLine();
@@ -481,7 +493,9 @@ void Lumen::StartPipeline()
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
 		// Update probes
-		ProbeGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID());
+		if (UpdateIrradianceVolume) {
+			ProbeGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID());
+		}
 
 		// Render GBuffer
 		glEnable(GL_CULL_FACE);
@@ -600,6 +614,8 @@ void Lumen::StartPipeline()
 		DiffuseShader.SetInteger("u_SHDataB", 15);
 		DiffuseShader.SetInteger("u_Albedo", 16);
 		DiffuseShader.SetBool("u_Checker", DoCheckering);
+		DiffuseShader.SetBool("u_SecondBounce", DoSecondBounce);
+		DiffuseShader.SetBool("u_SecondBounceRT", !DoInfiniteBounceGI);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 

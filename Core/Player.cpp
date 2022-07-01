@@ -19,6 +19,8 @@ namespace Lumen
 
 		float camera_speed = speed;
 
+		CameraFrustum.Update(Camera,frame);
+
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		{
 			// Take the cross product of the camera's right and up.

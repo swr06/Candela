@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include "FpsCamera.h"
 
+#include "Frustum.h"
+
 #include <glfw/glfw3.h>
 
 #include "AABB.h"
@@ -30,6 +32,8 @@ namespace Lumen
 		AABB m_AABB;
 		bool m_isOnGround;
 		bool DisableCollisions = false;
+
+		Frustum CameraFrustum;
 
 	private :
 

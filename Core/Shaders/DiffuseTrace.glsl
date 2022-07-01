@@ -44,6 +44,9 @@ uniform float u_zFar;
 
 uniform bool u_Checker;
 
+uniform bool u_SecondBounce;
+uniform bool u_SecondBounceRT;
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -342,9 +345,9 @@ vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 	return vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
 }
 
-const bool DO_SECOND_BOUNCE = true;
-const bool RT_SECOND_BOUNCE = false;
-const bool DO_SCREENTRACE = true;
+bool DO_SECOND_BOUNCE = u_SecondBounce;
+bool RT_SECOND_BOUNCE = u_SecondBounceRT;
+bool DO_SCREENTRACE = true;
 
 void main() {
 
@@ -458,7 +461,7 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.44f; 
+			const float Strength = 1.0f; 
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f);
 		}
