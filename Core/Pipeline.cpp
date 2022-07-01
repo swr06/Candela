@@ -55,7 +55,7 @@ static bool DoSpatialUpscaling = true;
 
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
-static float VolumetricsDirectStrength = 1.0f;
+static float VolumetricsDirectStrength = 1.1f;
 static float VolumetricsIndirectStrength = 1.2f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;

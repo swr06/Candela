@@ -287,7 +287,7 @@ void main() {
 		}
 
         float DirectVisibility = GetDirectShadow(RayPosition);
-        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 36.0f * u_DStrength;
+        vec3 Direct = DirectVisibility * DirectPhase * SunColor * 38.0f * u_DStrength;
         vec3 Indirect = GetVolumeGI(RayPosition, VolumeHash) * IndirectPhase * u_IStrength;
         vec3 S = (Direct + Indirect) * LightingStrength * StepSize * Density * Transmittance;
 

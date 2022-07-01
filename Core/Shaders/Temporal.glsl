@@ -274,15 +274,19 @@ void main() {
 
 			vec4 MinVol, MaxVol, MeanVol, MomentsVol;
 
-			GatherStatistics(u_VolumetricsCurrent, Pixel, CurrentSpecular, MinVol, MaxVol, MeanVol, MomentsVol, false);
-
-			vec4 VolVariance = sqrt(abs(MomentsVol - MeanVol * MeanVol));
+			bool ShouldClip = MotionLength > 0.0000225;
 
 			vec4 PrevVolumetrics = texture(u_VolumetricsHistory, ReprojectedPlane.xy);
 
-			float Bias = MotionLength > 0.0001f ? 0.05f : 0.05f;
+			if (ShouldClip) {
+				GatherStatistics(u_VolumetricsCurrent, Pixel, CurrentSpecular, MinVol, MaxVol, MeanVol, MomentsVol, false);
 
-			PrevVolumetrics = clamp(PrevVolumetrics, MinVol - Bias, MaxVol + Bias);
+				vec4 VolVariance = sqrt(abs(MomentsVol - MeanVol * MeanVol));
+
+				float Bias = MotionLength > 0.0001f ? 0.05f : 0.05f;
+
+				PrevVolumetrics = clamp(PrevVolumetrics, MinVol - Bias, MaxVol + Bias);
+			}
 
 			float BlendFactorVol = 0.825f;
 
@@ -291,7 +295,6 @@ void main() {
 			}
 
 			o_Volumetrics = mix(CurrentVolumetrics, PrevVolumetrics, BlendFactorVol);
-
 		}
 	}
 
