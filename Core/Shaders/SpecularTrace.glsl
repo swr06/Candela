@@ -447,7 +447,7 @@ void main() {
 	vec3 Incident = normalize(WorldPosition - Player);
 
     vec3 RayOrigin = WorldPosition + Normal * mix(0.05f, 0.1f, clamp(PBR.x*1.4f,0.0f,1.0f));
-    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x*0.78f); 
+    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x*0.925f); 
 
     vec3 FinalRadiance = vec3(0.0f);
     float FinalTransversal = -1.0f;
@@ -460,7 +460,7 @@ void main() {
 		//	mix(0.0045f, 0.0075f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
 
 		vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-			int(mix(32.0f, 20.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Step count 
+			int(mix(24.0f, 20.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Step count 
 			int(mix(16.0f, 12.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Binary refine step count
 		    mix(0.001f, 0.0025f, PBR.x * PBR.x)); // <- Error threshold
 

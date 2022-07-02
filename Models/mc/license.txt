@@ -1,0 +1,11 @@
+Model Information:
+* title:	Royal manor [Minecraft]
+* source:	https://sketchfab.com/3d-models/royal-manor-minecraft-0c9df7e0bc874caba116173a3a0affc7
+* author:	drei.lu (https://sketchfab.com/drei.lu)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Royal manor [Minecraft]" (https://sketchfab.com/3d-models/royal-manor-minecraft-0c9df7e0bc874caba116173a3a0affc7) by drei.lu (https://sketchfab.com/drei.lu) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

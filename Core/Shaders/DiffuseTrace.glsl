@@ -402,7 +402,7 @@ void main() {
 	
 	if (DO_SCREENTRACE) 
 	{ 
-		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 24, 16, 0.00095f);
+		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 20, 18, 0.0009525f);
 	}
 
 	if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {

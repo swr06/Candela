@@ -145,7 +145,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
 
-	int SampleCount = 8;
+	int SampleCount = 6;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
@@ -162,7 +162,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	Shadow /= float(SampleCount);
 
-	return 1.0f - clamp(pow(Shadow, 1.25f), 0.0f, 1.0f);
+	return 1.0f - clamp(pow(Shadow, 1.0f), 0.0f, 1.0f);
 }
 
 vec3 SampleIncidentRayDirection(vec2 screenspace)
