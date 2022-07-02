@@ -2,7 +2,7 @@
 
 void Lumen::Frustum::Update(FPSCamera& Camera, int Frame)
 {
-    float HalfVSide = Camera.GetFarPlane()  * glm::tan(glm::radians(Camera.GetFov() / 2.0f));
+    float HalfVSide = Camera.GetFarPlane() * glm::tan(glm::radians(Camera.GetFov()) / 2.0f);
     float HalfHSide = HalfVSide * Camera.GetAspect();
     const glm::vec3 FarPlaneMultiplier = Camera.GetFarPlane() * Camera.GetFront();
 
