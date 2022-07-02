@@ -14,10 +14,10 @@
 - TAA
 - Volumetrics
 - Upscaling (Temporal/Spatial)
+- Culling (Frustum/Face Culling)
 
 # Todo
 - ReStir GI/DI
 - LTC
 - Compute based particle system (kD tree)
-- Culling (Frustum culling, Z-Buffer Occlusion culling)
 - Physically based sky
