@@ -4,7 +4,10 @@
 
 static uint64_t PolygonsRendered = 0;
 
-void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader)
+extern int __TotalMeshesRendered;
+extern int __MainViewMeshesRendered;
+
+void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull)
 {
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
 
@@ -15,9 +18,21 @@ void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader)
 
 	int DrawCalls = 0;
 
+	int MeshesRendered = 0;
+
 	for (auto& e : object->m_Meshes)
 	{
+		if (fcull) {
+			bool FrustumTest = frustum.TestBox(e.Box, entity.m_Model);
 
+			if (!FrustumTest) {
+				continue;
+			}
+		}
+
+		MeshesRendered++;
+		__TotalMeshesRendered++;
+		__MainViewMeshesRendered++;
 
 		const Mesh* mesh = &e;
 
@@ -83,8 +98,8 @@ void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader)
 
 
 		VAO.Unbind();
-	}
 
+	}
 
 	if (std::fmod(glfwGetTime(), 0.5f) < 0.001f)
 	{

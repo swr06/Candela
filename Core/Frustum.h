@@ -4,6 +4,8 @@
 
 #include "FpsCamera.h"
 
+#include "AABB.h"
+
 namespace Lumen {
 
 	class Frustum {
@@ -11,6 +13,8 @@ namespace Lumen {
 	public :
 
         void Update(FPSCamera& Camera, int Frame);
+
+        bool TestBox(const FrustumBox& aabb, const glm::mat4& ModelMatrix);
 
         Plane Top;
         Plane Bottom;

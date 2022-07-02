@@ -8,9 +8,13 @@
 #include "Entity.h"
 #include "GLClasses/Shader.h"
 
+#include "FpsCamera.h"
+
+#include "Frustum.h"
+
 namespace Lumen {
 
-	void RenderEntity(Entity& entity, GLClasses::Shader& shader);
+	void RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull);
 	uint64_t QueryPolygonCount();
 	void ResetPolygonCount();
 }

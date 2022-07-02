@@ -12,6 +12,8 @@
 #include "GLClasses/TextureArray.h"
 #include <glad/glad.h>
 
+#include "AABB.h"
+
 namespace Lumen
 {
 	class Mesh;
@@ -20,6 +22,8 @@ namespace Lumen
 	{
 	public:
 		Mesh(const uint32_t number);
+
+		void CalculateAABB();
 		void Buffer();
 
 		std::vector<Vertex> m_Vertices;
@@ -54,6 +58,8 @@ namespace Lumen
 
 
 		bool Deleted = false;
+
+		FrustumBox Box;
 	};
 
 }

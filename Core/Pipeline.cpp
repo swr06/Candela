@@ -30,6 +30,10 @@
 
 #include "Player.h"
 
+// Externs.
+int __TotalMeshesRendered = 0;
+int __MainViewMeshesRendered = 0;
+
 Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
 
 Lumen::Player Player;
@@ -40,6 +44,9 @@ static float SunTick = 50.0f;
 static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 // Options
+
+static bool DoFrustumCulling = true;
+static bool DoFaceCulling = true;
 
 static bool DoSecondBounce = true;
 static bool DoInfiniteBounceGI = true;
@@ -99,8 +106,15 @@ public:
 	{
 		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
+		ImGui::NewLine();
+		ImGui::Text("Number of Meshes Rendered (For the main view) : %d", __MainViewMeshesRendered);
+		ImGui::Text("Total Number of Meshes Rendered : %d", __TotalMeshesRendered);
+		ImGui::NewLine();
+		ImGui::NewLine();
 		ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 		ImGui::NewLine();
+		ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
+		ImGui::Checkbox("Face Culling?", &DoFaceCulling);
 		ImGui::NewLine();
 		ImGui::Checkbox("Checkerboard? (effectively computes lighting for half the pixels)", &DoCheckering);
 		ImGui::NewLine();
@@ -138,6 +152,10 @@ public:
 		ImGui::NewLine();
 		ImGui::Checkbox("TAA?", &DoTAA);
 		ImGui::Checkbox("CAS?", &DoCAS);
+
+
+		__TotalMeshesRendered = 0;
+		__MainViewMeshesRendered = 0;
 	}
 
 	void OnEvent(Lumen::Event e) override
@@ -193,7 +211,7 @@ public:
 
 void RenderEntityList(const std::vector<Lumen::Entity*> EntityList, GLClasses::Shader& shader) {
 	for (auto& e : EntityList) {
-		Lumen::RenderEntity(*e, shader);
+		Lumen::RenderEntity(*e, shader, Player.CameraFrustum, DoFrustumCulling);
 	}
 }
 
@@ -457,26 +475,29 @@ void Lumen::StartPipeline()
 		PreviousView = Camera.GetViewMatrix();
 
 		// Collide
-		CollisionQuery Query;
-		Query.Min = glm::vec4(Camera.GetPosition() - 0.1f, 1.0f);
-		Query.Max = glm::vec4(Camera.GetPosition() + 0.1f, 1.0f);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionQuerySSBO);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(CollisionQuery) * 1, &Query);
 
-		CollisionShader.Use();
-		CollisionShader.SetInteger("u_QueryCount", 1);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, CollisionQuerySSBO);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, CollisionResultSSBO);
-		Intersector.BindEverything(CollisionShader, false);
-		glDispatchCompute(1, 1, 1);
+		if (false) {
+			CollisionQuery Query;
+			Query.Min = glm::vec4(Camera.GetPosition() - 0.1f, 1.0f);
+			Query.Max = glm::vec4(Camera.GetPosition() + 0.1f, 1.0f);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionQuerySSBO);
+			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(CollisionQuery) * 1, &Query);
 
-		glm::ivec4 Retrieved;
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionResultSSBO);
-		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::ivec4) * 1, &Retrieved);;
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+			CollisionShader.Use();
+			CollisionShader.SetInteger("u_QueryCount", 1);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, CollisionQuerySSBO);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, CollisionResultSSBO);
+			Intersector.BindEverything(CollisionShader, false);
+			glDispatchCompute(1, 1, 1);
 
-		if (app.GetCurrentFrame() % 16 == 0)
-			std::cout << "\nPlayer Collision Test Result : " << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
+			glm::ivec4 Retrieved;
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, CollisionResultSSBO);
+			glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::ivec4) * 1, &Retrieved);;
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+			if (app.GetCurrentFrame() % 16 == 0)
+				std::cout << "\nPlayer Collision Test Result : " << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
+		}
 
 		app.OnUpdate();
 
@@ -498,7 +519,15 @@ void Lumen::StartPipeline()
 		}
 
 		// Render GBuffer
-		glEnable(GL_CULL_FACE);
+
+		if (DoFaceCulling) {
+			glEnable(GL_CULL_FACE);
+		}
+
+		else {
+			glDisable(GL_CULL_FACE);
+		}
+
 		glEnable(GL_DEPTH_TEST);
 
 		glm::mat4 TAAMatrix = DoTAA ? GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions()) : glm::mat4(1.0f);
@@ -1179,6 +1208,5 @@ void Lumen::StartPipeline()
 		Frametime = glfwGetTime();
 
 		GLClasses::DisplayFrameRate(app.GetWindow(), "Lumen ");
-
 	}
 }

@@ -3,9 +3,10 @@
 #include "ShaderManager.h"
 #include <iostream>
 
+extern int __TotalMeshesRendered;
+
 namespace Lumen
 {
-	
 	void PrintVec3(std::string s, glm::vec3 x) 
 	{
 	}
@@ -135,6 +136,7 @@ namespace Lumen
 
 			for (auto& e : object->m_Meshes)
 			{
+				__TotalMeshesRendered++;
 				const Mesh* mesh = &e;
 				const GLClasses::VertexArray& VAO = mesh->m_VertexArray;
 				VAO.Bind();

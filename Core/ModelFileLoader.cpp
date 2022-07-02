@@ -271,6 +271,26 @@ namespace Lumen
 				}
 			}
 
+			for (auto& mesh : object->m_Meshes) {
+
+				glm::vec3 AABBMin = glm::vec3(100000.0f);
+				glm::vec3 AABBMax = glm::vec3(-100000.0f);
+
+				for (int i = 0; i < mesh.m_Indices.size(); i+=3) {
+					
+					for (int t = 0; t < 3; t++) {
+
+						AABBMin = glm::min(AABBMin, glm::vec3(mesh.m_Vertices[mesh.m_Indices[i + t]].position));
+						AABBMax = glm::max(AABBMax, glm::vec3(mesh.m_Vertices[mesh.m_Indices[i + t]].position));
+					}
+
+				}
+
+				FrustumBox b;
+				b.CreateBoxMinMax(AABBMin, AABBMax);
+				mesh.Box = b;
+			}
+
 			object->Buffer();
 
 			mesh_count = 0;

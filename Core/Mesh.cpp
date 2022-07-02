@@ -4,9 +4,6 @@ namespace Lumen
 {
 	Mesh::Mesh(const uint32_t number) : m_VertexBuffer(GL_ARRAY_BUFFER), m_MeshNumber(number)
 	{
-		/*
-		Setup all the ogl objects
-		*/
 		m_VertexArray.Bind();
 		m_VertexBuffer.Bind();
 		m_IndexBuffer.Bind();

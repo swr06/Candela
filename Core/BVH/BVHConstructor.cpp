@@ -384,7 +384,7 @@ namespace Lumen {
 
 		void ConstructTree(const std::vector<Vertex>& Vertices, const std::vector<GLuint>& OriginalIndices, std::vector<Triangle>& oTriangles, Node* RootNode, std::vector<int>& TriangleReferences, std::vector<int>& SortedTriangleReferences) {
 
-			int StatusFrequency = (OriginalIndices.size()) / 192;
+			int StatusFrequency = (OriginalIndices.size()) / 300;
 
 			std::random_device dev;
 			std::mt19937 rng(dev());
