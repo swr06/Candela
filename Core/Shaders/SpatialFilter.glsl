@@ -45,6 +45,8 @@ uniform int u_Pass;
 
 uniform bool u_Enabled;
 
+uniform float u_PhiLMult;
+
 bool SPATIAL_OFF = !u_Enabled;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -220,7 +222,7 @@ void main() {
 
 	ivec2 Size = ivec2(textureSize(u_Diffuse, 0).xy);
 
-	const float PhiLMult = 5.3f; //0.0000001f;
+	float PhiLMult = u_PhiLMult; //0.0000001f;
 	float FrameFactor = clamp(8.0f / float(Frames), 0.05f, 8.0f);
 	float PhiLFrameFactor = 1.0f; //5.1f; //mix(6.5f,3.75f,clamp(float(Frames)/20.0f,0.0f,1.0f));
 	float PhiL = PhiLMult * PhiLFrameFactor * sqrt(max(0.0f, 0.00000001f + VarianceGaussian));

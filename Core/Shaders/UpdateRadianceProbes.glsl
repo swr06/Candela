@@ -173,7 +173,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 	float Length = length(Vector);
 	Vector /= Length;
 
-	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 1.5f);
+	float Weight = pow(clamp(dot(Normal, Vector), 0.0f, 1.0f), 2.0f);
 	return Weight;
 }
 
@@ -370,9 +370,9 @@ void main() {
 	// Integrate radiance for point 
 	vec3 iWorldPos = (RayOrigin + DiffuseDirection * TUVW.x);
 
-	float LambertSky = clamp(dot(DiffuseDirection, vec3(0.0f, 1.0f, 0.0f)), 0.0f, 1.0f);
+	float LambertSky = clamp(dot(DiffuseDirection, vec3(0.0f, 1.0f, 0.0f)), 0.002f, 1.0f);
 
-	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 3.25f : 
+	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 2.2f * LambertSky : 
 						 (GetDirect(iWorldPos, iNormal, Albedo.xyz) + (Albedo.xyz*Albedo.w*1.0f));
 
 	float Packed = 1.0f;
@@ -389,11 +389,8 @@ void main() {
 	ivec2 OctahedralMapPixel = ivec2((Octahedral * vec2(7.0f)));
 	int PixelOffset = ProbeMapPixelStartOffset + Get1DIdx(OctahedralMapPixel, ivec2(8));
 
-	float Depth = TUVW.x < 0.0f ? 0.0f : TUVW.x;
+	float Depth = TUVW.x < 0.0f ? 256.0f : TUVW.x;
 	float DepthSqr = Depth * Depth;
-
-	float PackedMoments = uintBitsToFloat(packHalf2x16(vec2(Depth, DepthSqr)));
-
 
 	SH FinalSH = EncodeSH(FinalRadiance, DiffuseDirection);
 
@@ -411,7 +408,8 @@ void main() {
 		float TemporalBlend = min((1.0f - (1.0f / float(AccumulatedFrames))), 0.985f);
 
 		ProbeMapPixel PrevProbeData = MapData[PixelOffset];
-		MapData[PixelOffset] = ProbeMapPixel(vec2(mix(Luminance(FinalRadiance.xyz),PrevProbeData.Packed.x,TemporalBlend), PackedMoments));
+		vec2 WriteMoments = mix(vec2(Depth, DepthSqr), PrevProbeData.Packed.xy, 0.98f);
+		MapData[PixelOffset] = ProbeMapPixel(WriteMoments);
 
 		PreviousSH = UnpackSH(A,B);
 
@@ -420,6 +418,10 @@ void main() {
 		FinalSH.L10 = mix(FinalSH.L10, PreviousSH.L10, TemporalBlend);
 		FinalSH.L1_1 = mix(FinalSH.L1_1, PreviousSH.L1_1, TemporalBlend);
 		FinalRadiance = mix(FinalRadiance, imageLoad(u_PrevRaw,ivec3(Reprojected.xyz)).xyz, TemporalBlend);
+	}
+
+	else {
+		MapData[PixelOffset] = ProbeMapPixel(vec2(Depth, DepthSqr));
 	}
 
 	uvec4 PackedA, PackedB;

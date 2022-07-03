@@ -61,13 +61,14 @@ static bool DoCAS = true;
 static bool DoTemporal = true;
 
 static bool DoSpatial = true;
+static float SVGFStrictness = 0.2f;
 
 static bool DoSpatialUpscaling = true;
 
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.1f;
-static float VolumetricsIndirectStrength = 1.0f;
+static float VolumetricsIndirectStrength = 1.25f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
@@ -129,15 +130,17 @@ public:
 		ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
 		ImGui::NewLine();
 		ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
+		ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
+		ImGui::NewLine();
 		ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
 		ImGui::NewLine();
 
 		ImGui::Checkbox("Volumetrics?", &DoVolumetrics);
 		
 		if (DoVolumetrics) {
-			ImGui::SliderFloat("Volumetrics Strength", &VolumetricsGlobalStrength, 0.1f, 4.0f);
-			ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.1f, 4.0f);
-			ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.1f, 4.0f);
+			ImGui::SliderFloat("Volumetrics Strength", &VolumetricsGlobalStrength, 0.1f, 6.0f);
+			ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.1f, 8.0f);
+			ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.1f, 8.0f);
 			ImGui::SliderInt("Volumetrics Steps", &VolumetricsSteps, 4, 128);
 
 			if (DoTemporal) {
@@ -310,8 +313,8 @@ void Lumen::StartPipeline()
 	Object MainModel;
 	Object Dragon;
 
-	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
-	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
+	FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
@@ -328,12 +331,12 @@ void Lumen::StartPipeline()
 
 	// Create entities 
 	Entity MainModelEntity(&MainModel);
-	MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.35f));
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
 
 	Entity DragonEntity(&Dragon);
-	DragonEntity.m_EmissiveAmount = 15.0f;
+	DragonEntity.m_EmissiveAmount = 0.0f;
 
 	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity };
 
@@ -533,6 +536,7 @@ void Lumen::StartPipeline()
 		glm::mat4 TAAMatrix = DoTAA ? GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions()) : glm::mat4(1.0f);
 
 		GBuffer.Bind();
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		GBufferShader.Use();
 		GBufferShader.SetMatrix4("u_ViewProjection", TAAMatrix * Camera.GetViewProjection());
@@ -960,6 +964,7 @@ void Lumen::StartPipeline()
 				SpatialFilterShader.SetBool("u_FilterVolumetrics", InitialPass && DoVolumetrics && VolumetricsSpatial);
 				SpatialFilterShader.SetBool("u_Enabled", DoSpatial);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
+				SpatialFilterShader.SetFloat("u_PhiLMult", 1.0f/glm::max(SVGFStrictness,0.01f));
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
 
 				glActiveTexture(GL_TEXTURE0);

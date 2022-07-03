@@ -15,7 +15,7 @@ float GetSat(vec3 x) {
 }
 
 float CASWeight(vec3 x) {
-    return max(x.g, EPSILON);
+    return min(max(x.g, EPSILON), 1.0f);
 }
 
 vec3 ContrastAdaptiveSharpening(sampler2D Texture, ivec2 Pixel, float SharpeningAmount)

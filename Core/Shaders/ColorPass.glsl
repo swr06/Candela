@@ -145,7 +145,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
 
-	int SampleCount = 6;
+	int SampleCount = 8;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 

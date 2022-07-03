@@ -198,7 +198,9 @@ void main() {
 			ivec2 PixelHalvedX = Pixel;
 			PixelHalvedX.x /= 2;
 
-			float BaseDepth = linearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
+			float BaseDepthN = texelFetch(u_Depth, HighResPixel, 0).x;
+			bool BaseIsSky = IsSky(BaseDepthN);
+			float BaseDepth = linearizeDepth(BaseDepthN);
 			vec3 BaseNormal = texelFetch(u_Normals, HighResPixel, 0).xyz;
 
 			float TotalWeight = 0.0f;
@@ -212,14 +214,16 @@ void main() {
 				ivec2 Coord = PixelHalvedX + Offset;
 				ivec2 HighResCoord = HighResPixel + Offset;
 
-				float SampleDepth = linearizeDepth(texelFetch(u_Depth, HighResCoord, 0).x);
+				float SampleDepthN = texelFetch(u_Depth, HighResCoord, 0).x;
+				bool SampleIsSky = IsSky(SampleDepthN);
+				float SampleDepth = linearizeDepth(SampleDepthN);
 				vec3 SampleNormal = texelFetch(u_Normals, HighResCoord, 0).xyz;
 
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
 				vec4 SampleVol = texelFetch(u_CurrentFrameVolumetrics, Coord, 0).xyzw;
 
-				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), CDEPTH_EXP) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), CNORMAL_EXP);
+				float CurrentWeight = ((SampleIsSky ? float(SampleIsSky == BaseIsSky) : pow(exp(-(abs(SampleDepth - BaseDepth))), CDEPTH_EXP))) * (SampleIsSky ? 1.0f : pow(max(dot(SampleNormal, BaseNormal), 0.0f), CNORMAL_EXP));
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalDiffuse += SampleDiffuse * CurrentWeight;
@@ -241,12 +245,14 @@ void main() {
 			ivec2 PixelHalvedX = Pixel;
 			PixelHalvedX.x /= 2;
 
-			float BaseDepth = linearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
+			float BaseDepthN = texelFetch(u_Depth, HighResPixel, 0).x;
+			bool BaseIsSky = IsSky(BaseDepthN);
+			float BaseDepth = linearizeDepth(BaseDepthN);
 			vec3 BaseNormal = texelFetch(u_Normals, HighResPixel, 0).xyz;
 
 			float TotalWeight = 0.0f;
 			vec4 TotalSpec = vec4(0.0f);
-			vec4 TotalVol = vec4(0.0f);
+			vec4 TotalVolumetrics = vec4(0.0f);
 
 			for (int i = 0 ; i < 4 ; i++) {
 				
@@ -254,25 +260,27 @@ void main() {
 				ivec2 Coord = PixelHalvedX + Offset;
 				ivec2 HighResCoord = HighResPixel + Offset;
 
-				float SampleDepth = linearizeDepth(texelFetch(u_Depth, HighResCoord, 0).x);
+				float SampleDepthN = texelFetch(u_Depth, HighResCoord, 0).x;
+				bool SampleIsSky = IsSky(SampleDepthN);
+				float SampleDepth = linearizeDepth(SampleDepthN);
 				vec3 SampleNormal = texelFetch(u_Normals, HighResCoord, 0).xyz;
 
 				vec4 SampleDiffuse = texelFetch(u_CurrentFrameTexture, Coord, 0).xyzw;
 				vec4 SampleSpecular = texelFetch(u_CurrentFrameSpecular, Coord, 0).xyzw;
 				vec4 SampleVol = texelFetch(u_CurrentFrameVolumetrics, Coord, 0).xyzw;
 
-				float CurrentWeight = pow(exp(-(abs(SampleDepth - BaseDepth))), CDEPTH_EXP) * pow(max(dot(SampleNormal, BaseNormal), 0.0f), CNORMAL_EXP);
+				float CurrentWeight = ((SampleIsSky ? float(SampleIsSky == BaseIsSky) : pow(exp(-(abs(SampleDepth - BaseDepth))), CDEPTH_EXP))) * (SampleIsSky ? 1.0f : pow(max(dot(SampleNormal, BaseNormal), 0.0f), CNORMAL_EXP));
 				CurrentWeight = clamp(CurrentWeight, 0.0f, 1.0f);
 
 				TotalSpec += SampleSpecular * CurrentWeight;
-				TotalVol += SampleVol * CurrentWeight;
+				TotalVolumetrics += SampleVol * CurrentWeight;
 				TotalWeight += CurrentWeight;
 			}
 
 			TotalSpec /= max(TotalWeight, 0.0000001f);
-			TotalVol /= max(TotalWeight, 0.0000001f);
+			TotalVolumetrics /= max(TotalWeight, 0.0000001f);
 			o_Specular = TotalSpec;
-			o_Volumetrics = TotalVol;
+			o_Volumetrics = TotalVolumetrics;
 		}
 	}
 
