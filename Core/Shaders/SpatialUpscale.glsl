@@ -94,27 +94,28 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			
 			if (x == 0 && y == 0) { continue ; }
 
-			float KernelWeight;
-			
-			KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
+			float KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
 
-			vec2 SampleCoordF = vec2(PixelDownscaled) + vec2(x, y);
-			ivec2 SampleCoord = ivec2(SampleCoordF);
+			ivec2 SampleCoord = ivec2(PixelDownscaled) + ivec2(x, y);
 			ivec2 SampleCoordHighRes = SampleCoord * 2;
+
+			vec2 SampleUV = vec2(SampleCoord) / textureSize(u_Diffuse, 0).xy;
 
 			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, SampleCoordHighRes, 0).x);
 			vec3 SampleNormal = texelFetch(u_Normals, SampleCoordHighRes, 0).xyz;
 			vec3 SampleNormalHF = texelFetch(u_NormalsHF, SampleCoordHighRes, 0).xyz;
 			vec3 SamplePBR = texelFetch(u_PBR, SampleCoordHighRes, 0).xyz;
 
-			float DepthWeight = pow(exp(-abs(Depth - SampleDepth)), 420.0f);
-			float NormalWeight = pow(max(dot(SampleNormal, Normal), 0.0f), 32.0f);
-			float NormalWeightHF = pow(max(dot(SampleNormalHF, NormalHF), 0.0f), 32.0f);
+			float DepthWeight = pow(exp(-abs(Depth - SampleDepth)), 256.0f);
+			float NormalWeight = pow(max(dot(SampleNormal, Normal), 0.0f), 16.0f);
+			float NormalWeightHF = pow(max(dot(SampleNormalHF, NormalHF), 0.0f), 16.0f);
 			float RoughnessWeight = pow(clamp(1.0f-(abs(SamplePBR.x-Roughness)/4.0f), 0.0f, 1.0f), 24.0f);
-			float Weight = clamp(DepthWeight * NormalWeight * KernelWeight * NormalWeightHF * RoughnessWeight, 0.0f, 1.0f);
+			float Weight = clamp(DepthWeight * NormalWeight * KernelWeight * RoughnessWeight, 0.0f, 1.0f);
+			float WeightS = clamp(DepthWeight * NormalWeight * NormalWeightHF * KernelWeight, 0.0f, 1.0f);
 
-			Diffuse += texelFetch(u_Diffuse, SampleCoord, 0).xyzw * Weight;
-			Specular += texelFetch(u_Specular, SampleCoord, 0) * Weight;
+			Diffuse += texelFetch(u_Diffuse, SampleCoord, 0) * Weight;
+			//Diffuse += CatmullRom(u_Diffuse, SampleUV) * Weight;
+			Specular += texelFetch(u_Specular, SampleCoord, 0) * WeightS;
 			Volumetrics += texelFetch(u_Volumetrics, SampleCoord, 0) * Weight;
 			TotalWeight += Weight;
 		}

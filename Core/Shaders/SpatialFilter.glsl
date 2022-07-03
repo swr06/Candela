@@ -1,4 +1,4 @@
-#version 330 core 
+#version 450 core 
 
 #define PI 3.14159265359
 
@@ -166,13 +166,21 @@ float GradientNoise()
 	return noise;
 }
 
+float HASH2SEED = 0.0f;
+vec2 hash2() 
+{
+	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
+}
+
 const float WaveletKernel[3] = float[3]( 1.0f, 2.0f / 3.0f, 1.0f / 6.0f );
 const int Kernel = 1;
 
 void main() {
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
-	ivec2 Jitter = ivec2((GradientNoise() - 0.5f) * float(float(u_StepSize)/sqrt(2.0f)));
+
+	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time;
+	vec2 Hash = hash2() * 2.0f - 1.0f;
 
 	int Frames = int(texelFetch(u_FrameCounters, Pixel, 0).x * 255.0f);
 
@@ -195,6 +203,11 @@ void main() {
 
 	float DepthFetch = texelFetch(u_Depth, Pixel * 2, 0).x;
 	float CenterDepth = LinearizeDepth(DepthFetch);
+
+	//vec2 Derivative = vec2(dFdx(CenterDepth), dFdy(CenterDepth));
+
+	float Derivative = max(dFdxFine(abs(CenterDepth)), dFdxFine(abs(CenterDepth)));
+
 	vec3 CenterNormal = texelFetch(u_Normals, Pixel * 2, 0).xyz;
 	vec3 CenterHFNormal = texelFetch(u_NormalsHF, Pixel * 2, 0).xyz;
 	float CenterRoughness = texelFetch(u_PBR, Pixel * 2, 0).x;
@@ -227,13 +240,16 @@ void main() {
 	float PhiLFrameFactor = 1.0f; //5.1f; //mix(6.5f,3.75f,clamp(float(Frames)/20.0f,0.0f,1.0f));
 	float PhiL = PhiLMult * PhiLFrameFactor * sqrt(max(0.0f, 0.00000001f + VarianceGaussian));
 
+	float PhiS = sqrt(u_StepSize);
+
 	for (int x = -Kernel ; x <= Kernel ; x++) 
 	{
 		for (int y = -Kernel ; y <= Kernel ; y++) 
 		{
 			if (x == 0 && y == 0) { continue; }
 
-			ivec2 SamplePixel = Pixel + ivec2(vec2(x,y) * u_StepSize) + Jitter;
+			vec2 Shift = vec2(vec2(x,y) * u_StepSize);
+			ivec2 SamplePixel = Pixel + ivec2((vec2(x,y)) * u_StepSize) + ivec2(Hash * PhiS);
 
 			if (SamplePixel.x <= 1 || SamplePixel.x >= Size.x - 1 || SamplePixel.y <= 1 || SamplePixel.y >= Size.y - 1) {
 				continue;
@@ -241,18 +257,30 @@ void main() {
 
 			ivec2 HighResPixel = SamplePixel * 2;
 
+			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
+
+			float DepthError = abs(SampleDepth - CenterDepth);
+
+			float Threshold = clamp((Derivative * 6.5), 0.0015f, 0.015f);
+
+			if (DepthError > Threshold) {
+				continue;
+			}
+
 			vec4 SampleDiffuse = texelFetch(u_Diffuse, SamplePixel, 0);
 			vec4 SampleSpecular = texelFetch(u_Specular, SamplePixel, 0);
 			float SampleVariance = texelFetch(u_Variance, SamplePixel, 0).x;
-			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, HighResPixel, 0).x);
             vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 			vec3 SampleHFNormal = texelFetch(u_NormalsHF, HighResPixel, 0).xyz;
 			float SampleRoughness = texelFetch(u_PBR, HighResPixel, 0).x;
 
 			float SampleSTraversal = UntransformReflectionTransversal(SampleSpecular.w);
 
-			float DepthWeight = clamp(pow(exp(-abs(SampleDepth - CenterDepth)*float(u_SqrtStepSize)), DEPTH_EXPONENT), 0.0f, 1.0f);
-			float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), NORMAL_EXPONENT), 0.0f, 1.0f);
+			//float DepthWeight = exp((-abs(CenterDepth - SampleDepth)) / max(abs(dot(Derivative,Shift)),0.000001f));
+			//float DepthWeight = exp(-abs(CenterDepth-SampleDepth)*DEPTH_EXPONENT);
+			//float DepthWeight = exp(-abs(SampleDepth-CenterDepth) / (max(abs(Derivative), 0.000001f)*10.));
+			float DepthWeight = 1.0f;
+			float NormalWeight = clamp(pow(max(dot(SampleNormals, CenterNormal), 0.0f), 16.0f), 0.0f, 1.0f);
 
 			float LumaError = abs(CenterDiffuseLuma - Luminance(SampleDiffuse.xyz));
 			float AOError = abs(CenterAO - SampleDiffuse.w);

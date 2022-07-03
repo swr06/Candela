@@ -106,7 +106,7 @@ void main() {
 		Diffuse.xyz /= TotalWeight;
 		Diffuse.w /= TotalAOWeight;
 
-		o_Variance = abs(Moments.y - Moments.x * Moments.x) * 3.0f;
+		o_Variance = abs(Moments.y - Moments.x * Moments.x) * 5.0f;
 	}
 
 	else {

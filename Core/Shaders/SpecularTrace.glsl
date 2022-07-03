@@ -51,6 +51,7 @@ uniform usampler3D u_SHDataA;
 uniform usampler3D u_SHDataB;
 
 uniform bool u_Checker;
+uniform bool u_FullRT;
 
 float LinearizeDepth(float depth)
 {
@@ -431,7 +432,7 @@ void main() {
 	PBR.x *= 0.0f;
 #endif
 
-	if (PBR.y > 0.04f) {
+	if (PBR.y > 0.04f || u_FullRT) {
 		TRACE_MODE = 1;
 	}
 
@@ -462,7 +463,7 @@ void main() {
 		vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
 			int(mix(24.0f, 20.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Step count 
 			int(mix(16.0f, 12.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Binary refine step count
-		    mix(0.001f, 0.0025f, PBR.x * PBR.x)); // <- Error threshold
+		    mix(0.001f, 0.003f, PBR.x * PBR.x)); // <- Error threshold
 
 		if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
 			    

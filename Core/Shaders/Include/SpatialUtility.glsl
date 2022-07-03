@@ -17,5 +17,5 @@ float UntransformReflectionTransversal(float x) {
 	return x * 48.0f;
 }	
 
-const float DEPTH_EXPONENT = 256.0f;
+const float DEPTH_EXPONENT = 384.0f;
 const float NORMAL_EXPONENT = 24.0f;

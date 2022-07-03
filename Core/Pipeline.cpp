@@ -45,12 +45,14 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 // Options
 
-static bool DoFrustumCulling = true;
+static bool DoFrustumCulling = false;
 static bool DoFaceCulling = true;
 
 static bool DoSecondBounce = true;
 static bool DoInfiniteBounceGI = true;
 static bool UpdateIrradianceVolume = true;
+
+static bool DoFullRTSpecular = false;
 
 static bool DoCheckering = true;
 
@@ -68,7 +70,7 @@ static bool DoSpatialUpscaling = true;
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.1f;
-static float VolumetricsIndirectStrength = 1.25f;
+static float VolumetricsIndirectStrength = 1.15f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
@@ -126,6 +128,8 @@ public:
 		if (DoSecondBounce)
 			ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
 
+		ImGui::NewLine();
+		ImGui::Checkbox("Full Worldspace RT Specular GI?", &DoFullRTSpecular);
 		ImGui::NewLine();
 		ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
 		ImGui::NewLine();
@@ -312,9 +316,9 @@ void Lumen::StartPipeline()
 	// Scene setup 
 	Object MainModel;
 	Object Dragon;
-
-	FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
+	
+	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
@@ -331,12 +335,12 @@ void Lumen::StartPipeline()
 
 	// Create entities 
 	Entity MainModelEntity(&MainModel);
-	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+	MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.35f));
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
 
 	Entity DragonEntity(&Dragon);
-	DragonEntity.m_EmissiveAmount = 0.0f;
+	DragonEntity.m_EmissiveAmount = 15.0f;
 
 	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity };
 
@@ -709,6 +713,7 @@ void Lumen::StartPipeline()
 		SpecularShader.SetInteger("u_SHDataA", 14);
 		SpecularShader.SetInteger("u_SHDataB", 15);
 		SpecularShader.SetBool("u_Checker", DoCheckering);
+		SpecularShader.SetBool("u_FullRT", DoFullRTSpecular);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());

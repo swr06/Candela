@@ -433,6 +433,8 @@ void main() {
 						 (GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo.xyz) + Albedo.xyz * Albedo.w);
 	}
 
+	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.5f, 0.0f, 1.0f), 1.0f) : 1.0f;
+
 	// Handle multibounce lighting 
 	if (DO_SECOND_BOUNCE) {
 
@@ -463,7 +465,10 @@ void main() {
 		else {
 			const float Strength = 1.0f; 
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
-			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f);
+
+			// Probe gi tends to leak at edges
+			float LeakTransversalWeight = pow(TUVW.x > 0.0f ? pow(clamp(TUVW.x / 0.8f, 0.0f, 1.0f), 1.0f) : 1.0f, 1.5f);
+			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f) * LeakTransversalWeight;
 		}
 
 
@@ -478,7 +483,6 @@ void main() {
 		}
 	}
 
-	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.5f, 0.0f, 1.0f), 1.0f) : 1.0f;
 
 	if (!IsValid(FinalRadiance)) {
 		FinalRadiance = vec3(0.0f);

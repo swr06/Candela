@@ -1,7 +1,7 @@
 #include "ShadowMapHandler.h"
 
 static const int Resolution = 1024;
-const float CascadeDistances[5] = { 6.0f, 12.0f, 18.0f, 36.0f, 72.0f};
+const float CascadeDistances[5] = { 4.0f, 8.0f, 16.0f, 32.0f, 64.0f};
 
 static Lumen::Shadowmap Shadowmaps[5];
 static glm::mat4 ProjectionMatrices[5];
