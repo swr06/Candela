@@ -1,0 +1,11 @@
+Model Information:
+* title:	XXR Sphere 12.13.19
+* source:	https://sketchfab.com/3d-models/xxr-sphere-121319-7928b72a80d341cdae1d0b7cb09988bd
+* author:	RorrKonn (https://sketchfab.com/rorrkonn)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "XXR Sphere 12.13.19" (https://sketchfab.com/3d-models/xxr-sphere-121319-7928b72a80d341cdae1d0b7cb09988bd) by RorrKonn (https://sketchfab.com/rorrkonn) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

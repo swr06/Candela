@@ -79,6 +79,7 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 	}
 
 	float TotalWeight = 1.0f;
+	float TotalWeightS = 1.0f;
 
 	//SG CenterRSG = RoughnessLobe(Roughness, Normal, Incident);
 
@@ -118,10 +119,11 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			Specular += texelFetch(u_Specular, SampleCoord, 0) * WeightS;
 			Volumetrics += texelFetch(u_Volumetrics, SampleCoord, 0) * Weight;
 			TotalWeight += Weight;
+			TotalWeightS += WeightS;
 		}
 	}
 
-	Specular /= TotalWeight;
+	Specular /= TotalWeightS;
 	Diffuse /= TotalWeight;
 	Volumetrics /= TotalWeight;
 }

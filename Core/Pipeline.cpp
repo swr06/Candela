@@ -69,8 +69,8 @@ static bool DoSpatialUpscaling = true;
 
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
-static float VolumetricsDirectStrength = 1.1f;
-static float VolumetricsIndirectStrength = 1.15f;
+static float VolumetricsDirectStrength = 1.0f;
+static float VolumetricsIndirectStrength = 1.0f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
@@ -143,8 +143,8 @@ public:
 		
 		if (DoVolumetrics) {
 			ImGui::SliderFloat("Volumetrics Strength", &VolumetricsGlobalStrength, 0.1f, 6.0f);
-			ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.1f, 8.0f);
-			ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.1f, 8.0f);
+			ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.01f, 8.0f);
+			ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.01f, 8.0f);
 			ImGui::SliderInt("Volumetrics Steps", &VolumetricsSteps, 4, 128);
 
 			if (DoTemporal) {
@@ -316,9 +316,12 @@ void Lumen::StartPipeline()
 	// Scene setup 
 	Object MainModel;
 	Object Dragon;
+	Object MetalObject;
 	
 	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
+	//FileLoader::LoadModelFile(&MetalObject, "Models/monke/Suzanne.gltf");
+	FileLoader::LoadModelFile(&MetalObject, "Models/ball/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
@@ -330,6 +333,7 @@ void Lumen::StartPipeline()
 	Intersector.Initialize();
 	Intersector.AddObject(MainModel);
 	Intersector.AddObject(Dragon);
+	Intersector.AddObject(MetalObject);
 	Intersector.BufferData();
 	Intersector.GenerateMeshTextureReferences();
 
@@ -342,7 +346,10 @@ void Lumen::StartPipeline()
 	Entity DragonEntity(&Dragon);
 	DragonEntity.m_EmissiveAmount = 15.0f;
 
-	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity };
+	Entity MetalObjectEntity(&MetalObject);
+	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 1.25f, -2.0f));
+
+	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
 
 	// Textures
 	Skymap.CreateCubeTextureMap(

@@ -223,7 +223,7 @@ void main()
 		BRDFCoord = clamp(BRDFCoord, 0.0f, 1.0f);
 		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
-		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.125f);
+		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
 		
 		float AO = clamp(pow(GI.w, 1.5f) + 0.1f, 0.0f, 1.0f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * IndirectStrength.x * AO;
