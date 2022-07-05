@@ -467,7 +467,7 @@ void main() {
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 
 			// Probe gi tends to leak at edges
-			float LeakTransversalWeight = pow(TUVW.x > 0.0f ? pow(clamp(TUVW.x / 0.9f, 0.0f, 1.0f), 1.0f) : 1.0f, 1.7f);
+			float LeakTransversalWeight = pow(TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.0f, 0.0f, 1.0f), 1.0f) : 1.0f, 1.8f);
 			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f) * LeakTransversalWeight;
 		}
 

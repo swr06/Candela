@@ -187,7 +187,7 @@ void main()
 
 	if (Depth > 0.999999f) {
 		vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
-		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 1.0f; // <----- pow2 done here 
+		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 2.0f; // <----- pow2 done here 
 		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz;
 		return;
 	}
