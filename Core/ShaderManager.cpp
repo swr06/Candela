@@ -8,7 +8,7 @@ void Lumen::ShaderManager::CreateShaders()
 {
 	AddShader("GBUFFER", "Core/Shaders/GeometryVert.glsl", "Core/Shaders/GeometryFrag.glsl");
 	AddShader("LIGHTING_PASS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/ColorPass.glsl");
-	AddShader("TONEMAP", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Tonemap.glsl");
+	AddShader("COMPOSITE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Composite.glsl");
 	AddShader("CAS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/CAS.glsl");
 	AddShader("DEPTH", "Core/Shaders/DepthVert.glsl", "Core/Shaders/DepthFrag.glsl");
 	AddShader("PROBE_FORWARD", "Core/Shaders/ProbeForwardVert.glsl", "Core/Shaders/ProbeForwardFrag.glsl");
@@ -22,6 +22,8 @@ void Lumen::ShaderManager::CreateShaders()
 	AddShader("TAA", "Core/Shaders/FBOVert.glsl", "Core/Shaders/TAA.glsl");
 	AddShader("VOLUMETRICS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Volumetrics.glsl");
 	AddShader("SPATIAL_UPSCALE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/SpatialUpscale.glsl");
+	AddShader("BLOOM_MASK", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BloomMask.glsl");
+	AddShader("BLOOM_BLUR", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BloomBlurTwoPass.glsl");
 	AddComputeShader("PROBE_UPDATE", "Core/Shaders/UpdateRadianceProbes.glsl");
 	AddComputeShader("COPY_VOLUME", "Core/Shaders/CopyVolume.glsl");
 	AddComputeShader("COLLISIONS", "Core/Shaders/Collide.comp");

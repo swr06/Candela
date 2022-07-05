@@ -30,6 +30,9 @@
 
 #include "Player.h"
 
+#include "BloomRenderer.h"
+#include "BloomFBO.h"
+
 // Externs.
 int __TotalMeshesRendered = 0;
 int __MainViewMeshesRendered = 0;
@@ -256,7 +259,7 @@ GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA,
 GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
 
 // Post 
-GLClasses::Framebuffer Tonemapped(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
+GLClasses::Framebuffer Composited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
 GLClasses::Framebuffer VolumetricsCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
 
 // For temporal 
@@ -371,7 +374,7 @@ void Lumen::StartPipeline()
 	GLClasses::Shader& GBufferShader = ShaderManager::GetShader("GBUFFER");
 	GLClasses::Shader& LightingShader = ShaderManager::GetShader("LIGHTING_PASS");
 	GLClasses::Shader& CheckerReconstructShader = ShaderManager::GetShader("CHECKER_UPSCALE");
-	GLClasses::Shader& TonemapShader = ShaderManager::GetShader("TONEMAP");
+	GLClasses::Shader& CompositeShader = ShaderManager::GetShader("COMPOSITE");
 	GLClasses::Shader& TemporalFilterShader = ShaderManager::GetShader("TEMPORAL");
 	GLClasses::Shader& MotionVectorShader = ShaderManager::GetShader("MOTION_VECTORS");
 	GLClasses::Shader& SpatialVarianceShader = ShaderManager::GetShader("SVGF_VARIANCE");
@@ -413,6 +416,12 @@ void Lumen::StartPipeline()
 
 	// TAA
 	GenerateJitterStuff();
+
+	// Bloom
+	const float BloomResolution = 0.25f;
+	BloomFBO BloomBufferA(16, 16);
+	BloomFBO BloomBufferB(16, 16);
+	BloomRenderer::Initialize();
 
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
@@ -463,7 +472,9 @@ void Lumen::StartPipeline()
 		TemporalBuffersIndirect[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 
 		// Other post buffers
-		Tonemapped.SetSize(app.GetWidth(), app.GetHeight());
+		Composited.SetSize(app.GetWidth(), app.GetHeight());
+		BloomBufferA.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
+		BloomBufferB.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
 		
 		// Set FBO references
 		GLClasses::Framebuffer& GBuffer = FrameMod2 ? GBuffers[0] : GBuffers[1];
@@ -1182,16 +1193,45 @@ void Lumen::StartPipeline()
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
 
+		// Bloom 
+
+		GLuint BrightTex = 0;
+		BloomRenderer::RenderBloom(TAA.GetTexture(), GBuffer.GetTexture(3), BloomBufferA, BloomBufferB, BrightTex, true);
 
 		// Tonemap
 
-		Tonemapped.Bind();
+		Composited.Bind();
 
-		TonemapShader.Use();
-		TonemapShader.SetInteger("u_MainTexture", 0);
+		CompositeShader.Use();
+		CompositeShader.SetInteger("u_MainTexture", 0);
+
+		CompositeShader.SetInteger("u_BloomMips[0]", 1);
+		CompositeShader.SetInteger("u_BloomMips[1]", 2);
+		CompositeShader.SetInteger("u_BloomMips[2]", 3);
+		CompositeShader.SetInteger("u_BloomMips[3]", 4);
+		CompositeShader.SetInteger("u_BloomMips[4]", 5);
+		CompositeShader.SetInteger("u_BloomBrightTexture", 6);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, TAA.GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, BloomBufferA.m_Mips[0]);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, BloomBufferA.m_Mips[1]);
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, BloomBufferA.m_Mips[2]);
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, BloomBufferA.m_Mips[3]);
+
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, BloomBufferA.m_Mips[4]);
+
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, BrightTex);
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1209,7 +1249,7 @@ void Lumen::StartPipeline()
 		CASShader.SetBool("u_Enabled", DoCAS);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Tonemapped.GetTexture(0));
+		glBindTexture(GL_TEXTURE_2D, Composited.GetTexture(0));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

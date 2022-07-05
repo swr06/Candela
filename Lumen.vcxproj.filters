@@ -228,6 +228,12 @@
     <ClInclude Include="Core\Plane.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
+    <ClInclude Include="Core\BloomFBO.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\BloomRenderer.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -365,6 +371,12 @@
     <ClCompile Include="Core\Frustum.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
+    <ClCompile Include="Core\BloomFBO.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\BloomRenderer.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl">
@@ -373,7 +385,7 @@
     <None Include="Core\Shaders\BasicVert.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\Tonemap.glsl">
+    <None Include="Core\Shaders\Composite.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
     <None Include="Core\Shaders\FBOVert.glsl">
@@ -513,6 +525,12 @@
     </None>
     <None Include="Core\Shaders\Include\Physics.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\BloomBlurTwoPass.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\BloomMask.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

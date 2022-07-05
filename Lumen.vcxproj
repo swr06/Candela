@@ -151,6 +151,8 @@
     <ClInclude Include="Core\AABB.h" />
     <ClInclude Include="Core\Application\Application.h" />
     <ClInclude Include="Core\Application\Logger.h" />
+    <ClInclude Include="Core\BloomFBO.h" />
+    <ClInclude Include="Core\BloomRenderer.h" />
     <ClInclude Include="Core\BVH\BVHConstructor.h" />
     <ClInclude Include="Core\BVH\Intersector.h" />
     <ClInclude Include="Core\CollisionHandler.h" />
@@ -205,6 +207,8 @@
   <ItemGroup>
     <ClCompile Include="Core\Application\Application.cpp" />
     <ClCompile Include="Core\Application\Logger.cpp" />
+    <ClCompile Include="Core\BloomFBO.cpp" />
+    <ClCompile Include="Core\BloomRenderer.cpp" />
     <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
     <ClCompile Include="Core\BVH\Intersector.cpp" />
     <ClCompile Include="Core\CollisionHandler.cpp" />
@@ -255,6 +259,8 @@
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl" />
     <None Include="Core\Shaders\BasicVert.glsl" />
+    <None Include="Core\Shaders\BloomBlurTwoPass.glsl" />
+    <None Include="Core\Shaders\BloomMask.glsl" />
     <None Include="Core\Shaders\CAS.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
     <None Include="Core\Shaders\Collide.comp" />
@@ -270,7 +276,7 @@
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStack.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStackless.glsl" />
     <None Include="Core\Shaders\SpatialUpscale.glsl" />
-    <None Include="Core\Shaders\Tonemap.glsl" />
+    <None Include="Core\Shaders\Composite.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />
     <None Include="Core\Shaders\GeometryFrag.glsl" />
     <None Include="Core\Shaders\GeometryVert.glsl" />
