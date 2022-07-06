@@ -179,11 +179,13 @@ void main() {
 
 	bool DisocclusionSurface = true;
 
+	bool NormalDisocclusion = false;
+
 	// Diffuse 
 	if (IsInScreenspaceBiased(Reprojected)) 
 	{
 		vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
-		GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff, true);
+		GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff, false);
 
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;
@@ -201,7 +203,7 @@ void main() {
 		float NError = clamp(dot(ReprojectedNormals, Normals), 0.0f, 1.0f);
 		float NTolerance = MotionLength <= 0.00125f ? -0.01f : 0.8f;
 
-		if (DError < DTolerance && NError > NTolerance)
+		if (DError < DTolerance && (NError > NTolerance || (!NormalDisocclusion)))
 		{
 			DisocclusionSurface = false;
 
@@ -209,12 +211,14 @@ void main() {
 			BlendFactor = 1.0f - (1.0f / DiffuseFrames);
 
 			vec4 History = texture(u_DiffuseHistory, Reprojected.xy);
+
+			//History.xyz = clamp(History.xyz, MinDiff.xyz - 0.05f, MaxDiff.xyz + 0.05f);
 			o_Diffuse.xyz = mix(CurrentDiffuse.xyz, History.xyz, BlendFactor);
 
 			vec2 HistoryMoments = texture(u_MomentsHistory, Reprojected.xy).xy;
 			o_Moments = mix(DiffuseMoments, HistoryMoments, BlendFactor);
 
-			if (DError < DTolerance * 0.8f && NError > clamp(NTolerance * 1.2f,0.2f,1.0f)) {
+			if (DError < DTolerance * 0.8f && (NError > clamp(NTolerance * 1.2f,0.2f,1.0f) || (!NormalDisocclusion))) {
 				float MotionWeight = MotionLength > 0.001f ? clamp(exp(-length(MotionVector * vec2(Dimensions))) * 0.6f + 0.7f, 0.0f, 1.0f) : 1.0f;
 				//History.w = ClipToAABB(History.w, MinDiff.w - 0.001f, MaxDiff.w + 0.001f);
 				o_Diffuse.w = mix(CurrentDiffuse.w, History.w, min(0.9f * MotionWeight, 0.9f));

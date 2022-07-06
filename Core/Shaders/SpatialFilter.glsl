@@ -289,7 +289,7 @@ void main() {
 
 			// Diffuse Weights
 			float LumaWeight = pow(clamp(exp(-LumaError / (1.0f * PhiL + 0.0000001f)), 0.0f, 1.0f), 1.0f);
-			float AOWeightDetail = pow(clamp(exp(-AOError / 0.155f), 0.0f, 1.0f), 1.0f);
+			float AOWeightDetail = pow(clamp(exp(-AOError / 0.125f), 0.0f, 1.0f), 1.0f);
 
 			// Specular Weights 
 			float SpecLumaWeight = pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.));
