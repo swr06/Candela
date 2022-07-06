@@ -356,7 +356,7 @@ void Lumen::StartPipeline()
 	Entity MetalObjectEntity(&MetalObject);
 	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 1.25f, -2.0f));
 
-	std::vector<Entity*> EntityRenderList = { &MainModelEntity }; //, & DragonEntity, & MetalObjectEntity
+	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
 
 	// Textures
 	Skymap.CreateCubeTextureMap(

@@ -37,7 +37,9 @@ void main()
 {
 	const bool Whiteworld = false;
 
-	o_Albedo.xyz = Whiteworld ? vec3(1.0f) : (u_UsesAlbedoTexture ? texture(u_AlbedoMap, v_TexCoords).xyz : u_ModelColor);
+	const float LODBias = -1.0f;
+
+	o_Albedo.xyz = Whiteworld ? vec3(1.0f) : (u_UsesAlbedoTexture ? texture(u_AlbedoMap, v_TexCoords, LODBias).xyz : u_ModelColor);
 
 	//o_Albedo += o_Albedo * u_EmissiveColor * u_ModelEmission * 8.0f;
 
