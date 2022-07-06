@@ -8,6 +8,8 @@ static glm::mat4 ProjectionMatrices[5];
 static glm::mat4 ViewMatrices[5];
 static float ClipPlanes[5];
 
+static float ShadowDistanceMult = 1.0f;
+
 void Lumen::ShadowHandler::GenerateShadowMaps()
 {
 	for (int i = 0; i < 5; i++) {
@@ -15,12 +17,14 @@ void Lumen::ShadowHandler::GenerateShadowMaps()
 	}
 }
 
-void Lumen::ShadowHandler::UpdateShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities)
+void Lumen::ShadowHandler::UpdateShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities, float DistanceMultiplier)
 {
+	ShadowDistanceMult = DistanceMultiplier;
+		
 	int UpdateList[8] = { 0, 1, 2, 0, 1, 0, 3, (rand() % 4) >= 3 ? 1 : 4 };
 	int id = UpdateList[Frame % 8];
 
-	RenderShadowMap(Shadowmaps[id], Origin, Direction, Entities, CascadeDistances[id], ProjectionMatrices[id], ViewMatrices[id]);
+	RenderShadowMap(Shadowmaps[id], Origin, Direction, Entities, CascadeDistances[id] * DistanceMultiplier, ProjectionMatrices[id], ViewMatrices[id]);
 }
 
 glm::mat4 Lumen::ShadowHandler::GetShadowViewMatrix(int n)
@@ -42,7 +46,7 @@ void Lumen::ShadowHandler::CalculateClipPlanes(const glm::mat4& Projection)
 {
 	for (int i = 0; i < 5; i++) {
 
-		glm::vec4 ViewSpacePosition = glm::vec4(0.0f, 0.0f, CascadeDistances[i], 1.0f);
+		glm::vec4 ViewSpacePosition = glm::vec4(0.0f, 0.0f, CascadeDistances[i] * ShadowDistanceMult, 1.0f);
 		glm::vec4 Projected = Projection * ViewSpacePosition;
 
 		Projected /= Projected.w;
@@ -57,7 +61,7 @@ float Lumen::ShadowHandler::GetShadowCascadeDistance(int n)
 	if (n >= 5)
 		throw "Invalid shadow map requested";
 
-	return CascadeDistances[n];
+	return CascadeDistances[n] * ShadowDistanceMult;
 }
 
 //float Lumen::ShadowHandler::GetClipPlane(int n)

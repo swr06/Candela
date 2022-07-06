@@ -51,6 +51,8 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 static bool DoFrustumCulling = false;
 static bool DoFaceCulling = true;
 
+static float ShadowDistanceMultiplier = 1.0f;
+
 static bool DoSecondBounce = true;
 static bool DoInfiniteBounceGI = true;
 static bool UpdateIrradianceVolume = true;
@@ -122,7 +124,9 @@ public:
 		ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
 		ImGui::Checkbox("Face Culling?", &DoFaceCulling);
 		ImGui::NewLine();
-		ImGui::Checkbox("Checkerboard? (effectively computes lighting for half the pixels)", &DoCheckering);
+		ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 4.0f);
+		ImGui::NewLine();
+		ImGui::Checkbox("Checkerboard Lighting? (effectively computes lighting for half the pixels)", &DoCheckering);
 		ImGui::NewLine();
 		ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
 		ImGui::NewLine();
@@ -352,7 +356,7 @@ void Lumen::StartPipeline()
 	Entity MetalObjectEntity(&MetalObject);
 	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 1.25f, -2.0f));
 
-	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
+	std::vector<Entity*> EntityRenderList = { &MainModelEntity }; //, & DragonEntity, & MetalObjectEntity
 
 	// Textures
 	Skymap.CreateCubeTextureMap(
@@ -535,7 +539,7 @@ void Lumen::StartPipeline()
 		CommonUniforms UniformBuffer = { View, Projection, InverseView, InverseProjection, PreviousProjection, PreviousView, glm::inverse(PreviousProjection), glm::inverse(PreviousView), (int)app.GetCurrentFrame(), SunDirection};
 
 		// Render shadow maps
-		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList);
+		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier);
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 
 		// Update probes
