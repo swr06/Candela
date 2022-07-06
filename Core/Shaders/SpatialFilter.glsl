@@ -261,7 +261,7 @@ void main() {
 
 			float DepthError = abs(SampleDepth - CenterDepth);
 
-			float Threshold = clamp((Derivative * 6.5), 0.0015f, 0.015f);
+			float Threshold = clamp((Derivative * 6.5), 0.00175f, 0.0175f);
 
 			if (DepthError > Threshold) {
 				continue;

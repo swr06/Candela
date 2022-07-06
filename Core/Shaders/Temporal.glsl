@@ -135,7 +135,7 @@ void main() {
 	// GBuffer
 	vec3 Incident = GetIncident(v_TexCoords);
 	float Depth = texelFetch(u_Depth, HighResPixel, 0).x;
-	vec3 Normals = texelFetch(u_Normals, HighResPixel, 0).xyz;
+	vec3 Normals = normalize(texelFetch(u_Normals, HighResPixel, 0).xyz);
 	vec3 PBR = texelFetch(u_PBR, HighResPixel, 0).xyz;
 
 	float LinearDepth = LinearizeDepth(Depth);
@@ -187,17 +187,21 @@ void main() {
 
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;
+		vec3 ReprojectedNormals = normalize(texture(u_PreviousNormals, Reprojected.xy).xyz);
 
 		vec3 ReprojectedPosition = PrevWorldPosFromDepth(ReprojectedDepth, Reprojected.xy);
 		
 		float DistanceRelaxFactor = abs(length(DepthGradient)) * 50.0f;
-		float Error = distance(ReprojectedPosition, WorldPosition); // exp(-distance(ReprojectedPosition, WorldPosition) / DistanceRelaxFactor);
 
 		float BlendFactor = 0.0f;
 
-		float Tolerance = MotionLength <= 0.0000001f ? 32.0f : (MotionLength > 0.001f ? 1.0f : 3.0f);
+		float DError = distance(ReprojectedPosition, WorldPosition); // exp(-distance(ReprojectedPosition, WorldPosition) / DistanceRelaxFactor);
+		float DTolerance = MotionLength <= 0.000125f ? 32.0f : (MotionLength > 0.001f ? 1.0f : 2.7f);
 
-		if (Error < Tolerance)
+		float NError = clamp(dot(ReprojectedNormals, Normals), 0.0f, 1.0f);
+		float NTolerance = MotionLength <= 0.00125f ? -0.01f : 0.8f;
+
+		if (DError < DTolerance && NError > NTolerance)
 		{
 			DisocclusionSurface = false;
 
@@ -210,7 +214,7 @@ void main() {
 			vec2 HistoryMoments = texture(u_MomentsHistory, Reprojected.xy).xy;
 			o_Moments = mix(DiffuseMoments, HistoryMoments, BlendFactor);
 
-			if (Error < Tolerance * 0.8f) {
+			if (DError < DTolerance * 0.8f && NError > clamp(NTolerance * 1.2f,0.2f,1.0f)) {
 				float MotionWeight = MotionLength > 0.001f ? clamp(exp(-length(MotionVector * vec2(Dimensions))) * 0.6f + 0.7f, 0.0f, 1.0f) : 1.0f;
 				//History.w = ClipToAABB(History.w, MinDiff.w - 0.001f, MaxDiff.w + 0.001f);
 				o_Diffuse.w = mix(CurrentDiffuse.w, History.w, min(0.9f * MotionWeight, 0.9f));
