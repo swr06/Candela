@@ -15,9 +15,8 @@
 - Volumetrics
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
+- Bloom (Mip Based)
 
 # Todo
-- ReStir GI/DI
-- LTC
 - Compute based particle system (kD tree)
 - Physically based sky
