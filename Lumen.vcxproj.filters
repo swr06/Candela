@@ -67,9 +67,6 @@
     <Filter Include="Source Files\Dependencies\crc">
       <UniqueIdentifier>{3c938029-aa3a-4236-ad38-f037560a380a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Dependencies\imguizmo">
-      <UniqueIdentifier>{8bff2b28-f66e-4420-bb6f-a12e2d46fb28}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -237,9 +234,6 @@
     <ClInclude Include="Core\BloomRenderer.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
-    <ClInclude Include="Dependencies\imguizmo\ImGuizmo.h">
-      <Filter>Source Files\Dependencies\imguizmo</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -382,9 +376,6 @@
     </ClCompile>
     <ClCompile Include="Core\BloomRenderer.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Dependencies\imguizmo\ImGuizmo.cpp">
-      <Filter>Source Files\Dependencies\imguizmo</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
