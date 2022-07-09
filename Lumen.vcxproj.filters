@@ -67,6 +67,9 @@
     <Filter Include="Source Files\Dependencies\crc">
       <UniqueIdentifier>{3c938029-aa3a-4236-ad38-f037560a380a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Dependencies\imguizmo">
+      <UniqueIdentifier>{3250f051-d038-4bcb-8b9c-0463d0d43469}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -234,6 +237,24 @@
     <ClInclude Include="Core\BloomRenderer.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
+    <ClInclude Include="Dependencies\imguizmo\GraphEditor.h">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imguizmo\ImCurveEdit.h">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imguizmo\ImGradient.h">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imguizmo\ImGuizmo.h">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imguizmo\ImSequencer.h">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\imguizmo\ImZoomSlider.h">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -376,6 +397,21 @@
     </ClCompile>
     <ClCompile Include="Core\BloomRenderer.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imguizmo\GraphEditor.cpp">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imguizmo\ImCurveEdit.cpp">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imguizmo\ImGradient.cpp">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imguizmo\ImGuizmo.cpp">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imguizmo\ImSequencer.cpp">
+      <Filter>Source Files\Dependencies\imguizmo</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
