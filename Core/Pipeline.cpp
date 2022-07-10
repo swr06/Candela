@@ -35,6 +35,8 @@
 
 #include "Physics.h"
 
+#include "../Dependencies/imguizmo/ImGuizmo.h"
+
 // Externs.
 int __TotalMeshesRendered = 0;
 int __MainViewMeshesRendered = 0;
@@ -87,6 +89,15 @@ float CurrentTime = glfwGetTime();
 float Frametime = 0.0f;
 float DeltaTime = 0.0f;
 
+glm::mat4 Matrix = glm::mat4(1.0f);
+
+void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, const glm::vec3& GridBasis, float size) 
+{
+	glm::mat4 CurrentMatrix = glm::mat4(1.0f);
+	CurrentMatrix *= glm::rotate(CameraMatrix, glm::radians(90.0f), GridBasis);
+	ImGuizmo::DrawGrid(glm::value_ptr(CameraMatrix), glm::value_ptr(ProjectionMatrix), value_ptr(glm::mat4(1.0f)), size);
+}
+
 class RayTracerApp : public Lumen::Application
 {
 public:
@@ -114,6 +125,30 @@ public:
 
 	void OnImguiRender(double ts) override
 	{
+		ImGuiIO& io = ImGui::GetIO();
+		ImGuizmo::BeginFrame();
+
+		{
+			ImGuizmo::SetOrthographic(false);
+			ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
+			DrawGrid(Camera.GetViewMatrix(), Camera.GetProjectionMatrix(), glm::vec3(0.0f, 1.0f, 0.0f), 50.0f);
+
+			ImGuizmo::Manipulate(
+				glm::value_ptr(Camera.GetViewMatrix()),
+				glm::value_ptr(Camera.GetProjectionMatrix()),
+				ImGuizmo::OPERATION::TRANSLATE, (ImGuizmo::MODE)true, glm::value_ptr(Matrix));
+
+			bool Hovered = ImGuizmo::IsOver();
+
+			if (ImGuizmo::IsUsing()) {
+
+				glm::vec3 position, scale, rotation;
+				ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(Matrix), glm::value_ptr(position), glm::value_ptr(rotation), glm::value_ptr(scale));
+
+				Matrix = glm::translate(glm::mat4(1.0f), position);
+			}
+		}
+
 		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
 		ImGui::NewLine();
@@ -168,7 +203,6 @@ public:
 		ImGui::NewLine();
 		ImGui::Checkbox("TAA?", &DoTAA);
 		ImGui::Checkbox("CAS?", &DoCAS);
-
 
 		__TotalMeshesRendered = 0;
 		__MainViewMeshesRendered = 0;
@@ -432,7 +466,6 @@ void Lumen::StartPipeline()
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
 
-
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
 		// Prepare 
@@ -530,7 +563,7 @@ void Lumen::StartPipeline()
 				std::cout << "\nPlayer Collision Test Result : " << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
 		}
 
-		if (true) {
+		if (false) {
 			std::cout << Physics::CollideBox(Camera.GetPosition() - 0.5f, Camera.GetPosition() + 0.5f, Intersector) << "\n";
 		}
 

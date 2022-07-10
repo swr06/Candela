@@ -262,11 +262,11 @@ namespace Lumen
 		glfwPollEvents();
 		PollEvents();
 
+		OnUserUpdate(this->GetTime());
+
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-
-		OnUserUpdate(this->GetTime());
 		OnImguiRender(this->GetTime());
 
 		VoxelRT_mouse_enabled = !GetCursorLocked();
