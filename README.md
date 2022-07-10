@@ -16,6 +16,7 @@
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
 - Bloom (Mip Based)
+- Basic Editor Features 
 
 # Todo
 - Compute based particle system (kD tree)
