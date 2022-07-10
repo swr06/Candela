@@ -35,6 +35,8 @@
 
 #include "Physics.h"
 
+#include "PhysicsIntegrator.h"
+
 #include "../Dependencies/imguizmo/ImGuizmo.h"
 
 // Externs.
@@ -509,6 +511,10 @@ void Lumen::StartPipeline()
 
 	Entity MetalObjectEntity(&MetalObject);
 	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 1.25f, -2.0f));
+	MetalObjectEntity.m_IsPhysicsObject = true;
+	MetalObjectEntity.m_PhysicsObject.Position = glm::vec3(-1.0f, 1.25f, -2.0f);
+	MetalObjectEntity.m_PhysicsObject.PreviousPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
+
 
 	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
 
@@ -682,6 +688,14 @@ void Lumen::StartPipeline()
 		if (false) {
 			std::cout << Physics::CollideBox(Camera.GetPosition() - 0.5f, Camera.GetPosition() + 0.5f, Intersector) << "\n";
 		}
+
+		// Physics Simulation
+		Physics::Integrate(EntityRenderList, DeltaTime);
+		MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectEntity.m_PhysicsObject.Position);
+
+		//std::cout << "\n" << MetalObjectEntity.m_PhysicsObject.Position.x << "  " << MetalObjectEntity.m_PhysicsObject.Position.y << "  " << MetalObjectEntity.m_PhysicsObject.Position.z;
+
+
 
 		app.OnUpdate();
 

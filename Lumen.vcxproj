@@ -159,6 +159,7 @@
     <ClInclude Include="Core\Frustum.h" />
     <ClInclude Include="Core\Physics.h" />
     <ClInclude Include="Core\PhysicsIntegrator.h" />
+    <ClInclude Include="Core\PhysicsObject.h" />
     <ClInclude Include="Core\Plane.h" />
     <ClInclude Include="Core\Player.h" />
     <ClInclude Include="Core\ProbeGI.h" />

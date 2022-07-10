@@ -264,6 +264,9 @@
     <ClInclude Include="Core\PhysicsIntegrator.h">
       <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
     </ClInclude>
+    <ClInclude Include="Core\PhysicsObject.h">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
