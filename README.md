@@ -19,5 +19,7 @@
 - Basic Editor Features 
 
 # Todo
-- Compute based particle system (kD tree)
+- Realtime Physics Simulation (Rigid Bodies)
+- Particles?
 - Physically based sky
+- Volumetric Clouds
