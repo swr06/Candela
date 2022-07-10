@@ -107,7 +107,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 	int ClosestCascade = -1;
 	float Shadow = 0.0;
 	float VogelScales[5] = float[5](0.003f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
-	float Biases[5] = float[5](0.01f, 0.02f, 0.03f, 0.04f, 0.05f);
+	float Biases[5] = float[5](0.02f, 0.03f, 0.04f, 0.05f, 0.06f);
 	
 	vec2 Hash = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
 

@@ -7,7 +7,7 @@ static uint64_t PolygonsRendered = 0;
 extern int __TotalMeshesRendered;
 extern int __MainViewMeshesRendered;
 
-void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull)
+void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull, int entity_num)
 {
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
 
@@ -72,6 +72,7 @@ void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& fru
 		shader.SetFloat("u_ModelEmission", entity.m_EmissiveAmount);
 		shader.SetFloat("u_EntityRoughness", entity.m_EntityRoughness);
 		shader.SetFloat("u_EntityMetalness", entity.m_EntityMetalness);
+		shader.SetInteger("u_EntityNumber", entity_num);
 
 		if (mesh->TexturePaths[5].size() > 0 && mesh->m_MetalnessRoughnessMap.GetID() > 0) {
 

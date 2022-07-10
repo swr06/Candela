@@ -130,7 +130,7 @@ static float Align(float value, float size)
 	return std::floor(value / size) * size;
 }
 
-void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap)
+void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
 {
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 	GLClasses::ComputeShader& CopyVolume = ShaderManager::GetComputeShader("COPY_VOLUME");
@@ -166,6 +166,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 
 	ProbeUpdate.SetInteger("u_PreviousSHA", 5);
 	ProbeUpdate.SetInteger("u_PreviousSHB", 6);
+	ProbeUpdate.SetBool("u_Temporal", Temporal);
 
 	for (int i = 0; i < 5; i++) {
 
@@ -230,7 +231,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 	glUseProgram(0);
 }
 
-void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap)
+void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
 {
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 	GLClasses::ComputeShader& CopyVolume = ShaderManager::GetComputeShader("COPY_VOLUME");
@@ -266,6 +267,8 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalN
 
 	ProbeUpdate.SetInteger("u_PreviousSHA", 5);
 	ProbeUpdate.SetInteger("u_PreviousSHB", 6);
+
+	ProbeUpdate.SetBool("u_Temporal", Temporal);
 
 	for (int i = 0; i < 5; i++) {
 

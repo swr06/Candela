@@ -289,6 +289,16 @@ namespace Lumen
 				FrustumBox b;
 				b.CreateBoxMinMax(AABBMin, AABBMax);
 				mesh.Box = b;
+				mesh.Min = AABBMin;
+				mesh.Max = AABBMax;
+			}
+
+			object->Min = glm::vec3(100000.0f);
+			object->Max = glm::vec3(-100000.0f);
+
+			for (auto& mesh : object->m_Meshes) {
+				object->Min = glm::min(object->Min, mesh.Min);
+				object->Max = glm::max(object->Max, mesh.Max);
 			}
 
 			object->Buffer();

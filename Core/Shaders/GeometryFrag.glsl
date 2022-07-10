@@ -4,6 +4,7 @@ layout (location = 0) out vec4 o_Albedo;
 layout (location = 1) out vec4 o_HFNormal;
 layout (location = 2) out vec4 o_PBR;
 layout (location = 3) out vec4 o_LFNormal;
+layout (location = 4) out int o_EntityNumber;
 
 uniform sampler2D u_AlbedoMap;
 uniform sampler2D u_NormalMap;
@@ -26,6 +27,8 @@ uniform float u_EntityMetalness;
 uniform float u_EmissivityAmount;
 
 uniform vec3 u_ViewerPosition;
+
+uniform int u_EntityNumber;
 
 in vec2 v_TexCoords;
 in vec3 v_FragPosition;
@@ -70,4 +73,6 @@ void main()
 	o_PBR.w = u_ModelEmission;
 
 	o_LFNormal.w = u_EmissivityAmount;
+
+	o_EntityNumber = u_EntityNumber + 2;
 }

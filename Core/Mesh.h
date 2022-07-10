@@ -16,6 +16,8 @@
 
 namespace Lumen
 {
+	class Object;
+
 	class Mesh;
 
 	class Mesh
@@ -23,7 +25,6 @@ namespace Lumen
 	public:
 		Mesh(const uint32_t number);
 
-		void CalculateAABB();
 		void Buffer();
 
 		std::vector<Vertex> m_Vertices;
@@ -56,10 +57,14 @@ namespace Lumen
 		const uint32_t m_MeshNumber;
 		int GlobalMeshNumber = 0;
 
+		glm::vec3 Min = glm::vec3(10000.0f);
+		glm::vec3 Max = glm::vec3(-10000.0f);
 
 		bool Deleted = false;
 
 		FrustumBox Box;
+
+		friend class Object;
 	};
 
 }

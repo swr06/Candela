@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_INCLUDE_LINE_NONE; _DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\assimp\include;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\glad\include;$(SolutionDir)Dependencies\imgui;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\assimp\include;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\glad\include;$(SolutionDir)Dependencies\imgui;$(SolutionDir)Dependencies</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -199,6 +199,7 @@
     <ClInclude Include="Dependencies\crc\CRC.h" />
     <ClInclude Include="Dependencies\imguizmo\GraphEditor.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Dependencies\imguizmo\ImCurveEdit.h" />
     <ClInclude Include="Dependencies\imguizmo\ImGradient.h" />
@@ -221,6 +222,7 @@
     <ClCompile Include="Core\BloomRenderer.cpp" />
     <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
     <ClCompile Include="Core\BVH\Intersector.cpp" />
+    <ClCompile Include="Core\Entity.cpp" />
     <ClCompile Include="Core\Frustum.cpp" />
     <ClCompile Include="Core\Physics.cpp" />
     <ClCompile Include="Core\PhysicsIntegrator.cpp" />
@@ -258,6 +260,7 @@
     <ClCompile Include="Dependencies\glad\src\glad.c" />
     <ClCompile Include="Dependencies\imguizmo\GraphEditor.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Dependencies\imguizmo\ImCurveEdit.cpp" />
     <ClCompile Include="Dependencies\imguizmo\ImGradient.cpp" />

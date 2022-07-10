@@ -31,6 +31,8 @@ uniform float u_Time;
 
 uniform vec3 u_PreviousOrigin;
 
+uniform bool u_Temporal;
+
 uniform usampler3D u_PreviousSHA;
 uniform usampler3D u_PreviousSHB;
 
@@ -405,19 +407,19 @@ void main() {
 
 		AccumulatedFrames = int(B.w) + 1;
 
-		float TemporalBlend = min((1.0f - (1.0f / float(AccumulatedFrames))), 0.985f);
+		float TemporalAlpha = u_Temporal ? min((1.0f - (1.0f / float(AccumulatedFrames))), 0.98f) : 0.0f;
 
 		ProbeMapPixel PrevProbeData = MapData[PixelOffset];
-		vec2 WriteMoments = mix(vec2(Depth, DepthSqr), PrevProbeData.Packed.xy, 0.98f);
+		vec2 WriteMoments = mix(vec2(Depth, DepthSqr), PrevProbeData.Packed.xy, TemporalAlpha);
 		MapData[PixelOffset] = ProbeMapPixel(WriteMoments);
 
 		PreviousSH = UnpackSH(A,B);
 
-		FinalSH.L00 = mix(FinalSH.L00, PreviousSH.L00, TemporalBlend);
-		FinalSH.L11 = mix(FinalSH.L11, PreviousSH.L11, TemporalBlend);
-		FinalSH.L10 = mix(FinalSH.L10, PreviousSH.L10, TemporalBlend);
-		FinalSH.L1_1 = mix(FinalSH.L1_1, PreviousSH.L1_1, TemporalBlend);
-		FinalRadiance = mix(FinalRadiance, imageLoad(u_PrevRaw,ivec3(Reprojected.xyz)).xyz, TemporalBlend);
+		FinalSH.L00 = mix(FinalSH.L00, PreviousSH.L00, TemporalAlpha);
+		FinalSH.L11 = mix(FinalSH.L11, PreviousSH.L11, TemporalAlpha);
+		FinalSH.L10 = mix(FinalSH.L10, PreviousSH.L10, TemporalAlpha);
+		FinalSH.L1_1 = mix(FinalSH.L1_1, PreviousSH.L1_1, TemporalAlpha);
+		FinalRadiance = mix(FinalRadiance, imageLoad(u_PrevRaw,ivec3(Reprojected.xyz)).xyz, TemporalAlpha);
 	}
 
 	else {

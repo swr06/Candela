@@ -10,11 +10,20 @@ namespace Lumen
 	class Entity
 	{
 	public : 
-		Entity(Object* object) : m_Object(object)
-		{
-			m_Model = glm::mat4(1.0f);
-			m_EmissiveAmount = 0.0f;
-		}
+		Entity(Object* object);
+
+		~Entity();
+
+		//Entity(const Entity&) = delete;
+		//Entity operator=(Entity const&) = delete;
+		//
+		//Entity(Entity&& v) : m_Object(v.m_Object)
+		//{
+		//	m_EmissiveAmount = v.m_EmissiveAmount;
+		//	m_EntityRoughness = v.m_EntityRoughness;
+		//	m_EntityMetalness = v.m_EntityMetalness;
+		//	m_Model = v.m_Model;
+		//}
 
 		Object* const m_Object;
 		glm::mat4 m_Model;

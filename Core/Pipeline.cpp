@@ -59,7 +59,9 @@ static float ShadowDistanceMultiplier = 1.0f;
 
 static bool DoSecondBounce = true;
 static bool DoInfiniteBounceGI = true;
+
 static bool UpdateIrradianceVolume = true;
+static bool FilterIrradianceVolume = true;
 
 static bool DoFullRTSpecular = false;
 
@@ -89,13 +91,32 @@ float CurrentTime = glfwGetTime();
 float Frametime = 0.0f;
 float DeltaTime = 0.0f;
 
-glm::mat4 Matrix = glm::mat4(1.0f);
+// Edit mode 
+static bool EditMode = false;
+static bool ShouldDrawGrid = true;
+static int EditOperation = 0;
 
+static Lumen::Entity* SelectedEntity = nullptr;
+static ImGuizmo::MODE Mode = ImGuizmo::MODE::LOCAL;
+static bool UseSnap = true;
+static glm::vec3 SnapSize = glm::vec3(0.5f);
+
+
+// Render list 
+std::vector<Lumen::Entity*> EntityRenderList;
+
+// GBuffer
+GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
+
+
+// Draws editor grid 
 void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, const glm::vec3& GridBasis, float size) 
 {
 	glm::mat4 CurrentMatrix = glm::mat4(1.0f);
-	CurrentMatrix *= glm::rotate(CameraMatrix, glm::radians(90.0f), GridBasis);
-	ImGuizmo::DrawGrid(glm::value_ptr(CameraMatrix), glm::value_ptr(ProjectionMatrix), value_ptr(glm::mat4(1.0f)), size);
+	//CurrentMatrix *= glm::translate(CurrentMatrix, glm::vec3(0.0f, -1.0f, 0.0f));
+	//CurrentMatrix *= glm::rotate(CameraMatrix, glm::radians(90.0f), GridBasis);
+	//CurrentMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(Camera.GetPosition().x, Camera.GetPosition().y - 20.0f, Camera.GetPosition().z));
+	ImGuizmo::DrawGrid(glm::value_ptr(CameraMatrix), glm::value_ptr(ProjectionMatrix), value_ptr(CurrentMatrix), size);
 }
 
 class RayTracerApp : public Lumen::Application
@@ -126,83 +147,129 @@ public:
 	void OnImguiRender(double ts) override
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		ImGuizmo::BeginFrame();
 
-		{
+		if (EditMode) {
+
+			if (ImGui::Begin("Editor")) {
+
+				std::string OperationLabels[4] = { "Translation", "Rotation", "Scaling", "Universal (T/R/S)" };
+				
+				static bool space = 1;
+				ImGui::Checkbox("Work in Local Space?", &space);
+				ImGui::Checkbox("Draw Grid?", &ShouldDrawGrid);
+				ImGui::Checkbox("Use Snap?", &UseSnap);
+				if (UseSnap) {
+					ImGui::SliderFloat3("Snap Size", &SnapSize[0], 0.01f, 4.0f);
+				}
+				ImGui::NewLine();
+				ImGui::Text("Current Operation : %s", OperationLabels[EditOperation].c_str());
+
+				Mode = space ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD;
+			} ImGui::End();
+
+			// Draw editor
+
+			ImGuizmo::BeginFrame();
+
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
-			DrawGrid(Camera.GetViewMatrix(), Camera.GetProjectionMatrix(), glm::vec3(0.0f, 1.0f, 0.0f), 50.0f);
+			
+			if (ShouldDrawGrid) {
+				DrawGrid(Camera.GetViewMatrix(), Camera.GetProjectionMatrix(), glm::vec3(0.0f, 1.0f, 0.0f), 75.0f);
+			}
 
-			ImGuizmo::Manipulate(
-				glm::value_ptr(Camera.GetViewMatrix()),
-				glm::value_ptr(Camera.GetProjectionMatrix()),
-				ImGuizmo::OPERATION::TRANSLATE, (ImGuizmo::MODE)true, glm::value_ptr(Matrix));
+			if (SelectedEntity) {
 
-			bool Hovered = ImGuizmo::IsOver();
+				const ImGuizmo::OPERATION Ops[4] = {ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::OPERATION::ROTATE, ImGuizmo::OPERATION::SCALE, ImGuizmo::OPERATION::UNIVERSAL};
 
-			if (ImGuizmo::IsUsing()) {
+				glm::mat4 ModelMatrix = glm::mat4(1.0f);
 
-				glm::vec3 position, scale, rotation;
-				ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(Matrix), glm::value_ptr(position), glm::value_ptr(rotation), glm::value_ptr(scale));
+				glm::vec3 Offset;
 
-				Matrix = glm::translate(glm::mat4(1.0f), position);
+				{
+					glm::vec3 tMin = SelectedEntity->m_Object->Min;
+					glm::vec3 tMax = SelectedEntity->m_Object->Max;
+
+					tMin = glm::vec3(ModelMatrix * glm::vec4(tMin, 1.0f));
+					tMax = glm::vec3(ModelMatrix * glm::vec4(tMax, 1.0f));
+
+					Offset = (tMin + tMax) * 0.5f;
+				}
+
+				ModelMatrix = glm::translate(SelectedEntity->m_Model, Offset);
+
+				ImGuizmo::Manipulate(glm::value_ptr(Camera.GetViewMatrix()), glm::value_ptr(Camera.GetProjectionMatrix()),
+									 Ops[glm::clamp(EditOperation, 0, 3)], Mode, glm::value_ptr(ModelMatrix), nullptr , UseSnap ? glm::value_ptr(SnapSize) : nullptr);
+
+				SelectedEntity->m_Model = glm::translate(ModelMatrix, -Offset);
+
+				bool Hovered = ImGuizmo::IsOver();
+				bool Using = ImGuizmo::IsUsing();
+
+				if (Hovered || Using) {
+					glm::vec3 P, S, R;
+					ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(SelectedEntity->m_Model), glm::value_ptr(P), glm::value_ptr(R), glm::value_ptr(S));
+				}
 			}
 		}
 
-		ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
-		ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
-		ImGui::NewLine();
-		ImGui::Text("Number of Meshes Rendered (For the main view) : %d", __MainViewMeshesRendered);
-		ImGui::Text("Total Number of Meshes Rendered : %d", __TotalMeshesRendered);
-		ImGui::NewLine();
-		ImGui::NewLine();
-		ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
-		ImGui::NewLine();
-		ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
-		ImGui::Checkbox("Face Culling?", &DoFaceCulling);
-		ImGui::NewLine();
-		ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 4.0f);
-		ImGui::NewLine();
-		ImGui::Checkbox("Checkerboard Lighting? (effectively computes lighting for half the pixels)", &DoCheckering);
-		ImGui::NewLine();
-		ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
-		ImGui::NewLine();
-		ImGui::Checkbox("Do Diffuse Second Bounce?", &DoSecondBounce);
+		if (ImGui::Begin("Debug")) {
+			ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
+			ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
+			ImGui::NewLine();
+			ImGui::Text("Number of Meshes Rendered (For the main view) : %d", __MainViewMeshesRendered);
+			ImGui::Text("Total Number of Meshes Rendered : %d", __TotalMeshesRendered);
+			ImGui::NewLine();
+			ImGui::NewLine();
+			ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
+			ImGui::NewLine();
+			ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
+			ImGui::Checkbox("Face Culling?", &DoFaceCulling);
+			ImGui::NewLine();
+			ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 4.0f);
+			ImGui::NewLine();
+			ImGui::Checkbox("Checkerboard Lighting? (effectively computes lighting for half the pixels)", &DoCheckering);
+			ImGui::NewLine();
+			ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
+			ImGui::Checkbox("Temporally Filter Irradiance Volume?", &FilterIrradianceVolume);
+			ImGui::NewLine();
+			ImGui::Checkbox("Do Diffuse Second Bounce?", &DoSecondBounce);
 
-		if (DoSecondBounce)
-			ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
+			if (DoSecondBounce)
+				ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
 
-		ImGui::NewLine();
-		ImGui::Checkbox("Full Worldspace RT Specular GI?", &DoFullRTSpecular);
-		ImGui::NewLine();
-		ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
-		ImGui::NewLine();
-		ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
-		ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
-		ImGui::NewLine();
-		ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
-		ImGui::NewLine();
+			ImGui::NewLine();
+			ImGui::Checkbox("Full Worldspace RT Specular GI?", &DoFullRTSpecular);
+			ImGui::NewLine();
+			ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
+			ImGui::NewLine();
+			ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
+			ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
+			ImGui::NewLine();
+			ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
+			ImGui::NewLine();
 
-		ImGui::Checkbox("Volumetrics?", &DoVolumetrics);
-		
-		if (DoVolumetrics) {
-			ImGui::SliderFloat("Volumetrics Strength", &VolumetricsGlobalStrength, 0.1f, 6.0f);
-			ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.01f, 8.0f);
-			ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.01f, 8.0f);
-			ImGui::SliderInt("Volumetrics Steps", &VolumetricsSteps, 4, 128);
+			ImGui::Checkbox("Volumetrics?", &DoVolumetrics);
 
-			if (DoTemporal) {
-				ImGui::Checkbox("Temporally Filter Volumetrics? (Cleaner, more temporal lag)", &VolumetricsTemporal);
+			if (DoVolumetrics) {
+				ImGui::SliderFloat("Volumetrics Strength", &VolumetricsGlobalStrength, 0.1f, 6.0f);
+				ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.01f, 8.0f);
+				ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.01f, 8.0f);
+				ImGui::SliderInt("Volumetrics Steps", &VolumetricsSteps, 4, 128);
+
+				if (DoTemporal) {
+					ImGui::Checkbox("Temporally Filter Volumetrics? (Cleaner, more temporal lag)", &VolumetricsTemporal);
+				}
+
+				if (DoSpatial) {
+					ImGui::Checkbox("Spatially Filter Volumetrics?", &VolumetricsSpatial);
+				}
 			}
 
-			if (DoSpatial) {
-				ImGui::Checkbox("Spatially Filter Volumetrics?", &VolumetricsSpatial);
-			}
-		}
-
-		ImGui::NewLine();
-		ImGui::Checkbox("TAA?", &DoTAA);
-		ImGui::Checkbox("CAS?", &DoCAS);
+			ImGui::NewLine();
+			ImGui::Checkbox("TAA?", &DoTAA);
+			ImGui::Checkbox("CAS?", &DoCAS);
+		} ImGui::End();
 
 		__TotalMeshesRendered = 0;
 		__MainViewMeshesRendered = 0;
@@ -210,10 +277,35 @@ public:
 
 	void OnEvent(Lumen::Event e) override
 	{
+		ImGuiIO& io = ImGui::GetIO();
+		
+		if (e.type == Lumen::EventTypes::MousePress && EditMode && !ImGui::GetIO().WantCaptureMouse)
+		{
+			if (!this->GetCursorLocked()) {
+
+				if (!ImGuizmo::IsUsing() && !ImGuizmo::IsOver()) {
+					double mxx, myy;
+					glfwGetCursorPos(this->m_Window, &mxx, &myy);
+					myy = (double)this->GetHeight() - myy;
+
+					short data = 0;
+					glBindFramebuffer(GL_FRAMEBUFFER, GBuffers[0].GetFramebuffer());
+					glReadBuffer(GL_COLOR_ATTACHMENT0 + 4);
+					glReadPixels((int)mxx, (int)myy, 1, 1, GL_RED_INTEGER, GL_SHORT, &data);
+
+					if (data >= 2) {
+						data -= 2;
+						SelectedEntity = EntityRenderList[data];
+					}
+				}
+			}
+		}
+
 		if (e.type == Lumen::EventTypes::MouseMove && GetCursorLocked())
 		{
 			Camera.UpdateOnMouseMovement(e.mx, e.my);
 		}
+
 
 		if (e.type == Lumen::EventTypes::MouseScroll)
 		{
@@ -247,6 +339,27 @@ public:
 			Lumen::ShaderManager::ForceRecompileShaders();
 			Intersector.Recompile();
 		}
+		
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F5 && this->GetCurrentFrame() > 5)
+		{
+			EditMode = !EditMode;
+		}
+
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F6 && this->GetCurrentFrame() > 5) {
+			EditOperation = 0;
+		}
+
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F7 && this->GetCurrentFrame() > 5) {
+			EditOperation = 1;
+		}
+
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F8 && this->GetCurrentFrame() > 5) {
+			EditOperation = 2;
+		}
+
+		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F9 && this->GetCurrentFrame() > 5) {
+			EditOperation = 3;
+		}
 
 		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
 		{
@@ -260,8 +373,12 @@ public:
 
 
 void RenderEntityList(const std::vector<Lumen::Entity*> EntityList, GLClasses::Shader& shader) {
+
+	int En = 0;
+		
 	for (auto& e : EntityList) {
-		Lumen::RenderEntity(*e, shader, Player.CameraFrustum, DoFrustumCulling);
+		Lumen::RenderEntity(*e, shader, Player.CameraFrustum, DoFrustumCulling, En);
+		En++;
 	}
 }
 
@@ -295,7 +412,6 @@ void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 }
 
 // Deferred
-GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true) };
 GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
 
 // Post 
@@ -388,11 +504,13 @@ void Lumen::StartPipeline()
 
 	Entity DragonEntity(&Dragon);
 	DragonEntity.m_EmissiveAmount = 15.0f;
+	DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
+	DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
 
 	Entity MetalObjectEntity(&MetalObject);
 	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 1.25f, -2.0f));
 
-	std::vector<Entity*> EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
+	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
 
 	// Textures
 	Skymap.CreateCubeTextureMap(
@@ -471,8 +589,6 @@ void Lumen::StartPipeline()
 		// Prepare 
 		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
-		DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
-		DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
 
 		// Prepare Intersector
 		Intersector.PushEntities(EntityRenderList);
@@ -583,7 +699,7 @@ void Lumen::StartPipeline()
 
 		// Update probes
 		if (UpdateIrradianceVolume) {
-			ProbeGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID());
+			ProbeGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID(), FilterIrradianceVolume);
 		}
 
 		// Render GBuffer

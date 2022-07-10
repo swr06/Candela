@@ -62,6 +62,8 @@ namespace Lumen
 		std::vector<Mesh> m_Meshes;
 		friend void FileLoader::ProcessAssimpMesh(aiMesh* mesh, const aiScene* scene, Object* object, const std::string& pth, const glm::vec4& col, const glm::vec3& reflectivity);
 	
+		glm::vec3 Min;
+		glm::vec3 Max;
 
 		std::string Path;
 	};

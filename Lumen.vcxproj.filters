@@ -425,6 +425,9 @@
     <ClCompile Include="Core\PhysicsIntegrator.cpp">
       <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Entity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl">

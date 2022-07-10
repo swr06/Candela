@@ -14,7 +14,7 @@
 
 namespace Lumen {
 
-	void RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull);
+	void RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull, int entity_num = 0);
 	uint64_t QueryPolygonCount();
 	void ResetPolygonCount();
 }
