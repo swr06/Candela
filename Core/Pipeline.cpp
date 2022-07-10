@@ -33,6 +33,8 @@
 #include "BloomRenderer.h"
 #include "BloomFBO.h"
 
+#include "Physics.h"
+
 // Externs.
 int __TotalMeshesRendered = 0;
 int __MainViewMeshesRendered = 0;
@@ -341,7 +343,7 @@ void Lumen::StartPipeline()
 	Intersector.AddObject(MainModel);
 	Intersector.AddObject(Dragon);
 	Intersector.AddObject(MetalObject);
-	Intersector.BufferData();
+	Intersector.BufferData(true);
 	Intersector.GenerateMeshTextureReferences();
 
 	// Create entities 
@@ -526,6 +528,10 @@ void Lumen::StartPipeline()
 
 			if (app.GetCurrentFrame() % 16 == 0)
 				std::cout << "\nPlayer Collision Test Result : " << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
+		}
+
+		if (true) {
+			std::cout << Physics::CollideBox(Camera.GetPosition() - 0.5f, Camera.GetPosition() + 0.5f, Intersector) << "\n";
 		}
 
 		app.OnUpdate();

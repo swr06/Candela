@@ -70,6 +70,9 @@
     <Filter Include="Source Files\Dependencies\imguizmo">
       <UniqueIdentifier>{3250f051-d038-4bcb-8b9c-0463d0d43469}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\Physics">
+      <UniqueIdentifier>{52728749-c7cc-49f2-8136-8526dfeb71ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -255,6 +258,12 @@
     <ClInclude Include="Dependencies\imguizmo\ImZoomSlider.h">
       <Filter>Source Files\Dependencies\imguizmo</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Physics.h">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PhysicsIntegrator.h">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -386,9 +395,6 @@
     <ClCompile Include="Core\Player.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
-    <ClCompile Include="Core\CollisionHandler.cpp">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Frustum.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
@@ -412,6 +418,12 @@
     </ClCompile>
     <ClCompile Include="Dependencies\imguizmo\ImSequencer.cpp">
       <Filter>Source Files\Dependencies\imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Physics.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PhysicsIntegrator.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

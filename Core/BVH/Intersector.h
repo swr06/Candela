@@ -69,8 +69,12 @@ namespace Lumen {
 		void BufferEntities();
 		void IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera);
 		void BindEverything(GLClasses::ComputeShader& Shader, bool ShouldBindTextures);
+		bool Collide(const glm::vec3& Point);
 
-		void BufferData();
+		// if ClearCPUData is true, it deletes the CPU side BVH, else it keeps it
+		// Useful for physics sim on the CPU.
+		void BufferData(bool ClearCPUData);
+
 		void Recompile();
 
 		void GenerateMeshTextureReferences();
@@ -82,10 +86,6 @@ namespace Lumen {
 		GLuint m_BVHEntitiesSSBO = 0;
 		GLuint m_BVHTextureReferencesSSBO = 0;
 
-
-
-	private : 
-
 		void _BindTextures(GLClasses::ComputeShader& Shader);
 
 		GLuint m_TextureReferences = 0;
@@ -93,6 +93,10 @@ namespace Lumen {
 		std::vector<T> m_BVHNodes;
 		std::vector<Vertex> m_BVHVertices;
 		std::vector<BVH::Triangle> m_BVHTriangles;
+		std::vector<BVHEntity> m_BVHEntities;
+
+	private:
+
 		std::vector<BVHEntity> m_Entities;
 
 		uint32_t m_IndexOffset;
@@ -226,6 +230,7 @@ void Lumen::RayIntersector<T>::BufferEntities()
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	m_EntityPushed = m_Entities.size();
+	m_BVHEntities = m_Entities;
 	m_Entities.clear();
 }
 
@@ -284,7 +289,7 @@ void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader, 
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::BufferData()
+void Lumen::RayIntersector<T>::BufferData(bool ClearCPUData)
 {
 	glDeleteBuffers(1, &m_BVHTriSSBO);
 	glDeleteBuffers(1, &m_BVHNodeSSBO);
@@ -308,10 +313,19 @@ void Lumen::RayIntersector<T>::BufferData()
 
 	m_NodeCountBuffered = m_BVHNodes.size();
 
-	m_BVHNodes.clear();
-	m_BVHVertices.clear();
-	m_BVHTriangles.clear();
+	if (ClearCPUData) {
+		m_BVHNodes.clear();
+		m_BVHVertices.clear();
+		m_BVHTriangles.clear();
+	}
 }
+
+template<typename T>
+inline bool Lumen::RayIntersector<T>::Collide(const glm::vec3& Point)
+{
+	return false;
+}
+
 
 template<typename T>
 void Lumen::RayIntersector<T>::Recompile()

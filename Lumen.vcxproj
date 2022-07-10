@@ -157,6 +157,8 @@
     <ClInclude Include="Core\BVH\Intersector.h" />
     <ClInclude Include="Core\CollisionHandler.h" />
     <ClInclude Include="Core\Frustum.h" />
+    <ClInclude Include="Core\Physics.h" />
+    <ClInclude Include="Core\PhysicsIntegrator.h" />
     <ClInclude Include="Core\Plane.h" />
     <ClInclude Include="Core\Player.h" />
     <ClInclude Include="Core\ProbeGI.h" />
@@ -219,8 +221,9 @@
     <ClCompile Include="Core\BloomRenderer.cpp" />
     <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
     <ClCompile Include="Core\BVH\Intersector.cpp" />
-    <ClCompile Include="Core\CollisionHandler.cpp" />
     <ClCompile Include="Core\Frustum.cpp" />
+    <ClCompile Include="Core\Physics.cpp" />
+    <ClCompile Include="Core\PhysicsIntegrator.cpp" />
     <ClCompile Include="Core\Player.cpp" />
     <ClCompile Include="Core\ProbeGI.cpp" />
     <ClCompile Include="Core\FpsCamera.cpp" />
