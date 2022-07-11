@@ -6,7 +6,7 @@ namespace Lumen {
 
 		void Integrate(std::vector<Entity*>& Objects, float DeltaTime)
 		{
-			float G = 9.8f / 10000.0f;
+			float G = 9.8f / 3250.0f;
 
 			for (auto& e : Objects) {
 

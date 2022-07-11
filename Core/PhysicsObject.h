@@ -22,10 +22,14 @@ namespace Lumen {
 
 			void Update(float dt) {
 
+				glm::vec3 PositionBeforeUpdate = Position;
 				glm::vec3 VelocityVector = Position - PreviousPosition;
-				PreviousPosition = Position;
 
-				Position = Position + VelocityVector + (Acceleration * (dt * dt));
+				Position = Position + VelocityVector;
+				Position = Position + (Acceleration * (dt * dt));
+				PreviousPosition = PositionBeforeUpdate;
+
+				//std::cout << "\n" << Position.x << "  " << Position.y << "  " << Position.z << "  ";
 
 				Acceleration = glm::vec3(0.0f);
 			}

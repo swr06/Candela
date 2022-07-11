@@ -211,6 +211,12 @@ public:
 				if (Hovered || Using) {
 					glm::vec3 P, S, R;
 					ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(SelectedEntity->m_Model), glm::value_ptr(P), glm::value_ptr(R), glm::value_ptr(S));
+				
+					if (SelectedEntity->m_IsPhysicsObject) {
+
+						//SelectedEntity->m_PhysicsObject.Position = P;
+
+					}
 				}
 			}
 		}
@@ -510,10 +516,12 @@ void Lumen::StartPipeline()
 	DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
 
 	Entity MetalObjectEntity(&MetalObject);
-	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 1.25f, -2.0f));
+	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 10.25f, -2.0f);
+	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectStartPosition);
 	MetalObjectEntity.m_IsPhysicsObject = true;
-	MetalObjectEntity.m_PhysicsObject.Position = glm::vec3(-1.0f, 1.25f, -2.0f);
-	MetalObjectEntity.m_PhysicsObject.PreviousPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
+	MetalObjectEntity.m_PhysicsObject.Position = MetalObjectStartPosition;
+	MetalObjectEntity.m_PhysicsObject.PreviousPosition = MetalObjectStartPosition;
+	//MetalObjectEntity.m_PhysicsObject.PreviousPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
 
 
 	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
