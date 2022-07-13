@@ -501,7 +501,7 @@ void Lumen::StartPipeline()
 	Intersector.AddObject(MainModel);
 	Intersector.AddObject(Dragon);
 	Intersector.AddObject(MetalObject);
-	Intersector.BufferData(false);
+	Intersector.BufferData(true);
 	Intersector.GenerateMeshTextureReferences();
 
 	// Create entities 
@@ -515,13 +515,10 @@ void Lumen::StartPipeline()
 	DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
 	DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
 
+
 	Entity MetalObjectEntity(&MetalObject);
-	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 10.25f, -2.0f);
+	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
 	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectStartPosition);
-	MetalObjectEntity.m_IsPhysicsObject = true;
-	MetalObjectEntity.m_PhysicsObject.Position = MetalObjectStartPosition;
-	MetalObjectEntity.m_PhysicsObject.PreviousPosition = MetalObjectStartPosition;
-	//MetalObjectEntity.m_PhysicsObject.PreviousPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
 
 	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
 
@@ -698,11 +695,6 @@ void Lumen::StartPipeline()
 
 		// Physics Simulation
 		Physics::Integrate(EntityRenderList, DeltaTime);
-		MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectEntity.m_PhysicsObject.Position);
-
-		//std::cout << "\n" << MetalObjectEntity.m_PhysicsObject.Position.x << "  " << MetalObjectEntity.m_PhysicsObject.Position.y << "  " << MetalObjectEntity.m_PhysicsObject.Position.z;
-
-
 
 		app.OnUpdate();
 
