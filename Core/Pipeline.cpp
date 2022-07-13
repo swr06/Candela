@@ -501,7 +501,7 @@ void Lumen::StartPipeline()
 	Intersector.AddObject(MainModel);
 	Intersector.AddObject(Dragon);
 	Intersector.AddObject(MetalObject);
-	Intersector.BufferData(true);
+	Intersector.BufferData(false);
 	Intersector.GenerateMeshTextureReferences();
 
 	// Create entities 
@@ -522,7 +522,6 @@ void Lumen::StartPipeline()
 	MetalObjectEntity.m_PhysicsObject.Position = MetalObjectStartPosition;
 	MetalObjectEntity.m_PhysicsObject.PreviousPosition = MetalObjectStartPosition;
 	//MetalObjectEntity.m_PhysicsObject.PreviousPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
-
 
 	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
 

@@ -85,31 +85,36 @@ bool BoxTriangleOverlap(vec3 v0, vec3 v1, vec3 v2, C_AABB aabb) {
     vec3 u1 = vec3(0.0f, 1.0f, 0.0f);
     vec3 u2 = vec3(0.0f, 0.0f, 1.0f);
 
-    vec3 axis_u0_f0 = cross(u0, f0);
-    vec3 axis_u0_f1 = cross(u0, f1);
-    vec3 axis_u0_f2 = cross(u0, f2);
+    vec3 AxisUxFx[9];
 
-    vec3 axis_u1_f0 = cross(u1, f0);
-    vec3 axis_u1_f1 = cross(u1, f1);
-    vec3 axis_u1_f2 = cross(u2, f2);
+    AxisUxFx[0] = cross(u0, f0);
+    AxisUxFx[1] = cross(u0, f1);
+    AxisUxFx[2] = cross(u0, f2);
+    AxisUxFx[3] = cross(u1, f0);
+    AxisUxFx[4] = cross(u1, f1);
+    AxisUxFx[5] = cross(u2, f2);
+    AxisUxFx[6] = cross(u2, f0);
+    AxisUxFx[7] = cross(u2, f1);
+    AxisUxFx[8] = cross(u2, f2);
 
-    vec3 axis_u2_f0 = cross(u2, f0);
-    vec3 axis_u2_f1 = cross(u2, f1);
-    vec3 axis_u2_f2 = cross(u2, f2);
+    for (int i = 0; i < 9; i++) {
 
-    float p0 = dot(v0, axis_u0_f0);
-    float p1 = dot(v1, axis_u0_f0);
-    float p2 = dot(v2, axis_u0_f0);
+        vec3 axis = AxisUxFx[i];
+        float p0 = dot(v0, axis);
+        float p1 = dot(v1, axis);
+        float p2 = dot(v2, axis);
 
-    float r = e.x * abs(dot(u0, axis_u0_f0)) +
-                e.y * abs(dot(u1, axis_u0_f0)) +
-                e.z * abs(dot(u2, axis_u0_f0));
+        float r = e.x * abs(dot(u0, axis)) +
+            e.y * abs(dot(u1, axis)) +
+            e.z * abs(dot(u2, axis));
 
-    if (max(-max(max(p0, p1), p2), min(min(p0, p1), p2)) > r) {
-        return false;
+        if (max(-max(max(p0, p1), p2), min(min(p0, p1), p2)) > r) {
+            return false;
+        }
     }
 
     vec3 triangleNormal = cross(f0, f1);
+    float plane_distance = dot(triangleNormal, v0);
 
     return true;
 }
