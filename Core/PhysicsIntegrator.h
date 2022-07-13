@@ -20,7 +20,7 @@ namespace Lumen {
 			Key : Velocity is deduced from the last step!
 		*/
 
-		void Integrate(std::vector<Entity*>& Objects, float DeltaTime);
+		void Integrate(std::vector<Entity*>& Objects, float DeltaTime, RayIntersector<BVH::StacklessTraversalNode>& Intersector);
 
 
 	}

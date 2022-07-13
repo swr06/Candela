@@ -692,12 +692,19 @@ void Lumen::StartPipeline()
 				std::cout << "\nPlayer Collision Test Result : " << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
 		}
 
-		if (false) {
-			std::cout << Physics::CollideBox(Camera.GetPosition() - 0.5f, Camera.GetPosition() + 0.5f, Intersector) << "\n";
+		if (true) {
+
+			glm::vec3 PlayerNudge = Physics::CollideBoxSim(Camera.GetPosition() - 0.1f, Camera.GetPosition() + 0.1f, Intersector);
+
+			//::Player.m_Position += PlayerNudge;
+
+			std::cout << "\nPlayer Nudge : " << PlayerNudge.x << "  " << PlayerNudge.y << "  " << PlayerNudge.z;
+
+			std::cout << Physics::CollideBox(Camera.GetPosition() - 0.1f, Camera.GetPosition() + 0.1f, Intersector) << "\n";
 		}
 
 		// Physics Simulation
-		Physics::Integrate(EntityRenderList, DeltaTime);
+		Physics::Integrate(EntityRenderList, DeltaTime, Intersector);
 		MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectEntity.m_PhysicsObject.Position);
 
 		//std::cout << "\n" << MetalObjectEntity.m_PhysicsObject.Position.x << "  " << MetalObjectEntity.m_PhysicsObject.Position.y << "  " << MetalObjectEntity.m_PhysicsObject.Position.z;
