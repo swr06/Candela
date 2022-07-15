@@ -485,12 +485,12 @@ void Lumen::StartPipeline()
 	Object Dragon;
 	Object MetalObject;
 	
-	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	//FileLoader::LoadModelFile(&MetalObject, "Models/monke/Suzanne.gltf");
 	FileLoader::LoadModelFile(&MetalObject, "Models/ball/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
-	FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");

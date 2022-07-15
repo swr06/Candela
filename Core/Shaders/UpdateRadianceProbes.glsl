@@ -181,7 +181,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 
 vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 
-	WorldPosition += N * 0.35f;
+	WorldPosition += N * 0.5f;
 
 	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
@@ -386,7 +386,7 @@ void main() {
 	if (TUVW.x > 0.0f) {
 		//vec3 Dither = (hash2().x > 0.5f ? -1.0f : 1.0f) * vec3(hash2(), hash2().x) * 0.1f;
 		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.001f),iNormal);
-		const float AttenuationBounce = 0.9875f; 
+		const float AttenuationBounce = 0.99f; 
 		FinalRadiance += Bounce * AttenuationBounce;
 	}
 

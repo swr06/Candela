@@ -225,7 +225,7 @@ void main()
 
 		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
 		
-		float AO = clamp(pow(GI.w, 1.8f) + 0.07f, 0.0f, 1.0f);
+		float AO = clamp(pow(GI.w, 1.4f) + 0.07f, 0.0f, 1.0f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * IndirectStrength.x * AO;
 
 		mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
