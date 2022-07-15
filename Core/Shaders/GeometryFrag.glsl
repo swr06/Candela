@@ -38,6 +38,8 @@ in mat3 v_TBNMatrix;
 
 void main()
 {
+	vec3 Incident = normalize(v_FragPosition - u_ViewerPosition);
+
 	const bool Whiteworld = false;
 
 	const float LODBias = -1.0f;
@@ -47,7 +49,16 @@ void main()
 	//o_Albedo += o_Albedo * u_EmissiveColor * u_ModelEmission * 8.0f;
 
 	vec3 LFN = normalize(v_Normal);
+
 	vec3 HQN = u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) : LFN;
+
+	if (dot(LFN, Incident) > 0.0001f) {
+		LFN = -LFN;
+	}
+
+	if (dot(HQN, Incident) > 0.0001f) {
+		HQN = -HQN;
+	}
 	
 	o_HFNormal.xyz = HQN;
 	o_LFNormal.xyz = LFN;

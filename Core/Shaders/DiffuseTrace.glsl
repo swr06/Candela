@@ -429,6 +429,10 @@ void main() {
 		// Intersect ray 
 		IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
+		if (dot(iNormal, RayDirection) > 0.0001f) {
+			iNormal = -iNormal;
+		}
+
 		FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, RayDirection).xyz * 2.0f :
 						 (GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo.xyz) + Albedo.xyz * Albedo.w);
 	}
@@ -456,6 +460,11 @@ void main() {
 				vec3 SecondRayOrigin = HitPosition+iNormal*0.02f;
 				vec3 SecondRayDirection = CosWeightedHemisphere(iNormal,hash2());
 				IntersectRay(SecondRayOrigin, SecondRayDirection, SecondTUVW, SecondIntersectedMesh, SecondIntersectedTri, SecondAlbedo, SecondiNormal);
+				
+				if (dot(SecondiNormal, SecondRayDirection) > 0.0001f) {
+					SecondiNormal = -SecondiNormal;
+				}
+
 				Bounced += TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.0f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo.xyz);
 			}
 
@@ -463,7 +472,7 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.0f; 
+			const float Strength = 1.1f; 
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 
 			// Probe gi tends to leak at edges

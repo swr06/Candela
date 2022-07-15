@@ -488,6 +488,11 @@ void main() {
 					
 			// Intersect ray 
 			IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, IntersectionAlbedo, IntersectionNormal);
+			
+			if (dot(IntersectionNormal, RayDirection) > 0.0001f) {
+				IntersectionNormal = -IntersectionNormal;
+			}
+			
 			FinalTransversal = TUVW.x;
 
 			if (TUVW.x > 0.0f) 

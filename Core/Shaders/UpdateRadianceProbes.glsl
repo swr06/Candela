@@ -369,6 +369,10 @@ void main() {
 	
 	IntersectRay(RayOrigin, DiffuseDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
+	if (dot(iNormal, DiffuseDirection) > 0.0001f) {
+		//iNormal = -iNormal;
+	}
+
 	// Integrate radiance for point 
 	vec3 iWorldPos = (RayOrigin + DiffuseDirection * TUVW.x);
 
