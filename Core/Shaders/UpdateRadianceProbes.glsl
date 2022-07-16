@@ -376,7 +376,7 @@ void main() {
 	// Integrate radiance for point 
 	vec3 iWorldPos = (RayOrigin + DiffuseDirection * TUVW.x);
 
-	float LambertSky = clamp(dot(DiffuseDirection, vec3(0.0f, 1.0f, 0.0f)), 0.002f, 1.0f);
+	float LambertSky = clamp(dot(DiffuseDirection, vec3(0.0f, 1.0f, 0.0f)), 0.0f, 1.0f);
 
 	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 2.2f * LambertSky : 
 						 (GetDirect(iWorldPos, iNormal, Albedo.xyz) + (Albedo.xyz*Albedo.w*1.0f));
