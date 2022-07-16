@@ -181,7 +181,7 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal) {
 
 vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 
-	WorldPosition += N * 0.5f;
+	WorldPosition += N * 0.45f;
 
 	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
@@ -370,7 +370,7 @@ void main() {
 	IntersectRay(RayOrigin, DiffuseDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
 	if (dot(iNormal, DiffuseDirection) > 0.0001f) {
-		//iNormal = -iNormal;
+		iNormal = -iNormal;
 	}
 
 	// Integrate radiance for point 

@@ -472,7 +472,7 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.1f; 
+			const float Strength = 1.2f; 
 			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
 
 			// Probe gi tends to leak at edges

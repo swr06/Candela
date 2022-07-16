@@ -247,7 +247,7 @@ void main() {
 
 	float PhaseA = HGNormalized(CosTheta, G1);
     float PhaseB = HGNormalized(CosTheta, G2);
-    float DirectPhase = max(mix(PhaseA, PhaseB, 0.5), 0.015f);
+    float DirectPhase = max(mix(PhaseA, PhaseB, 0.5), 0.02f);
 
 	float IndirectPhase = 0.25f / PI; 
 
