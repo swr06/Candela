@@ -696,7 +696,7 @@ void Lumen::StartPipeline()
 		// Physics Simulation
 		Physics::Integrate(EntityRenderList, DeltaTime);
 
-		app.OnUpdate();
+		app.OnUpdate(); 
 
 		// Set matrices
 		Projection = Camera.GetProjectionMatrix();
@@ -740,6 +740,7 @@ void Lumen::StartPipeline()
 		GBufferShader.SetInteger("u_MetalnessMap", 3);
 		GBufferShader.SetInteger("u_MetalnessRoughnessMap", 5);
 		GBufferShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
+		GBufferShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 
 		RenderEntityList(EntityRenderList, GBufferShader);
 		UnbindEverything();

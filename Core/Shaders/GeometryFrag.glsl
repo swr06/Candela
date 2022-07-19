@@ -1,4 +1,6 @@
-#version 440 core
+#version 450 core
+
+#include "Include/Utility.glsl"
 
 layout (location = 0) out vec4 o_Albedo;
 layout (location = 1) out vec4 o_HFNormal;
@@ -29,28 +31,35 @@ uniform float u_EmissivityAmount;
 uniform vec3 u_ViewerPosition;
 
 uniform int u_EntityNumber;
+uniform vec2 u_Dimensions;
 
 in vec2 v_TexCoords;
 in vec3 v_FragPosition;
 in vec3 v_Normal;
 in mat3 v_TBNMatrix;
 
+vec3 CreateNormalMap(in vec3 Albedo, vec2 Size) {
+	float L = pow(Luminance(Albedo), 4.0f);
+	return vec3(-vec2(dFdxFine(L), dFdxFine(L)), 1.0f);
+}
 
 void main()
 {
+	const float LODBias = -1.0f;
+	const bool Whiteworld = false;
+	const bool GenerateNormals = false;
+
 	vec3 Incident = normalize(v_FragPosition - u_ViewerPosition);
 
-	const bool Whiteworld = false;
-
-	const float LODBias = -1.0f;
-
+	vec2 AlbedoTexSize = textureSize(u_AlbedoMap, 0);
 	o_Albedo.xyz = Whiteworld ? vec3(1.0f) : (u_UsesAlbedoTexture ? texture(u_AlbedoMap, v_TexCoords, LODBias).xyz : u_ModelColor);
 
 	//o_Albedo += o_Albedo * u_EmissiveColor * u_ModelEmission * 8.0f;
 
 	vec3 LFN = normalize(v_Normal);
 
-	vec3 HQN = u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) : LFN;
+	vec3 HQN = u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) 
+			 : ((!GenerateNormals) ? (LFN) : normalize(v_TBNMatrix * CreateNormalMap(o_Albedo.xyz,AlbedoTexSize)));
 
 	if (dot(LFN, Incident) > 0.0001f) {
 		LFN = -LFN;
