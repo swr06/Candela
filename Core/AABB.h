@@ -23,6 +23,11 @@ namespace Lumen
         const glm::vec3 m_Dimensions;
     };
 
+    struct SimpleAABB {
+        glm::vec3 Min;
+        glm::vec3 Max;
+    };
+
     class FrustumBox
     {
     public :
