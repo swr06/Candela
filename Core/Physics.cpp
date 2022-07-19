@@ -123,6 +123,11 @@ namespace Lumen {
             vec3 triangleNormal = cross(f0, f1);
             float plane_distance = dot(triangleNormal, v0);
 
+            vec3 triangleCentroid = v0 + v1 + v2; 
+            triangleCentroid /= 3.0f;
+
+            //plane_distance = glm::distance(triangleCentroid, c);
+
             intersection = glm::vec4(triangleNormal, plane_distance);
 
             return true;
@@ -286,10 +291,10 @@ namespace Lumen {
 
                                 Normal /= Length;
 
-                                if (Distance <= 0.01f || Distance) {
+                                if (Distance <= 0.5f) {
 
-                                    float DeltaDistance = 0.01f - Distance;
-                                    PositionNudge += Normal * DeltaDistance * 0.5f;
+                                    float DeltaDistance = -Distance;
+                                    PositionNudge += Normal * DeltaDistance;
                                 }
 
                             }

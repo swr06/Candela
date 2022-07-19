@@ -143,7 +143,7 @@ public:
 		GLFWwindow* window = GetWindow();
 		float camera_speed = DeltaTime * 23.0f * ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS ? 3.0f : 1.0f));
 
-		Player.OnUpdate(window, DeltaTime, camera_speed, GetCurrentFrame());
+		Player.OnUpdate(window, DeltaTime, camera_speed, GetCurrentFrame(), Intersector);
 	}
 
 	void OnImguiRender(double ts) override
@@ -222,8 +222,10 @@ public:
 		}
 
 		if (ImGui::Begin("Debug")) {
+			ImGui::Text("Camera Debug : ");
 			ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
-			ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
+			ImGui::Text("Velocity : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
+			ImGui::Text("Front : %f,  %f,  %f", ::Player.m_Velocity.x, ::Player.m_Velocity.y, ::Player.m_Velocity.z);
 			ImGui::NewLine();
 			ImGui::Text("Number of Meshes Rendered (For the main view) : %d", __MainViewMeshesRendered);
 			ImGui::Text("Total Number of Meshes Rendered : %d", __TotalMeshesRendered);
@@ -692,19 +694,8 @@ void Lumen::StartPipeline()
 				std::cout << "\nPlayer Collision Test Result : " << Retrieved.x << "  " << Retrieved.y << "  " << Retrieved.z << "  " << Retrieved.w << "  ";
 		}
 
-		if (true) {
-
-			glm::vec3 PlayerNudge = Physics::CollideBoxSim(Camera.GetPosition() - 0.1f, Camera.GetPosition() + 0.1f, Intersector);
-
-			//::Player.m_Position += PlayerNudge;
-
-			std::cout << "\nPlayer Nudge : " << PlayerNudge.x << "  " << PlayerNudge.y << "  " << PlayerNudge.z;
-
-			std::cout << Physics::CollideBox(Camera.GetPosition() - 0.1f, Camera.GetPosition() + 0.1f, Intersector) << "\n";
-		}
-
 		// Physics Simulation
-		Physics::Integrate(EntityRenderList, DeltaTime, Intersector);
+		//Physics::Integrate(EntityRenderList, DeltaTime, Intersector);
 		MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectEntity.m_PhysicsObject.Position);
 
 		//std::cout << "\n" << MetalObjectEntity.m_PhysicsObject.Position.x << "  " << MetalObjectEntity.m_PhysicsObject.Position.y << "  " << MetalObjectEntity.m_PhysicsObject.Position.z;

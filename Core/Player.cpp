@@ -13,106 +13,50 @@ namespace Lumen
 		m_AABB.m_Position = m_Position;
 	}
 
-	void Player::OnUpdate(GLFWwindow* window, float dt, float speed, int frame)
+	void Player::OnUpdate(GLFWwindow* window, float dt, float speed, int frame, RayIntersector<Lumen::BVH::StacklessTraversalNode>& Intersector)
 	{
-		glm::vec3 StartPosition = m_Position;
+		CameraFrustum.Update(Camera, frame);
 
 		float camera_speed = speed;
 
-		CameraFrustum.Update(Camera, frame);
-
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		{
-			// Take the cross product of the camera's right and up.
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 			glm::vec3 front = -glm::cross(Camera.GetRight(), Camera.GetUp());
 			m_Acceleration += (front * camera_speed);
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		{
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
 			glm::vec3 back = glm::cross(Camera.GetRight(), Camera.GetUp());
 			m_Acceleration += (back * camera_speed);
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		{
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
 			m_Acceleration += (-(Camera.GetRight() * camera_speed));
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		{
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			m_Acceleration += (Camera.GetRight() * camera_speed);
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		{
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
 			m_Acceleration.y -= camera_speed * 1.35f;
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		{
-			float jump_speed = 0.06f;
-
-			if (!Freefly) 
-			{
-				if (m_isOnGround)
-				{
-					m_isOnGround = false;
-					m_Acceleration.y += jump_speed * 14.0f;
-				}
-			}
-
-			else 
-			{
-				m_Acceleration.y += camera_speed;
-			}
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+			m_Acceleration.y += camera_speed;
 		}
-
 
 		Camera.SetSensitivity(Sensitivity);
 
 		m_Velocity += m_Acceleration;
 		m_Acceleration = { 0, 0, 0 };
+		m_Position += m_Velocity * dt;
 
-		// Gravity : 
-		if (!Freefly) 
-		{
-			if (!m_isOnGround) 
-			{
-				m_Velocity.y -= 0.2 * dt;
-			}
-
-			m_isOnGround = false;
-		}
-
-		// Test collisions on three axes 
-		m_Position.x += m_Velocity.x * dt;
-		TestCollision(m_Position, glm::vec3(m_Velocity.x, 0.0f, 0.0f));
-		m_Position.y += m_Velocity.y * dt;
-		TestCollision(m_Position, glm::vec3(0.0f, m_Velocity.y, 0.0f));
-		m_Position.z += m_Velocity.z * dt;
-		TestCollision(m_Position, glm::vec3(0.0f, 0.0f, m_Velocity.z));
-
-		// 
-		m_AABB.SetPosition(m_Position);
-
-		if (!Freefly) {
-			m_Velocity.x *= 0.825f;
-			m_Velocity.z *= 0.825f;
-		}
-		else {
-
-			m_Velocity.x *= 0.755f;
-			m_Velocity.z *= 0.755f;
-		}
-		
-
-		if (Freefly) {
-			m_Velocity.y *= 0.765f;
-		}
+		m_Velocity.x *= 0.755f;
+		m_Velocity.z *= 0.755f;
+		m_Velocity.y *= 0.765f;
 
 		Camera.SetPosition(m_Position);
-
+		m_AABB.SetPosition(m_Position);
 
 	}
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "BVH/Intersector.h"
+
 #include <glm/glm.hpp>
 #include "FpsCamera.h"
 
@@ -16,7 +18,7 @@ namespace Lumen
 	public :
 
 		Player();
-		void OnUpdate(GLFWwindow* window, float dt, float speed, int frame);
+		void OnUpdate(GLFWwindow* window, float dt, float speed, int frame, RayIntersector<Lumen::BVH::StacklessTraversalNode>& Intersector);
 
 		void TestCollision(glm::vec3& position, glm::vec3 vel);
 		void Jump();
