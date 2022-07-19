@@ -155,8 +155,11 @@
     <ClInclude Include="Core\BloomRenderer.h" />
     <ClInclude Include="Core\BVH\BVHConstructor.h" />
     <ClInclude Include="Core\BVH\Intersector.h" />
+    <ClInclude Include="Core\CollisionDetection.h" />
     <ClInclude Include="Core\CollisionHandler.h" />
+    <ClInclude Include="Core\CollisionHelpers.h" />
     <ClInclude Include="Core\Frustum.h" />
+    <ClInclude Include="Core\Maths.h" />
     <ClInclude Include="Core\Physics.h" />
     <ClInclude Include="Core\PhysicsIntegrator.h" />
     <ClInclude Include="Core\PhysicsObject.h" />
@@ -223,8 +226,11 @@
     <ClCompile Include="Core\BloomRenderer.cpp" />
     <ClCompile Include="Core\BVH\BVHConstructor.cpp" />
     <ClCompile Include="Core\BVH\Intersector.cpp" />
+    <ClCompile Include="Core\CollisionDetection.cpp" />
+    <ClCompile Include="Core\CollisionHelpers.cpp" />
     <ClCompile Include="Core\Entity.cpp" />
     <ClCompile Include="Core\Frustum.cpp" />
+    <ClCompile Include="Core\Maths.cpp" />
     <ClCompile Include="Core\Physics.cpp" />
     <ClCompile Include="Core\PhysicsIntegrator.cpp" />
     <ClCompile Include="Core\Player.cpp" />

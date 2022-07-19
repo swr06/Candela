@@ -9,7 +9,7 @@ glm::mat4 Lumen::GetRotationMatrix(const glm::mat4& Transform)
         glm::length(glm::vec3(glm::column(Transform, 1))),
         glm::length(glm::vec3(glm::column(Transform, 2))));
 
-    glm::mat4 result = glm::glm::mat4();
+    glm::mat4 result = glm::mat4();
 
     result[0][0] = Transform[0][0] / scale.x;
     result[0][1] = Transform[0][1] / scale.x;

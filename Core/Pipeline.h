@@ -11,7 +11,7 @@
 #include "GLClasses/IndexBuffer.h"
 #include "GLClasses/Shader.h"
 
-#include "CollisionHandler.h"
+#include "CollisionHelpers.h"
 
 namespace Lumen {
 
