@@ -14,6 +14,13 @@
 
 #include "Shadowmap.h"
 
+#include "MathsHelpers.h"
+
+#include "Macros.h"
+
 namespace Lumen {
-	void RenderShadowMap(Shadowmap& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*>& Entities, float Distance, glm::mat4&, glm::mat4&);
+	namespace ShadowRenderer {
+		void Initialize();
+		void RenderShadowMap(Shadowmap& Shadowmap, const glm::vec3& Origin, glm::vec3 SunDirection, const std::vector<Entity*>& Entities, float Distance, glm::mat4&, glm::mat4&);
+	}
 }

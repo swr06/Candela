@@ -1,4 +1,8 @@
 #version 430 core
+
+#extension GL_ARB_bindless_texture : require
+#extension GL_ARB_bindless_texture : enable
+
 #define PI 3.14159265359
 
 #define DO_INDIRECT 
@@ -14,6 +18,7 @@
 layout (location = 0) out vec3 o_Color;
 
 in vec2 v_TexCoords;
+
 
 uniform sampler2D u_AlbedoTexture;
 uniform sampler2D u_NormalTexture;
@@ -39,6 +44,8 @@ uniform vec2 u_Dims;
 uniform int u_Frame;
 
 uniform bool u_DoVolumetrics;
+
+uniform float u_Time;
 
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2DShadow u_ShadowTextures[5]; // <- the shadowmaps themselves 
@@ -172,10 +179,23 @@ vec3 SampleIncidentRayDirection(vec2 screenspace)
 	return normalize(vec3(u_InverseView * eye));
 }
 
+
+float HASH2SEED = 0.0f;
+vec2 hash2() 
+{
+	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
+}
+
 const vec3 SunColor = vec3(16.0f);
 
 void main() 
 {	
+	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time;
+
+
+	//o_Color = pow(texture(SkyHemisphericalShadowmaps[u_Frame % 32], v_TexCoords).xxx, 32.0.xxx) * 32.5;
+	//return;
+
 	vec3 rO = u_InverseView[3].xyz;
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);

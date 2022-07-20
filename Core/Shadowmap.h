@@ -48,12 +48,15 @@ namespace Lumen
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
+		GLuint GetHandle() const noexcept { return m_Handle; }
+
 		inline unsigned int GetWidth() const noexcept { return m_Width; }
 		inline unsigned int GetHeight() const noexcept { return m_Height; }
 
 	private:
 		GLuint m_DepthMap = 0;
 		GLuint m_DepthMapFBO = 0;
+		GLuint m_Handle = 0;
 		int m_Width = 0;
 		int m_Height = 0;
 	};

@@ -1,0 +1,2 @@
+
+#define SKY_SHADOWMAP_COUNT 32

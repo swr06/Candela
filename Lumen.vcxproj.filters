@@ -73,6 +73,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\Physics">
       <UniqueIdentifier>{52728749-c7cc-49f2-8136-8526dfeb71ea}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\Maths">
+      <UniqueIdentifier>{760d74a9-2c25-4ad2-a497-b18c669930eb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -267,6 +270,15 @@
     <ClInclude Include="Core\PhysicsObject.h">
       <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
     </ClInclude>
+    <ClInclude Include="Core\SkyShadowMap.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\MathsHelpers.h">
+      <Filter>Source Files\Lumen\Lumen-Core\Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Macros.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -431,6 +443,12 @@
     <ClCompile Include="Core\Entity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Core\SkyShadowMap.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\MathsHelpers.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core\Maths</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Shaders\BasicFrag.glsl">
@@ -585,6 +603,9 @@
     </None>
     <None Include="Core\Shaders\BloomMask.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\Include\SampleSkyVisibilityHemisSM.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

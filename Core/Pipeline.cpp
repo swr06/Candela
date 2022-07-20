@@ -88,6 +88,10 @@ static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
+// Hemispherical Shadow Mapping 
+// (Experiment)
+const bool DoHSM = false;
+
 // Timings
 float CurrentTime = glfwGetTime();
 float Frametime = 0.0f;
@@ -707,8 +711,12 @@ void Lumen::StartPipeline()
 		CommonUniforms UniformBuffer = { View, Projection, InverseView, InverseProjection, PreviousProjection, PreviousView, glm::inverse(PreviousProjection), glm::inverse(PreviousView), (int)app.GetCurrentFrame(), SunDirection};
 
 		// Render shadow maps
-		ShadowHandler::UpdateShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier);
+		ShadowHandler::UpdateDirectShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier);
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
+		
+		if (DoHSM) {
+			ShadowHandler::UpdateSkyShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), EntityRenderList);
+		}
 
 		// Update probes
 		if (UpdateIrradianceVolume) {
@@ -812,7 +820,7 @@ void Lumen::StartPipeline()
 				VolumetricsShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
 				glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
-				glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+				glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
 			}
 
 			glActiveTexture(GL_TEXTURE14);
@@ -869,7 +877,7 @@ void Lumen::StartPipeline()
 			DiffuseShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
 			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
-			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
 		}
 
 		glActiveTexture(GL_TEXTURE14);
@@ -937,7 +945,7 @@ void Lumen::StartPipeline()
 			SpecularShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
 			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
-			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
 		}
 
 		// 6 - 10 used by shadow textures, start binding further textures from index 12
@@ -1283,7 +1291,16 @@ void Lumen::StartPipeline()
 			LightingShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
 			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
-			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
+		}
+
+		if (DoHSM) {
+			for (int i = 0; i < SKY_SHADOWMAP_COUNT; i++) {
+				std::string Name = "SkyHemisphericalShadowmaps[" + std::to_string(i) + "]";
+				std::string NameM = "u_SkyShadowMatrices[" + std::to_string(i) + "]";
+				glProgramUniformHandleui64ARB(LightingShader.GetProgram(), LightingShader.FetchUniformLocation(Name), ShadowHandler::GetSkyShadowmapRef(i).GetHandle());
+				LightingShader.SetMatrix4(NameM, ShadowHandler::GetSkyShadowViewProjectionMatrix(i));
+			}
 		}
 
 		glActiveTexture(GL_TEXTURE0);

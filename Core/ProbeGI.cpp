@@ -181,7 +181,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 		ProbeUpdate.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
 		glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
-		glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+		glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
 	}
 
 	glActiveTexture(GL_TEXTURE4);
@@ -283,7 +283,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalN
 		ProbeUpdate.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
 
 		glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
-		glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetShadowmap(i));
+		glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
 	}
 
 	glActiveTexture(GL_TEXTURE4);
