@@ -34,8 +34,6 @@ uniform sampler2D u_IndirectSpecular;
 
 uniform sampler2D u_Volumetrics;
 
-uniform sampler3D u_VoxelVolume;
-
 uniform vec3 u_ViewerPosition;
 uniform vec3 u_LightDirection;
 uniform mat4 u_InverseView;

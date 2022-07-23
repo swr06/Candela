@@ -1344,9 +1344,6 @@ void Candela::StartPipeline()
 		glActiveTexture(GL_TEXTURE18);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
 
-		glActiveTexture(GL_TEXTURE19);
-		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetVoxelVolume());
-
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 
 		ScreenQuadVAO.Bind();

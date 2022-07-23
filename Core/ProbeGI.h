@@ -26,7 +26,7 @@ namespace Candela {
 		GLuint GetProbeDataSSBO();
 		glm::uvec2 GetProbeDataTextures();
 		GLuint GetProbeColorTexture();
-		GLuint GetVoxelVolume();
+		//GLuint GetVoxelVolume();
 	}
 
 }

@@ -19,7 +19,7 @@ layout(rgba32ui, binding = 4) uniform readonly uimage3D u_PrevFrameSHA;
 layout(rgba32ui, binding = 5) uniform readonly uimage3D u_PrevFrameSHB;
 
 // Reproject lighting to voxel volume to get an approximate voxel representation of the scene
-layout(rgba16f, binding = 8) uniform image3D o_VoxelVolume; 
+///layout(rgba16f, binding = 8) uniform image3D o_VoxelVolume; 
 
 uniform vec3 u_BoxOrigin;
 uniform vec3 u_Resolution;
@@ -387,13 +387,13 @@ void main() {
 	vec3 FinalRadiance = TUVW.x < 0.0f ? texture(u_Skymap, DiffuseDirection).xyz * 2.2f * LambertSky : 
 						 (GetDirect(iWorldPos, iNormal, Albedo.xyz) + (Albedo.xyz*Albedo.w*1.0f));
 
-	// Write voxel data
-	if (TUVW.x > 0.0f) {
-		vec3 VoxelPositionNormalized = (iWorldPos.xyz - u_BoxOrigin) / u_Size;
-		ivec3 VoxelCoords = ivec3(VoxelPositionNormalized * u_VoxelRange);
-		vec4 Prev = imageLoad(o_VoxelVolume, VoxelCoords);
-		imageStore(o_VoxelVolume, VoxelCoords, mix(vec4(Albedo.xyz, 1.0f),Prev,0.95f)); 
-	}
+	//// Write voxel data
+	//if (TUVW.x > 0.0f) {
+	//	vec3 VoxelPositionNormalized = (iWorldPos.xyz - u_BoxOrigin) / u_Size;
+	//	ivec3 VoxelCoords = ivec3(VoxelPositionNormalized * u_VoxelRange);
+	//	vec4 Prev = imageLoad(o_VoxelVolume, VoxelCoords);
+	//	imageStore(o_VoxelVolume, VoxelCoords, mix(vec4(Albedo.xyz, 1.0f),Prev,0.95f)); 
+	//}
 
 	float Packed = 1.0f;
 
