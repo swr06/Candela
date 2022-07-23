@@ -1,6 +1,6 @@
 # The Candela Engine
 
-(just for the record, I came up with this name before unreal did, I'll probably change it anyway)
+A realtime performance/graphics oriented 3D engine.
 
 # Implemented 
 - Model loading, abstracted program/application API
