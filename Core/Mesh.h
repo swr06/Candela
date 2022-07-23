@@ -14,7 +14,7 @@
 
 #include "AABB.h"
 
-namespace Lumen
+namespace Candela
 {
 	class Object;
 

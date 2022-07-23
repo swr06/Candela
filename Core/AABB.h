@@ -5,7 +5,7 @@
 
 #include "Plane.h"
 
-namespace Lumen
+namespace Candela
 {
     struct AABB 
     {

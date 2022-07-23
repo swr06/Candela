@@ -34,7 +34,7 @@ namespace GLClasses
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            Lumen::Logger::Log("Fatal error! Framebuffer creation failed!");
+            Candela::Logger::Log("Fatal error! Framebuffer creation failed!");
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

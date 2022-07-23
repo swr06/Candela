@@ -7,7 +7,7 @@
 
 extern int __TotalMeshesRendered;
 
-namespace Lumen
+namespace Candela
 {
 	namespace ShadowRenderer {
 

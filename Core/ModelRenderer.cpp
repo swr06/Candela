@@ -7,7 +7,7 @@ static uint64_t PolygonsRendered = 0;
 extern int __TotalMeshesRendered;
 extern int __MainViewMeshesRendered;
 
-void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull, int entity_num)
+void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull, int entity_num)
 {
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
 
@@ -108,12 +108,12 @@ void Lumen::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& fru
 	}
 }
 
-uint64_t Lumen::QueryPolygonCount()
+uint64_t Candela::QueryPolygonCount()
 {
 	return PolygonsRendered;
 }
 
-void Lumen::ResetPolygonCount()
+void Candela::ResetPolygonCount()
 {
 	PolygonsRendered = 0;
 }

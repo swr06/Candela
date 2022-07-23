@@ -2,7 +2,7 @@
 
 #include <functional>
 
-namespace Lumen {
+namespace Candela {
 		
 	namespace Physics {
 

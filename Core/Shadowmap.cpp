@@ -1,6 +1,6 @@
 #include "Shadowmap.h"
 
-namespace Lumen
+namespace Candela
 {
     void Shadowmap::Create(int w, int h)
     {

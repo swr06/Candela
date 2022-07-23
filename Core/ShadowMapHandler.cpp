@@ -3,7 +3,7 @@
 static const int Resolution = 1536;
 const float CascadeDistances[5] = { 8.0f, 16.0f, 32.0f, 64.0f, 128.0f};
 
-static Lumen::Shadowmap Shadowmaps[5];
+static Candela::Shadowmap Shadowmaps[5];
 static glm::mat4 ProjectionMatrices[5];
 static glm::mat4 ViewMatrices[5];
 static float ClipPlanes[5];
@@ -12,11 +12,11 @@ static float ShadowDistanceMult = 1.0f;
 
 // Sky shadowmaps! 
 static glm::vec3 SkyShadowmapDirections[SKY_SHADOWMAP_COUNT];
-static Lumen::Shadowmap SkyShadowingMaps[SKY_SHADOWMAP_COUNT];
+static Candela::Shadowmap SkyShadowingMaps[SKY_SHADOWMAP_COUNT];
 static glm::mat4 SkyProjectionMatrices[SKY_SHADOWMAP_COUNT];
 static glm::mat4 SkyViewMatrices[SKY_SHADOWMAP_COUNT];
 
-void Lumen::ShadowHandler::GenerateShadowMaps()
+void Candela::ShadowHandler::GenerateShadowMaps()
 {
 	ShadowRenderer::Initialize();
 
@@ -36,7 +36,7 @@ void Lumen::ShadowHandler::GenerateShadowMaps()
 	}
 }
 
-void Lumen::ShadowHandler::UpdateDirectShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities, float DistanceMultiplier)
+void Candela::ShadowHandler::UpdateDirectShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities, float DistanceMultiplier)
 {
 	ShadowDistanceMult = DistanceMultiplier;
 		
@@ -46,7 +46,7 @@ void Lumen::ShadowHandler::UpdateDirectShadowMaps(int Frame, const glm::vec3& Or
 	ShadowRenderer::RenderShadowMap(Shadowmaps[id], Origin, Direction, Entities, CascadeDistances[id] * DistanceMultiplier, ProjectionMatrices[id], ViewMatrices[id]);
 }
 
-void Lumen::ShadowHandler::UpdateSkyShadowMaps(int Frame, const glm::vec3& Origin, const std::vector<Entity*> Entities)
+void Candela::ShadowHandler::UpdateSkyShadowMaps(int Frame, const glm::vec3& Origin, const std::vector<Entity*> Entities)
 {
 	if (Frame % 16 == 0) {
 		std::cout << "\Sky map rendered";
@@ -59,7 +59,7 @@ void Lumen::ShadowHandler::UpdateSkyShadowMaps(int Frame, const glm::vec3& Origi
 									Distance, SkyProjectionMatrices[id], SkyViewMatrices[id]);
 }
 
-GLuint Lumen::ShadowHandler::GetDirectShadowmap(int n)
+GLuint Candela::ShadowHandler::GetDirectShadowmap(int n)
 {
 	if (n >= 5)
 		throw "Invalid shadow map requested";
@@ -67,7 +67,7 @@ GLuint Lumen::ShadowHandler::GetDirectShadowmap(int n)
 	return Shadowmaps[n].GetDepthTexture();
 }
 
-GLuint Lumen::ShadowHandler::GetSkyShadowmap(int n)
+GLuint Candela::ShadowHandler::GetSkyShadowmap(int n)
 {
 	if (n >= SKY_SHADOWMAP_COUNT)
 		throw "Invalid shadow map requested";
@@ -75,7 +75,7 @@ GLuint Lumen::ShadowHandler::GetSkyShadowmap(int n)
 	return SkyShadowingMaps[n].GetDepthTexture();
 }
 
-const Lumen::Shadowmap& Lumen::ShadowHandler::GetSkyShadowmapRef(int n)
+const Candela::Shadowmap& Candela::ShadowHandler::GetSkyShadowmapRef(int n)
 {
 	if (n >= SKY_SHADOWMAP_COUNT)
 		throw "Invalid shadow map requested";
@@ -83,37 +83,37 @@ const Lumen::Shadowmap& Lumen::ShadowHandler::GetSkyShadowmapRef(int n)
 	return SkyShadowingMaps[n];
 }
 
-glm::mat4 Lumen::ShadowHandler::GetShadowViewMatrix(int n)
+glm::mat4 Candela::ShadowHandler::GetShadowViewMatrix(int n)
 {
 	return ViewMatrices[n];
 }
 
-glm::mat4 Lumen::ShadowHandler::GetShadowProjectionMatrix(int n)
+glm::mat4 Candela::ShadowHandler::GetShadowProjectionMatrix(int n)
 {
 	return ProjectionMatrices[n];
 }
 
-glm::mat4 Lumen::ShadowHandler::GetShadowViewProjectionMatrix(int n)
+glm::mat4 Candela::ShadowHandler::GetShadowViewProjectionMatrix(int n)
 {
 	return ProjectionMatrices[n] * ViewMatrices[n];
 }
 
-glm::mat4 Lumen::ShadowHandler::GetSkyShadowViewMatrix(int n)
+glm::mat4 Candela::ShadowHandler::GetSkyShadowViewMatrix(int n)
 {
 	return SkyViewMatrices[n];
 }
 
-glm::mat4 Lumen::ShadowHandler::GetSkyShadowProjectionMatrix(int n)
+glm::mat4 Candela::ShadowHandler::GetSkyShadowProjectionMatrix(int n)
 {
 	return SkyProjectionMatrices[n];
 }
 
-glm::mat4 Lumen::ShadowHandler::GetSkyShadowViewProjectionMatrix(int n)
+glm::mat4 Candela::ShadowHandler::GetSkyShadowViewProjectionMatrix(int n)
 {
 	return SkyProjectionMatrices[n] * SkyViewMatrices[n];
 }
 
-void Lumen::ShadowHandler::CalculateClipPlanes(const glm::mat4& Projection)
+void Candela::ShadowHandler::CalculateClipPlanes(const glm::mat4& Projection)
 {
 	for (int i = 0; i < 5; i++) {
 
@@ -127,7 +127,7 @@ void Lumen::ShadowHandler::CalculateClipPlanes(const glm::mat4& Projection)
 	}
 }
 
-float Lumen::ShadowHandler::GetShadowCascadeDistance(int n)
+float Candela::ShadowHandler::GetShadowCascadeDistance(int n)
 {
 	if (n >= 5)
 		throw "Invalid shadow map requested";
@@ -135,7 +135,7 @@ float Lumen::ShadowHandler::GetShadowCascadeDistance(int n)
 	return CascadeDistances[n] * ShadowDistanceMult;
 }
 
-//float Lumen::ShadowHandler::GetClipPlane(int n)
+//float Candela::ShadowHandler::GetClipPlane(int n)
 //{
 //	if (n >= 5)
 //		throw "Invalid shadow map requested";

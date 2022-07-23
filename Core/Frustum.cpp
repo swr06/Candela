@@ -1,6 +1,6 @@
 #include "Frustum.h"
 
-void Lumen::Frustum::Update(FPSCamera& Camera, int Frame)
+void Candela::Frustum::Update(FPSCamera& Camera, int Frame)
 {
     float HalfVSide = Camera.GetFarPlane() * glm::tan(glm::radians(Camera.GetFov()) / 2.0f);
     float HalfHSide = HalfVSide * Camera.GetAspect();
@@ -14,7 +14,7 @@ void Lumen::Frustum::Update(FPSCamera& Camera, int Frame)
     this->Bottom = { Camera.GetPosition(), glm::cross(FarPlaneMultiplier + Camera.GetUp() * HalfVSide, Camera.GetRight()) };
 }
 
-bool Lumen::Frustum::TestBox(const FrustumBox& aabb, const glm::mat4& ModelMatrix)
+bool Candela::Frustum::TestBox(const FrustumBox& aabb, const glm::mat4& ModelMatrix)
 {
     glm::vec3 Center = glm::vec3(ModelMatrix * glm::vec4(aabb.Origin, 1.0f));
 

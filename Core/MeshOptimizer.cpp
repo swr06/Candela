@@ -28,7 +28,7 @@ glm::vec4 BilinearInterpolate(char* tex, glm::vec2 uv, int w, int h)
     return ret;
 }
 
-void Lumen::SoftwareUpsample(char* pixels, uint8_t type, int w, int h, int nw, int nh)
+void Candela::SoftwareUpsample(char* pixels, uint8_t type, int w, int h, int nw, int nh)
 {
     char* NewTexture = new char[w * h * 4];
 
@@ -53,7 +53,7 @@ void Lumen::SoftwareUpsample(char* pixels, uint8_t type, int w, int h, int nw, i
 }
 
 /*
-void Lumen::OptimizeMesh(Object& object)
+void Candela::OptimizeMesh(Object& object)
 {
     Mesh OptimizedMesh = Mesh(0);
     int IndexOffset = 0;
@@ -111,7 +111,7 @@ void Lumen::OptimizeMesh(Object& object)
 }*/
 
 /*
-void Lumen::PartialOptimize(Object& object)
+void Candela::PartialOptimize(Object& object)
 {
     std::cout << "epic!!!!!!!!!!!";
     std::vector<Mesh> OptimizedMeshes;
@@ -165,7 +165,7 @@ void Lumen::PartialOptimize(Object& object)
 
 */
 
-void Lumen::PartialOptimize(Object& object)
+void Candela::PartialOptimize(Object& object)
 {
     std::unordered_map<std::string, std::vector<int>> SimilarMeshes;
     std::vector<Mesh> OptimizedMeshes;

@@ -13,7 +13,7 @@
 
 #include "../Threadpool.h"
 
-namespace Lumen {
+namespace Candela {
 	namespace BVH {
 		typedef uint32_t uint;
 

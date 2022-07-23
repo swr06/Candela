@@ -6,7 +6,7 @@
 
 #include "PhysicsObject.h"
 
-namespace Lumen
+namespace Candela
 {
 
 	class Entity

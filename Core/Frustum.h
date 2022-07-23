@@ -6,7 +6,7 @@
 
 #include "AABB.h"
 
-namespace Lumen {
+namespace Candela {
 
 	class Frustum {
 

@@ -17,7 +17,7 @@
 Uses the assimp model loading library to load the models. It uses a recursive model to process the meshes and materials
 */
 
-namespace Lumen
+namespace Candela
 {
 	namespace FileLoader
 	{

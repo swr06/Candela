@@ -356,7 +356,7 @@ namespace GLClasses
 				std::cout << "\nERROR! : UNIFORM NOT FOUND IN COMPUTE SHADER !    |    UNIFORM : " << uniform_name << "  \n\n";
 				s << "\nERROR! : UNIFORM NOT FOUND IN COMPUTE SHADER !    |    UNIFORM : " << uniform_name << "  \n\n";
 
-				Lumen::Logger::LogToFile(s.str());
+				Candela::Logger::LogToFile(s.str());
 			}
 
 			Location_map[uniform_name] = loc;

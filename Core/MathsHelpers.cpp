@@ -2,7 +2,7 @@
 
 #include <glm/gtc/matrix_access.hpp>
 
-namespace Lumen {
+namespace Candela {
 
     namespace Maths {
 

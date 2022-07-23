@@ -10,7 +10,7 @@
 
 #include "Macros.h"
 
-namespace Lumen {
+namespace Candela {
 
 	class SkyShadowmap
 	{

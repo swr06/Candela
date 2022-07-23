@@ -6,7 +6,7 @@
 #include "Mesh.h"
 #include "Object.h"
 
-namespace Lumen {
+namespace Candela {
 
 	void SoftwareUpsample(char* pixels, uint8_t type, int w, int h, int nw, int nh);
 	void PartialOptimize(Object& object);

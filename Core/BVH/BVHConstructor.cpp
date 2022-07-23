@@ -33,7 +33,7 @@
 
 #include <random>
 
-namespace Lumen {
+namespace Candela {
 	namespace BVH {
 
 		// true : Uses Surface Area Heuristic (finds cut using a simple binary search)

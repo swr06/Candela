@@ -18,7 +18,7 @@ float HaltonSequence(int Prime, int index)
 	return r;
 }
 
-void Lumen::GenerateJitterStuff()
+void Candela::GenerateJitterStuff()
 {
 	for (int i = 0; i < 32; i++) 
 	{
@@ -27,14 +27,14 @@ void Lumen::GenerateJitterStuff()
 	}
 }
 
-glm::vec2 Lumen::GetTAAJitter(int CurrentFrame)
+glm::vec2 Candela::GetTAAJitter(int CurrentFrame)
 {
 	glm::vec2 Jitter = HaltonSequenceData[CurrentFrame % 32];
 	return Jitter;
 }
 
 // Creates the jitter matrix
-glm::mat4 Lumen::GetTAAJitterMatrix(int CurrentFrame, const glm::vec2& resolution)
+glm::mat4 Candela::GetTAAJitterMatrix(int CurrentFrame, const glm::vec2& resolution)
 {
 	glm::vec2 Jitter = HaltonSequenceData[CurrentFrame % 32];
 	glm::vec2 TexelSize = 1.0f / glm::vec2(resolution);

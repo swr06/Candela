@@ -1,6 +1,6 @@
 #include "Mesh.h"
 
-namespace Lumen
+namespace Candela
 {
 	Mesh::Mesh(const uint32_t number) : m_VertexBuffer(GL_ARRAY_BUFFER), m_MeshNumber(number)
 	{

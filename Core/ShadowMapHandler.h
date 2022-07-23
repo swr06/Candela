@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-namespace Lumen {
+namespace Candela {
 	
 	namespace ShadowHandler {
 
@@ -20,7 +20,7 @@ namespace Lumen {
 
 		void UpdateSkyShadowMaps(int Frame, const glm::vec3& Origin, const std::vector<Entity*> Entities);
 		GLuint GetSkyShadowmap(int n);
-		const Lumen::Shadowmap& GetSkyShadowmapRef(int n);
+		const Candela::Shadowmap& GetSkyShadowmapRef(int n);
 
 		glm::mat4 GetShadowViewMatrix(int n);
 		glm::mat4 GetShadowProjectionMatrix(int n);

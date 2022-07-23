@@ -12,7 +12,7 @@
 
 #include "Frustum.h"
 
-namespace Lumen {
+namespace Candela {
 
 	void RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull, int entity_num = 0);
 	uint64_t QueryPolygonCount();

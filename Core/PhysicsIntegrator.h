@@ -8,7 +8,7 @@
 
 #include <cmath>
 
-namespace Lumen {
+namespace Candela {
 
 	namespace Physics {
 

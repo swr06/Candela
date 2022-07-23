@@ -5,11 +5,11 @@
 
 #define _CRT_SECURE_NO_WARNINGS // tf vs? 
 
-namespace Lumen
+namespace Candela
 {
 	void Logger::Log(const std::string& txt)
 	{
-		std::cout << "\n" << "Lumen :  " << txt; 
+		std::cout << "\n" << "Candela :  " << txt; 
 	}
 
 	void Logger::LogToFile(const std::string& txt)

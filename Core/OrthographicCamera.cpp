@@ -1,6 +1,6 @@
 #include "OrthographicCamera.h"
 
-namespace Lumen
+namespace Candela
 {
 	OrthographicCamera::OrthographicCamera(float left, float right, float bottom, float top)
 	{

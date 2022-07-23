@@ -1,6 +1,6 @@
 #include "SkyShadowMap.h"
 
-namespace Lumen
+namespace Candela
 {
     void SkyShadowmap::Create(int w, int h)
     {

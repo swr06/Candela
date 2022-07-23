@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <iostream>
 
-namespace Lumen
+namespace Candela
 {
 	class Shadowmap
 	{

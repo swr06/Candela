@@ -8,7 +8,7 @@
 //#define LARGE_RANGE_PROBE_GI
 //#define STUPIDLY_HIGH_RES_PROBE_GI
 
-namespace Lumen {
+namespace Candela {
 	namespace ProbeGI {
 
 #ifdef DEFAULT_PROBE_GI
@@ -43,7 +43,7 @@ namespace Lumen {
 	}
 }
 
-void Lumen::ProbeGI::Initialize()
+void Candela::ProbeGI::Initialize()
 {
 	glGenTextures(1, &_ProbeDataTextures[0]);
 	glBindTexture(GL_TEXTURE_3D, _ProbeDataTextures[0]);
@@ -130,7 +130,7 @@ static float Align(float value, float size)
 	return std::floor(value / size) * size;
 }
 
-void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
+void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
 {
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 	GLClasses::ComputeShader& CopyVolume = ShaderManager::GetComputeShader("COPY_VOLUME");
@@ -231,7 +231,7 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraver
 	glUseProgram(0);
 }
 
-void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
+void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
 {
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 	GLClasses::ComputeShader& CopyVolume = ShaderManager::GetComputeShader("COPY_VOLUME");
@@ -333,32 +333,32 @@ void Lumen::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalN
 	glUseProgram(0);
 }
 
-glm::vec3 Lumen::ProbeGI::GetProbeGridSize()
+glm::vec3 Candela::ProbeGI::GetProbeGridSize()
 {
 	return ProbeBoxSize;
 }
 
-glm::vec3 Lumen::ProbeGI::GetProbeGridRes()
+glm::vec3 Candela::ProbeGI::GetProbeGridRes()
 {
 	return glm::vec3(ProbeGridX, ProbeGridY, ProbeGridZ);
 }
 
-glm::vec3 Lumen::ProbeGI::GetProbeBoxOrigin()
+glm::vec3 Candela::ProbeGI::GetProbeBoxOrigin()
 {
 	return LastOrigin;
 }
 
-GLuint Lumen::ProbeGI::GetProbeDataSSBO()
+GLuint Candela::ProbeGI::GetProbeDataSSBO()
 {
 	return _ProbeMapSSBO;
 }
 
-glm::uvec2 Lumen::ProbeGI::GetProbeDataTextures()
+glm::uvec2 Candela::ProbeGI::GetProbeDataTextures()
 {
 	return glm::uvec2(_CurrentDataTextures);
 }
 
-GLuint Lumen::ProbeGI::GetProbeColorTexture()
+GLuint Candela::ProbeGI::GetProbeColorTexture()
 {
 	return _CurrentDataTextures.z;
 }

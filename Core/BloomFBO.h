@@ -3,7 +3,7 @@
 #include <iostream>
 #include <glad/glad.h>
 
-namespace Lumen
+namespace Candela
 {
 	class BloomFBO
 	{

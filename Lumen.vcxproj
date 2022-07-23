@@ -24,6 +24,7 @@
     <ProjectGuid>{9e5b3bbb-37f7-43e5-b0a6-5d2320bc982b}</ProjectGuid>
     <RootNamespace>Lumen</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Candela</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

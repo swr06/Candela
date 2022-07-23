@@ -1,7 +1,7 @@
 #include "Player.h"
 #include "Utils/Random.h"
 
-namespace Lumen
+namespace Candela
 {
 	Player::Player() : Camera(90.0f, 800.0f / 600.0f, 0.02f, 850.0f), m_AABB(glm::vec3(0.3f, 1.0f, 0.3f))
 	{

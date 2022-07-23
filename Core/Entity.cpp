@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-Lumen::Entity::Entity(Object* object)
+Candela::Entity::Entity(Object* object)
 	: m_Object(object)
 {
 	m_Model = glm::mat4(1.0f);
@@ -10,7 +10,7 @@ Lumen::Entity::Entity(Object* object)
 	m_IsPhysicsObject = false;
 }
 
-Lumen::Entity::~Entity()
+Candela::Entity::~Entity()
 {
 
 }

@@ -1,6 +1,6 @@
 #include "FpsCamera.h"
 
-namespace Lumen
+namespace Candela
 {
 	FPSCamera::FPSCamera(float fov, float aspect, float zNear, float zFar, float sensitivity)
 	{

@@ -4,7 +4,7 @@
 
 #include <glm/glm.hpp>
 
-namespace Lumen {
+namespace Candela {
 
     namespace Maths {
         glm::vec3 GetForwardVector(const glm::mat4& Transform);

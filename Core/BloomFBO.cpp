@@ -1,6 +1,6 @@
 #include "BloomFBO.h"
 
-namespace Lumen
+namespace Candela
 { 
 	BloomFBO::BloomFBO(int w, int h)
 	{

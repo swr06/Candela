@@ -2,7 +2,7 @@
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 
-namespace Lumen
+namespace Candela
 {
 	struct Vertex
 	{

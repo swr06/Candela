@@ -2,7 +2,7 @@
 
 #include "ShaderManager.h"
 
-namespace Lumen
+namespace Candela
 {
 	namespace BloomRenderer
 	{

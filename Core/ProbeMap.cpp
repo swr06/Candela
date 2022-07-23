@@ -1,6 +1,6 @@
 #include "ProbeMap.h"
 
-namespace Lumen
+namespace Candela
 {
     ProbeMap::ProbeMap(GLuint res) : m_Resolution(res)
 	{

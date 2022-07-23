@@ -6,7 +6,7 @@ uint32_t _App_PolygonCount = 0;
 bool VoxelRT_mouse_enabled; 
 bool VoxelRT_keyboard_enabled;
 
-namespace Lumen
+namespace Candela
 {
 	// Event callbacks
 	void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -145,7 +145,7 @@ namespace Lumen
 		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 
 		// Use the latest ogl version
-		m_Window = glfwCreateWindow(m_Width, m_Height, "Lumen", NULL, NULL); 
+		m_Window = glfwCreateWindow(m_Width, m_Height, "Candela", NULL, NULL); 
 
 		if (!m_Window)
 		{
@@ -210,7 +210,7 @@ namespace Lumen
 		char* vendor = (char*)glGetString(GL_VENDOR);
 		char* version = (char*)glGetString(GL_VERSION);
 
-		std::cout << "-----------  Lumen -----------\n";
+		std::cout << "-----------  Candela -----------\n";
 		std::cout << "\tRENDERER : " << renderer << "\n";
 		std::cout << "\tVENDOR : " << vendor << "\n";
 		std::cout << "\tVERSION : " << version << "\n";

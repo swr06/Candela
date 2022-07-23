@@ -13,7 +13,7 @@
 
 #include "Logger.h"
 
-namespace Lumen
+namespace Candela
 {
 	enum EventTypes
 	{

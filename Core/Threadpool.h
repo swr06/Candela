@@ -11,7 +11,7 @@
 
 #include <queue>
 
-namespace Lumen {
+namespace Candela {
 
 	template <typename T>
 	class ThreadPool {

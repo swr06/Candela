@@ -10,7 +10,7 @@
 
 #include <glm/glm.hpp>
 
-namespace Lumen
+namespace Candela
 {
 	class ProbeMap
 	{

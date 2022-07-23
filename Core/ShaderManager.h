@@ -8,7 +8,7 @@
 #include "GLClasses/Shader.h"
 #include "GLClasses/ComputeShader.h"
 
-namespace Lumen
+namespace Candela
 { 
 	namespace ShaderManager
 	{

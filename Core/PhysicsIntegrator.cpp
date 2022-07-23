@@ -1,6 +1,6 @@
 #include "PhysicsIntegrator.h"
 
-namespace Lumen {
+namespace Candela {
 
 	namespace Physics {
 

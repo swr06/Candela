@@ -47,7 +47,7 @@ namespace GLClasses
 				std::cout << "\nCOMPILATION ERROR IN GEOMETRY SHADER (" << m_GeometryPath << ")" << "\n" << GLInfoLog << "\n\n";
 				s << "\nCOMPILATION ERROR IN GEOMETRY SHADER (" << m_GeometryPath << ")" << "\n" << GLInfoLog << "\n\n";
 
-				Lumen::Logger::LogToFile(s.str());
+				Candela::Logger::LogToFile(s.str());
 			}
 
 			GLint log_length = 0;
@@ -63,7 +63,7 @@ namespace GLClasses
 				std::cout << "Geometry Shader compilation log: " << shaderlog << std::endl;
 				s << "Geometry Shader compilation log: " << shaderlog << std::endl;
 
-				Lumen::Logger::LogToFile(s.str());
+				Candela::Logger::LogToFile(s.str());
 			}
 		}
 
@@ -88,7 +88,7 @@ namespace GLClasses
 			std::cout << "\nCOMPILATION ERROR IN VERTEX SHADER (" << m_VertexPath << ")" << "\n" << GLInfoLog << "\n\n";
 			s << "\nCOMPILATION ERROR IN VERTEX SHADER (" << m_VertexPath << ")" << "\n" << GLInfoLog << "\n\n";
 
-			Lumen::Logger::LogToFile(s.str());
+			Candela::Logger::LogToFile(s.str());
 		}
 
 
@@ -103,7 +103,7 @@ namespace GLClasses
 			std::cout << "Shader compilation log: " << shaderlog << std::endl;
 			s << "Shader compilation log: " << shaderlog << std::endl;
 
-			Lumen::Logger::LogToFile(s.str());
+			Candela::Logger::LogToFile(s.str());
 		}
 
 		glCompileShader(fs);
@@ -117,7 +117,7 @@ namespace GLClasses
 			std::cout << "\nCOMPILATION ERROR IN FRAGMENT SHADER (" << m_FragmentPath << ")" << "\n" << GLInfoLog << "\n";
 			s << "\nCOMPILATION ERROR IN FRAGMENT SHADER (" << m_FragmentPath << ")" << "\n" << GLInfoLog << "\n";
 
-			Lumen::Logger::LogToFile(s.str());
+			Candela::Logger::LogToFile(s.str());
 		}
 
 		log_length = 0;
@@ -131,7 +131,7 @@ namespace GLClasses
 			std::cout << "Shader compilation log: " << shaderlog << std::endl;
 			s << "Shader compilation log: " << shaderlog << std::endl;
 
-			Lumen::Logger::LogToFile(s.str());
+			Candela::Logger::LogToFile(s.str());
 		}
 
 		m_Program = glCreateProgram();
@@ -155,7 +155,7 @@ namespace GLClasses
 			std::cout << "ERROR : SHADER LINKING FAILED : \n" << GLInfoLog << std::endl;
 			s << "ERROR : SHADER LINKING FAILED : \n" << GLInfoLog << std::endl;
 
-			Lumen::Logger::LogToFile(s.str());
+			Candela::Logger::LogToFile(s.str());
 		}
 
 		glDeleteShader(vs);
@@ -514,7 +514,7 @@ namespace GLClasses
 				std::cout << "\nERROR! : UNIFORM NOT FOUND!    |    UNIFORM : " << uniform_name << "  \n\n";
 				s << "\nERROR! : UNIFORM NOT FOUND!    |    UNIFORM : " << uniform_name << "  \n\n";
 
-				Lumen::Logger::LogToFile(s.str());
+				Candela::Logger::LogToFile(s.str());
 			}
 
 			Location_map[uniform_name] = loc;

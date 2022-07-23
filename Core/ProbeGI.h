@@ -14,7 +14,7 @@
 
 #include "ShadowMapHandler.h"
 
-namespace Lumen {
+namespace Candela {
 
 	namespace ProbeGI {
 

@@ -4,7 +4,7 @@
 static std::unordered_map<std::string, GLClasses::Shader> ShaderManager_ShaderMap;
 static std::unordered_map<std::string, GLClasses::ComputeShader> ShaderManager_ShaderMapC;
 
-void Lumen::ShaderManager::CreateShaders()
+void Candela::ShaderManager::CreateShaders()
 {
 	AddShader("GBUFFER", "Core/Shaders/GeometryVert.glsl", "Core/Shaders/GeometryFrag.glsl");
 	AddShader("LIGHTING_PASS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/ColorPass.glsl");
@@ -29,7 +29,7 @@ void Lumen::ShaderManager::CreateShaders()
 	AddComputeShader("COLLISIONS", "Core/Shaders/Collide.comp");
 }
 
-void Lumen::ShaderManager::AddShader(const std::string& name, const std::string& vert, const std::string& frag, const std::string& geo)
+void Candela::ShaderManager::AddShader(const std::string& name, const std::string& vert, const std::string& frag, const std::string& geo)
 {
 	auto exists = ShaderManager_ShaderMap.find(name);
 
@@ -47,7 +47,7 @@ void Lumen::ShaderManager::AddShader(const std::string& name, const std::string&
 	}
 }
 
-void Lumen::ShaderManager::AddComputeShader(const std::string& name, const std::string& comp)
+void Candela::ShaderManager::AddComputeShader(const std::string& name, const std::string& comp)
 {
 	auto exists = ShaderManager_ShaderMapC.find(name);
 
@@ -65,7 +65,7 @@ void Lumen::ShaderManager::AddComputeShader(const std::string& name, const std::
 	}
 }
 
-GLClasses::Shader& Lumen::ShaderManager::GetShader(const std::string& name)
+GLClasses::Shader& Candela::ShaderManager::GetShader(const std::string& name)
 {
 	auto exists = ShaderManager_ShaderMap.find(name);
 
@@ -80,7 +80,7 @@ GLClasses::Shader& Lumen::ShaderManager::GetShader(const std::string& name)
 	}
 }
 
-GLClasses::ComputeShader& Lumen::ShaderManager::GetComputeShader(const std::string& name)
+GLClasses::ComputeShader& Candela::ShaderManager::GetComputeShader(const std::string& name)
 {
 	auto exists = ShaderManager_ShaderMapC.find(name);
 
@@ -95,7 +95,7 @@ GLClasses::ComputeShader& Lumen::ShaderManager::GetComputeShader(const std::stri
 	}
 }
 
-GLuint Lumen::ShaderManager::GetShaderID(const std::string& name)
+GLuint Candela::ShaderManager::GetShaderID(const std::string& name)
 {
 	auto exists = ShaderManager_ShaderMap.find(name);
 
@@ -110,7 +110,7 @@ GLuint Lumen::ShaderManager::GetShaderID(const std::string& name)
 	}
 }
 
-void Lumen::ShaderManager::RecompileShaders()
+void Candela::ShaderManager::RecompileShaders()
 {
 	int ShadersRecompiled = 0;
 	int ComputeShadersRecompiled = 0;
@@ -128,7 +128,7 @@ void Lumen::ShaderManager::RecompileShaders()
 	std::cout << "\nShaders Recompiled : " << ShadersRecompiled << "   |   Compute Shaders Recompiled : " << ComputeShadersRecompiled;
 }
 
-void Lumen::ShaderManager::ForceRecompileShaders()
+void Candela::ShaderManager::ForceRecompileShaders()
 {
 	for (auto& e : ShaderManager_ShaderMap)
 	{

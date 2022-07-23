@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-namespace Lumen
+namespace Candela
 {
 	// Orthographic camera class for 2D element rendering
 

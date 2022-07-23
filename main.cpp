@@ -5,5 +5,5 @@
 
 int main()
 {
-	Lumen::StartPipeline();
+	Candela::StartPipeline();
 }

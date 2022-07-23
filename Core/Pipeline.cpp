@@ -43,10 +43,10 @@
 int __TotalMeshesRendered = 0;
 int __MainViewMeshesRendered = 0;
 
-Lumen::RayIntersector<Lumen::BVH::StacklessTraversalNode> Intersector;
+Candela::RayIntersector<Candela::BVH::StacklessTraversalNode> Intersector;
 
-Lumen::Player Player;
-Lumen::FPSCamera& Camera = Player.Camera;
+Candela::Player Player;
+Candela::FPSCamera& Camera = Player.Camera;
 
 static bool vsync = false;
 static float SunTick = 50.0f;
@@ -102,14 +102,14 @@ static bool EditMode = false;
 static bool ShouldDrawGrid = true;
 static int EditOperation = 0;
 
-static Lumen::Entity* SelectedEntity = nullptr;
+static Candela::Entity* SelectedEntity = nullptr;
 static ImGuizmo::MODE Mode = ImGuizmo::MODE::LOCAL;
 static bool UseSnap = true;
 static glm::vec3 SnapSize = glm::vec3(0.5f);
 
 
 // Render list 
-std::vector<Lumen::Entity*> EntityRenderList;
+std::vector<Candela::Entity*> EntityRenderList;
 
 // GBuffer
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
@@ -125,7 +125,7 @@ void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, c
 	ImGuizmo::DrawGrid(glm::value_ptr(CameraMatrix), glm::value_ptr(ProjectionMatrix), value_ptr(CurrentMatrix), size);
 }
 
-class RayTracerApp : public Lumen::Application
+class RayTracerApp : public Candela::Application
 {
 public:
 
@@ -287,11 +287,11 @@ public:
 		__MainViewMeshesRendered = 0;
 	}
 
-	void OnEvent(Lumen::Event e) override
+	void OnEvent(Candela::Event e) override
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		
-		if (e.type == Lumen::EventTypes::MousePress && EditMode && !ImGui::GetIO().WantCaptureMouse)
+		if (e.type == Candela::EventTypes::MousePress && EditMode && !ImGui::GetIO().WantCaptureMouse)
 		{
 			if (!this->GetCursorLocked()) {
 
@@ -313,67 +313,67 @@ public:
 			}
 		}
 
-		if (e.type == Lumen::EventTypes::MouseMove && GetCursorLocked())
+		if (e.type == Candela::EventTypes::MouseMove && GetCursorLocked())
 		{
 			Camera.UpdateOnMouseMovement(e.mx, e.my);
 		}
 
 
-		if (e.type == Lumen::EventTypes::MouseScroll)
+		if (e.type == Candela::EventTypes::MouseScroll)
 		{
 			float Sign = e.msy < 0.0f ? 1.0f : -1.0f;
 			Camera.SetFov(Camera.GetFov() + 2.0f * Sign);
 			Camera.SetFov(glm::clamp(Camera.GetFov(), 1.0f, 89.0f));
 		}
 
-		if (e.type == Lumen::EventTypes::WindowResize)
+		if (e.type == Candela::EventTypes::WindowResize)
 		{
 			Camera.SetAspect((float)e.wx / (float)e.wy);
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_ESCAPE) {
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_ESCAPE) {
 			exit(0);
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F1)
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F1)
 		{
 			this->SetCursorLocked(!this->GetCursorLocked());
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F2 && this->GetCurrentFrame() > 5)
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F2 && this->GetCurrentFrame() > 5)
 		{
-			Lumen::ShaderManager::RecompileShaders();
+			Candela::ShaderManager::RecompileShaders();
 			Intersector.Recompile();
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F3 && this->GetCurrentFrame() > 5)
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F3 && this->GetCurrentFrame() > 5)
 		{
-			Lumen::ShaderManager::ForceRecompileShaders();
+			Candela::ShaderManager::ForceRecompileShaders();
 			Intersector.Recompile();
 		}
 		
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F5 && this->GetCurrentFrame() > 5)
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F5 && this->GetCurrentFrame() > 5)
 		{
 			EditMode = !EditMode;
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F6 && this->GetCurrentFrame() > 5) {
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F6 && this->GetCurrentFrame() > 5) {
 			EditOperation = 0;
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F7 && this->GetCurrentFrame() > 5) {
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F7 && this->GetCurrentFrame() > 5) {
 			EditOperation = 1;
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F8 && this->GetCurrentFrame() > 5) {
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F8 && this->GetCurrentFrame() > 5) {
 			EditOperation = 2;
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_F9 && this->GetCurrentFrame() > 5) {
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_F9 && this->GetCurrentFrame() > 5) {
 			EditOperation = 3;
 		}
 
-		if (e.type == Lumen::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
+		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_V && this->GetCurrentFrame() > 5)
 		{
 			vsync = !vsync;
 		}
@@ -384,12 +384,12 @@ public:
 };
 
 
-void RenderEntityList(const std::vector<Lumen::Entity*> EntityList, GLClasses::Shader& shader) {
+void RenderEntityList(const std::vector<Candela::Entity*> EntityList, GLClasses::Shader& shader) {
 
 	int En = 0;
 		
 	for (auto& e : EntityList) {
-		Lumen::RenderEntity(*e, shader, Player.CameraFrustum, DoFrustumCulling, En);
+		Candela::RenderEntity(*e, shader, Player.CameraFrustum, DoFrustumCulling, En);
 		En++;
 	}
 }
@@ -450,7 +450,7 @@ GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RG
 GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
 
 // Entry point 
-void Lumen::StartPipeline()
+void Candela::StartPipeline()
 {
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
 	const glm::mat4 ZOrientMatrixNegative = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, -1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
@@ -1454,6 +1454,6 @@ void Lumen::StartPipeline()
 		DeltaTime = CurrentTime - Frametime;
 		Frametime = glfwGetTime();
 
-		GLClasses::DisplayFrameRate(app.GetWindow(), "Lumen ");
+		GLClasses::DisplayFrameRate(app.GetWindow(), "Candela ");
 	}
 }

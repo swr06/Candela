@@ -22,7 +22,7 @@
 
 #include <type_traits>
 
-namespace Lumen {
+namespace Candela {
 
 	namespace BVH {
 
@@ -54,7 +54,7 @@ namespace Lumen {
 	};
 
 
-	// The template passed to this class can either be Lumen::BVH::StacklessTraversalNode or Lumen::BVH::StackTraversalNode
+	// The template passed to this class can either be Candela::BVH::StacklessTraversalNode or Candela::BVH::StackTraversalNode
 	template<typename T> 
 	class RayIntersector {
 
@@ -124,7 +124,7 @@ namespace Lumen {
 
 
 template<typename T>
-Lumen::RayIntersector<T>::RayIntersector()
+Candela::RayIntersector<T>::RayIntersector()
 {
 	m_IndexOffset = 0;
 	m_BVHTriSSBO = 0;
@@ -148,7 +148,7 @@ Lumen::RayIntersector<T>::RayIntersector()
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::Initialize()
+void Candela::RayIntersector<T>::Initialize()
 {
 	m_MiscTex.CreateTexture("Res/misc.png");
 
@@ -164,9 +164,9 @@ void Lumen::RayIntersector<T>::Initialize()
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::AddObject(const Object& object)
+void Candela::RayIntersector<T>::AddObject(const Object& object)
 {
-	using namespace Lumen::BVH;
+	using namespace Candela::BVH;
 
 	std::vector<T> Nodes;
 	std::vector<Vertex> Vertices;
@@ -195,7 +195,7 @@ void Lumen::RayIntersector<T>::AddObject(const Object& object)
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::PushEntity(const Entity& entity)
+void Candela::RayIntersector<T>::PushEntity(const Entity& entity)
 {
 	if (m_ObjectData.find((int)entity.m_Object->m_ObjectID) == m_ObjectData.end()) {
 		throw "Trying to push entity whose parent object hasn't been added to global BVH";
@@ -212,7 +212,7 @@ void Lumen::RayIntersector<T>::PushEntity(const Entity& entity)
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::PushEntities(const std::vector<Entity*>& Entities)
+void Candela::RayIntersector<T>::PushEntities(const std::vector<Entity*>& Entities)
 {
 	for (const auto& e : Entities) {
 		PushEntity(*e);
@@ -220,7 +220,7 @@ void Lumen::RayIntersector<T>::PushEntities(const std::vector<Entity*>& Entities
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::BufferEntities()
+void Candela::RayIntersector<T>::BufferEntities()
 {
 	glDeleteBuffers(1, &m_BVHEntitiesSSBO);
 
@@ -235,7 +235,7 @@ void Lumen::RayIntersector<T>::BufferEntities()
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera)
+void Candela::RayIntersector<T>::IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera)
 {
 	const std::vector<FileLoader::_TexturePaths>& Paths = FileLoader::GetMeshTexturePaths();
 	
@@ -263,7 +263,7 @@ void Lumen::RayIntersector<T>::IntersectPrimary(GLuint OutputBuffer, int Width, 
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader, bool ShouldBindTextures)
+void Candela::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader, bool ShouldBindTextures)
 {
 	const std::vector<FileLoader::_MeshMaterialData>& Paths = FileLoader::GetMeshTexturePaths();
 
@@ -289,7 +289,7 @@ void Lumen::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader, 
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::BufferData(bool ClearCPUData)
+void Candela::RayIntersector<T>::BufferData(bool ClearCPUData)
 {
 	glDeleteBuffers(1, &m_BVHTriSSBO);
 	glDeleteBuffers(1, &m_BVHNodeSSBO);
@@ -321,20 +321,20 @@ void Lumen::RayIntersector<T>::BufferData(bool ClearCPUData)
 }
 
 template<typename T>
-inline bool Lumen::RayIntersector<T>::Collide(const glm::vec3& Point)
+inline bool Candela::RayIntersector<T>::Collide(const glm::vec3& Point)
 {
 	return false;
 }
 
 
 template<typename T>
-void Lumen::RayIntersector<T>::Recompile()
+void Candela::RayIntersector<T>::Recompile()
 {
 	//TraceShader.Recompile();
 }
 
 template<typename T>
-void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
+void Candela::RayIntersector<T>::GenerateMeshTextureReferences()
 {
 
 	m_TextureHandleReferenceMap.clear();
@@ -385,7 +385,7 @@ void Lumen::RayIntersector<T>::GenerateMeshTextureReferences()
 // TODO : Remove limit for textures 
 
 template<typename T>
-inline void Lumen::RayIntersector<T>::_BindTextures()
+inline void Candela::RayIntersector<T>::_BindTextures()
 {
 	TraceShader.Use();
 	
@@ -400,7 +400,7 @@ inline void Lumen::RayIntersector<T>::_BindTextures()
 }
 
 template<typename T>
-inline void Lumen::RayIntersector<T>::_BindTextures(GLClasses::ComputeShader& Shader)
+inline void Candela::RayIntersector<T>::_BindTextures(GLClasses::ComputeShader& Shader)
 {
 	Shader.Use();
 

@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-namespace Lumen
+namespace Candela
 {
 	static uint32_t _CurrentObjectID = 1;
 

@@ -15,9 +15,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-namespace Lumen
+namespace Candela
 {
-	class Object;
+	class Object; 
 	
 	namespace FileLoader
 	{

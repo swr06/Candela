@@ -8,7 +8,7 @@
 
 #include <cmath>
 
-namespace Lumen {
+namespace Candela {
 
 	void GenerateJitterStuff();
 	glm::vec2 GetTAAJitter(int CurrentFrame);

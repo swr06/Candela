@@ -4,7 +4,7 @@
 
 #include <glm/glm.hpp>
 
-namespace Lumen {
+namespace Candela {
 
 	namespace Physics {
 

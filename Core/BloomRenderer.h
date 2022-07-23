@@ -10,7 +10,7 @@
 #include "GLClasses/VertexBuffer.h"
 #include "GLClasses/VertexArray.h"
 
-namespace Lumen
+namespace Candela
 {
 	namespace BloomRenderer
 	{

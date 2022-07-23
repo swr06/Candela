@@ -13,7 +13,7 @@
 
 #include "CollisionHandler.h"
 
-namespace Lumen {
+namespace Candela {
 
 	void StartPipeline();
 }

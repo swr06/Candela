@@ -4,9 +4,9 @@
 
 #include <glm/glm.hpp>
 
-namespace Lumen
+namespace Candela
 {
-	struct CollisionQuery {
+	struct CollisionQuery { 
 		glm::vec4 Min;
 		glm::vec4 Max;
 	};

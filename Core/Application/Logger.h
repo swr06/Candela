@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace Lumen
+namespace Candela
 {
 	namespace Logger
 	{
