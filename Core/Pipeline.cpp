@@ -787,8 +787,8 @@ void Candela::StartPipeline()
 			VolumetricsShader.SetInteger("u_Skymap", 2);
 			VolumetricsShader.SetInteger("u_Steps", VolumetricsSteps);
 
-			VolumetricsShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
-			VolumetricsShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+			VolumetricsShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
+			VolumetricsShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
 			VolumetricsShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 			VolumetricsShader.SetInteger("u_ProbeRadiance", 14);
 			VolumetricsShader.SetFloat("u_Strength", VolumetricsGlobalStrength);
@@ -843,8 +843,8 @@ void Candela::StartPipeline()
 		DiffuseShader.SetInteger("u_NormalTexture", 1);
 		DiffuseShader.SetInteger("u_Skymap", 2);
 
-		DiffuseShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
-		DiffuseShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+		DiffuseShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
+		DiffuseShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
 		DiffuseShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 		DiffuseShader.SetInteger("u_SHDataA", 14);
 		DiffuseShader.SetInteger("u_SHDataB", 15);
@@ -906,8 +906,8 @@ void Candela::StartPipeline()
 		SpecularShader.SetInteger("u_IndirectDiffuse", 5);
 		SpecularShader.SetInteger("u_SkyCube", 12);
 		SpecularShader.SetVector2f("u_Dimensions", glm::vec2(SpecularTrace.GetWidth(), SpecularTrace.GetHeight()));
-		SpecularShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
-		SpecularShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+		SpecularShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
+		SpecularShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
 		SpecularShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 		SpecularShader.SetInteger("u_SHDataA", 14);
 		SpecularShader.SetInteger("u_SHDataB", 15);
@@ -1266,14 +1266,15 @@ void Candela::StartPipeline()
 		LightingShader.SetMatrix4("u_LightVP",ShadowHandler::GetShadowViewProjectionMatrix(0));
 		LightingShader.SetVector2f("u_Dims", glm::vec2(app.GetWidth(), app.GetHeight()));
 
-		LightingShader.SetVector3f("u_ProbeBoxSize", ProbeGI::GetProbeGridSize());
-		LightingShader.SetVector3f("u_ProbeGridResolution", ProbeGI::GetProbeGridRes());
+		LightingShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
+		LightingShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
 		LightingShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 
 		LightingShader.SetInteger("u_SHDataA", 15);
 		LightingShader.SetInteger("u_SHDataB", 16);
 		LightingShader.SetInteger("u_Volumetrics", 17);
 		LightingShader.SetInteger("u_NormalLFTexture", 18);
+		LightingShader.SetInteger("u_VoxelVolume", 19);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
@@ -1342,6 +1343,9 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE18);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+		glActiveTexture(GL_TEXTURE19);
+		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetVoxelVolume());
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 

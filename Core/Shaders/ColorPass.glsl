@@ -14,6 +14,7 @@
 #include "Include/SpatialUtility.glsl"
 #include "Include/Karis.glsl"
 #include "Include/Utility.glsl"
+#include "Include/DDA.glsl"
 
 layout (location = 0) out vec3 o_Color;
 
@@ -32,6 +33,8 @@ uniform sampler2D u_IndirectDiffuse;
 uniform sampler2D u_IndirectSpecular;
 
 uniform sampler2D u_Volumetrics;
+
+uniform sampler3D u_VoxelVolume;
 
 uniform vec3 u_ViewerPosition;
 uniform vec3 u_LightDirection;
@@ -190,13 +193,20 @@ const vec3 SunColor = vec3(16.0f);
 
 void main() 
 {	
-	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time;
-
-
-	//o_Color = pow(texture(SkyHemisphericalShadowmaps[u_Frame % 32], v_TexCoords).xxx, 32.0.xxx) * 32.5;
-	//return;
-
 	vec3 rO = u_InverseView[3].xyz;
+	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
+
+	//vec4 data = vec4(0.); vec3 n, w;
+	//bool dda = DDA(u_VoxelVolume, rO, rD, 256, data, n,w);
+	//
+	//if (dda) {
+	//
+	//	o_Color = data.xyz;
+	//	return;
+	//	
+	//}
+	
+	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time;
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
@@ -206,7 +216,6 @@ void main()
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
 
 	if (Depth > 0.999999f) {
-		vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 2.5f; // <----- pow2 done here 
 		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz;
 		return;

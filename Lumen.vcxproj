@@ -299,6 +299,7 @@
     <None Include="Core\Shaders\DiffuseRayGenerate.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
     <None Include="Core\Shaders\Include\3DNoise.glsl" />
+    <None Include="Core\Shaders\Include\DDA.glsl" />
     <None Include="Core\Shaders\Include\DiffuseSH.glsl" />
     <None Include="Core\Shaders\Include\Physics.glsl" />
     <None Include="Core\Shaders\Include\SampleSkyVisibilityHemisSM.glsl" />

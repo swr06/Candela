@@ -4,33 +4,10 @@
 
 #include "ShadowMapHandler.h"
 
-#define DEFAULT_PROBE_GI
-//#define LARGE_RANGE_PROBE_GI
-//#define STUPIDLY_HIGH_RES_PROBE_GI
+
 
 namespace Candela {
 	namespace ProbeGI {
-
-#ifdef DEFAULT_PROBE_GI
-		const int ProbeGridX = 48;
-		const int ProbeGridY = 24;
-		const int ProbeGridZ = 48;
-		const glm::vec3 ProbeBoxSize = glm::vec3(24.0f, 12.0f, 24.0f);
-
-#else
-	#ifdef LARGE_RANGE_PROBE_GI
-			const int ProbeGridX = 64;
-			const int ProbeGridY = 32;
-			const int ProbeGridZ = 64;
-			const glm::vec3 ProbeBoxSize = glm::vec3(32.0f, 16.0f, 32.0f);
-
-	#else 
-			const int ProbeGridX = 128;
-			const int ProbeGridY = 64;
-			const int ProbeGridZ = 128;
-			const glm::vec3 ProbeBoxSize = glm::vec3(32.0f, 16.0f, 32.0f);
-	#endif
-#endif
 
 		static GLuint _ProbeDataTextures[2] = { 0, 0 };
 		static GLuint _PrevProbeDataTextures[2] = { 0, 0 };
@@ -40,11 +17,18 @@ namespace Candela {
 		static glm::vec3 _PreviousOrigin = glm::vec3(0.0f);
 		static glm::uvec3 _CurrentDataTextures;
 		static GLuint _ProbeRawRadianceBuffers[2]; // <- Unprojected radiance
+
+		// Scene voxel representation
+		static GLuint VoxelVolume = 0;
 	}
 }
 
 void Candela::ProbeGI::Initialize()
 {
+	const int ProbeGridX = PROBE_GRID_X;
+	const int ProbeGridY = PROBE_GRID_Y;
+	const int ProbeGridZ = PROBE_GRID_Z;
+
 	glGenTextures(1, &_ProbeDataTextures[0]);
 	glBindTexture(GL_TEXTURE_3D, _ProbeDataTextures[0]);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -107,7 +91,7 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGB, GL_FLOAT, nullptr);
 
 	glGenTextures(1, &_ProbeRawRadianceBuffers[1]);
 	glBindTexture(GL_TEXTURE_3D, _ProbeRawRadianceBuffers[1]);
@@ -116,7 +100,18 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGB, GL_FLOAT, nullptr);
+
+	// Voxel volume
+	glGenTextures(1, &VoxelVolume);
+	glBindTexture(GL_TEXTURE_3D, VoxelVolume);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, VOXEL_GRID_X , VOXEL_GRID_Y, VOXEL_GRID_Z, 0, GL_RGBA, GL_FLOAT, nullptr);
+
 
 	// 8x8 luminance and depth/variance map
 	glGenBuffers(1, &_ProbeMapSSBO);
@@ -132,6 +127,10 @@ static float Align(float value, float size)
 
 void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
 {
+	const int ProbeGridX = PROBE_GRID_X;
+	const int ProbeGridY = PROBE_GRID_Y;
+	const int ProbeGridZ = PROBE_GRID_Z;
+
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 	GLClasses::ComputeShader& CopyVolume = ShaderManager::GetComputeShader("COPY_VOLUME");
 
@@ -158,7 +157,7 @@ void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTrav
 	ProbeUpdate.SetVector3f("u_SunDirection", uniforms.SunDirection);
 	ProbeUpdate.SetVector3f("u_BoxOrigin", LastOrigin);
 	ProbeUpdate.SetVector3f("u_Resolution", glm::vec3(ProbeGridX,ProbeGridY,ProbeGridZ));
-	ProbeUpdate.SetVector3f("u_Size", ProbeBoxSize);
+	ProbeUpdate.SetVector3f("u_Size", PROBE_GRID_SIZE);
 	ProbeUpdate.SetVector3f("u_PreviousOrigin", _PreviousOrigin);
 	ProbeUpdate.SetFloat("u_Time", glfwGetTime());
 
@@ -201,6 +200,7 @@ void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTrav
 
 	glBindImageTexture(4, _PrevFrameDataTextures[0], 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32UI);
 	glBindImageTexture(5, _PrevFrameDataTextures[1], 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32UI);
+	glBindImageTexture(8, VoxelVolume, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _ProbeMapSSBO);
 
@@ -233,6 +233,10 @@ void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StacklessTrav
 
 void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversalNode>& Intersector, CommonUniforms& uniforms, GLuint Skymap, bool Temporal)
 {
+	const int ProbeGridX = PROBE_GRID_X;
+	const int ProbeGridY = PROBE_GRID_Y;
+	const int ProbeGridZ = PROBE_GRID_Z;
+
 	GLClasses::ComputeShader& ProbeUpdate = ShaderManager::GetComputeShader("PROBE_UPDATE");
 	GLClasses::ComputeShader& CopyVolume = ShaderManager::GetComputeShader("COPY_VOLUME");
 
@@ -259,7 +263,7 @@ void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversa
 	ProbeUpdate.SetVector3f("u_SunDirection", uniforms.SunDirection);
 	ProbeUpdate.SetVector3f("u_BoxOrigin", LastOrigin);
 	ProbeUpdate.SetVector3f("u_Resolution", glm::vec3(ProbeGridX, ProbeGridY, ProbeGridZ));
-	ProbeUpdate.SetVector3f("u_Size", ProbeBoxSize);
+	ProbeUpdate.SetVector3f("u_Size", PROBE_GRID_SIZE);
 	ProbeUpdate.SetVector3f("u_PreviousOrigin", _PreviousOrigin);
 	ProbeUpdate.SetFloat("u_Time", glfwGetTime());
 
@@ -267,7 +271,6 @@ void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversa
 
 	ProbeUpdate.SetInteger("u_PreviousSHA", 5);
 	ProbeUpdate.SetInteger("u_PreviousSHB", 6);
-
 	ProbeUpdate.SetBool("u_Temporal", Temporal);
 
 	for (int i = 0; i < 5; i++) {
@@ -303,6 +306,7 @@ void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversa
 
 	glBindImageTexture(4, _PrevFrameDataTextures[0], 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32UI);
 	glBindImageTexture(5, _PrevFrameDataTextures[1], 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32UI);
+	glBindImageTexture(8, VoxelVolume, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _ProbeMapSSBO);
 
@@ -333,16 +337,6 @@ void Candela::ProbeGI::UpdateProbes(int Frame, RayIntersector<BVH::StackTraversa
 	glUseProgram(0);
 }
 
-glm::vec3 Candela::ProbeGI::GetProbeGridSize()
-{
-	return ProbeBoxSize;
-}
-
-glm::vec3 Candela::ProbeGI::GetProbeGridRes()
-{
-	return glm::vec3(ProbeGridX, ProbeGridY, ProbeGridZ);
-}
-
 glm::vec3 Candela::ProbeGI::GetProbeBoxOrigin()
 {
 	return LastOrigin;
@@ -361,5 +355,9 @@ glm::uvec2 Candela::ProbeGI::GetProbeDataTextures()
 GLuint Candela::ProbeGI::GetProbeColorTexture()
 {
 	return _CurrentDataTextures.z;
+}
+
+GLuint Candela::ProbeGI::GetVoxelVolume() {
+	return VoxelVolume;
 }
 
