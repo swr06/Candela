@@ -40,10 +40,9 @@ float GetVisibility(ivec3 Texel, vec3 WorldPosition, vec3 Normal, SH sh) {
 	return Weight;
 }
 
-vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
+vec3 SampleProbes(vec3 WorldPosition, vec3 N, bool Nudge) {
 
-	WorldPosition += N * 0.35f;
-
+	WorldPosition += N * 0.4f * float(Nudge);
 	vec3 SamplePoint = (WorldPosition - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
 	SamplePoint = SamplePoint * 0.5 + 0.5; 
 
@@ -88,4 +87,10 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 	}
 
 	return vec3(0.0f);
+}
+
+bool IsInProbeGrid(vec3 P) {
+	vec3 SamplePoint = (P - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
+	SamplePoint = SamplePoint * 0.5 + 0.5; 
+	return SamplePoint == clamp(SamplePoint, 0.0f, 1.0f);
 }

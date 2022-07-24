@@ -97,9 +97,11 @@ float CurrentTime = glfwGetTime();
 float Frametime = 0.0f;
 float DeltaTime = 0.0f;
 
+// 
 // Edit mode 
 static bool EditMode = false;
 static bool ShouldDrawGrid = true;
+static bool DrawProbeGridDebug = false;
 static int EditOperation = 0;
 
 static Candela::Entity* SelectedEntity = nullptr;
@@ -156,11 +158,12 @@ public:
 
 		if (EditMode) {
 
-			if (ImGui::Begin("Editor")) {
+			if (ImGui::Begin("Debug/Edit Mode")) {
 
 				std::string OperationLabels[4] = { "Translation", "Rotation", "Scaling", "Universal (T/R/S)" };
 				
 				static bool space = 1;
+				ImGui::Text("Editor Options");
 				ImGui::Checkbox("Work in Local Space?", &space);
 				ImGui::Checkbox("Draw Grid?", &ShouldDrawGrid);
 				ImGui::Checkbox("Use Snap?", &UseSnap);
@@ -171,6 +174,11 @@ public:
 				ImGui::Text("Current Operation : %s", OperationLabels[EditOperation].c_str());
 
 				Mode = space ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD;
+
+				ImGui::NewLine();
+				ImGui::NewLine();
+				ImGui::Text("Other Debug Views");
+				ImGui::Checkbox("Draw Probe Grid Debug View?", &DrawProbeGridDebug);
 			} ImGui::End();
 
 			// Draw editor
@@ -225,7 +233,7 @@ public:
 			}
 		}
 
-		if (ImGui::Begin("Debug")) {
+		if (ImGui::Begin("Options")) {
 			ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 			ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
 			ImGui::NewLine();
@@ -1276,6 +1284,7 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_NormalLFTexture", 18);
 		LightingShader.SetInteger("u_VoxelVolume", 19);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
+		LightingShader.SetBool("u_DrawProbeGridDebug", DrawProbeGridDebug);
 
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 

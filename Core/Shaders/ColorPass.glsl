@@ -9,12 +9,14 @@
 
 #include "Include/Octahedral.glsl"
 #include "Include/SphericalHarmonics.glsl"
-#include "Include/DebugIrradianceCache.glsl" 
 #include "Include/CookTorranceBRDF.glsl"
 #include "Include/SpatialUtility.glsl"
 #include "Include/Karis.glsl"
 #include "Include/Utility.glsl"
 #include "Include/DDA.glsl"
+
+#include "Include/DebugIrradianceCache.glsl" 
+#include "Include/ProbeDebug.glsl"
 
 layout (location = 0) out vec3 o_Color;
 
@@ -194,16 +196,8 @@ void main()
 	vec3 rO = u_InverseView[3].xyz;
 	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 
-	//vec4 data = vec4(0.); vec3 n, w;
-	//bool dda = DDA(u_VoxelVolume, rO, rD, 256, data, n,w);
-	//
-	//if (dda) {
-	//
-	//	o_Color = data.xyz;
-	//	return;
-	//	
-	//}
-	
+	float SurfaceDistance = 1000000.0f;
+
 	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time;
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
@@ -216,6 +210,7 @@ void main()
 	if (Depth > 0.999999f) {
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 2.5f; // <----- pow2 done here 
 		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz;
+		DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
 		return;
 	}
 
@@ -225,7 +220,9 @@ void main()
 	vec3 Albedo = texelFetch(u_AlbedoTexture, Pixel, 0).xyz;
 	vec3 PBR = texelFetch(u_PBRTexture, Pixel, 0).xyz;
 
-	vec3 Incident = normalize(u_ViewerPosition - WorldPosition);
+	vec3 Incident = (u_ViewerPosition - WorldPosition);
+	SurfaceDistance = length(Incident);
+	Incident /= SurfaceDistance;
 
 	vec3 F0 = mix(vec3(0.04f), Albedo, PBR.y);
 
@@ -269,4 +266,6 @@ void main()
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect + EmissiveColor;
 
 	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
+
+	DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
 }
