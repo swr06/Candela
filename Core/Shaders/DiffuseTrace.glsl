@@ -402,7 +402,7 @@ void main() {
 	
 	if (DO_SCREENTRACE) 
 	{ 
-		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 20, 18, 0.0009525f);
+		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 20, 18, 0.0011f);
 	}
 
 	if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
@@ -472,12 +472,29 @@ void main() {
 		}
 
 		else {
-			const float Strength = 1.0f; 
-			vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
+			
+			vec3 SamplePointP = ((HitPosition + iNormal * 0.01f) - u_ProbeBoxOrigin) / u_ProbeBoxSize; 
+			SamplePointP = SamplePointP * 0.5 + 0.5; 
 
-			// Probe gi tends to leak at edges
-			float LeakTransversalWeight = pow(TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.125f, 0.0f, 1.0f), 1.0f) : 1.0f, 1.7f);
-			Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f) * LeakTransversalWeight;
+			if (SamplePointP == clamp(SamplePointP, 0.00001f, 0.99999f)) {
+				const float Strength = 1.0f; 
+
+				vec3 InterpolatedRadiance = SampleProbes(HitPosition + iNormal * 0.01f, iNormal);
+
+				// Probe gi tends to leak at edges
+				float LeakTransversalWeight = pow(TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.125f, 0.0f, 1.0f), 1.0f) : 1.0f, 1.7f);
+				Bounced = clamp(InterpolatedRadiance * Strength, 0.0f, 20.0f) * LeakTransversalWeight;
+			}
+
+			else {
+				// Point not in probe range, sample probes approximately 
+				vec3 NudgedPosition = clamp(SamplePointP, 0.0002f, 0.9998f); 
+				NudgedPosition = u_ProbeBoxOrigin + (u_ProbeBoxSize * (2.0f * NudgedPosition - 1.0f));
+
+				vec3 InterpolatedRadiance = SampleProbes(NudgedPosition, iNormal);
+				Bounced = InterpolatedRadiance * 1.0f;
+			}
+			
 		}
 
 
