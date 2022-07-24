@@ -16,10 +16,8 @@ A realtime performance/graphics oriented 3D engine.
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
 - Bloom (Mip Based)
-- Basic Editor Features 
+- Basic Editor Features + Debug Views
 
 # Planned
-- Realtime Physics Simulation using Compute
-- Particles?
-- Physically based sky
-- Volumetric Clouds
+- Bokeh DOF / Other post FX
+- Glass materials (OIT + Screenspace Refraction)
