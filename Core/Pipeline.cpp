@@ -88,6 +88,8 @@ static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
+static glm::vec2 DOFFocusPoint;
+
 // Hemispherical Shadow Mapping 
 // (Experiment)
 const bool DoHSM = false;
@@ -386,6 +388,15 @@ public:
 			vsync = !vsync;
 		}
 
+		if (e.type == Candela::EventTypes::MousePress)
+		{
+			if (!this->GetCursorLocked()) {
+				double mxx, myy;
+				glfwGetCursorPos(this->m_Window, &mxx, &myy);
+				myy = (double)this->GetHeight() - myy;
+				DOFFocusPoint = glm::vec2((float)mxx, (float)myy);
+			}
+		}
 	}
 
 
@@ -656,7 +667,11 @@ void Candela::StartPipeline()
 		// Other post buffers
 		Composited.SetSize(app.GetWidth(), app.GetHeight());
 		PFXComposited.SetSize(app.GetWidth(), app.GetHeight());
-		DOF.SetSize(app.GetWidth(), app.GetHeight());
+		DOF.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+
+		if (app.GetCursorLocked()) {
+			DOFFocusPoint = glm::vec2(app.GetWidth() / 2, app.GetHeight() / 2);
+		}
 
 		BloomBufferA.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
 		BloomBufferB.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
@@ -1421,6 +1436,8 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetInteger("u_BloomBrightTexture", 6);
 		PostFXCombineShader.SetInteger("u_Depth", 7);
 
+		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, UniformBuffer);
+
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, TAA.GetTexture(0));
 
@@ -1456,7 +1473,24 @@ void Candela::StartPipeline()
 		DOFShader.Use();
 		DOF.Bind();
 
+		DOFShader.SetInteger("u_DepthTexture", 0);
+		DOFShader.SetInteger("u_Input", 1);
 
+		DOFShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
+		DOFShader.SetFloat("u_zVNear", Camera.GetNearPlane());
+		DOFShader.SetFloat("u_zVFar", Camera.GetFarPlane());
+
+		SetCommonUniforms<GLClasses::Shader>(DOFShader, UniformBuffer);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
 
 		DOF.Unbind();
 
@@ -1466,9 +1500,13 @@ void Candela::StartPipeline()
 
 		CompositeShader.Use();
 		CompositeShader.SetInteger("u_MainTexture", 0);
+		CompositeShader.SetInteger("u_DOF", 1);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, DOF.GetTexture());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

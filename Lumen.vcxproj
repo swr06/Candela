@@ -299,6 +299,7 @@
     <None Include="Core\Shaders\DepthVert.glsl" />
     <None Include="Core\Shaders\DiffuseRayGenerate.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
+    <None Include="Core\Shaders\DOFVert.glsl" />
     <None Include="Core\Shaders\Include\3DNoise.glsl" />
     <None Include="Core\Shaders\Include\DDA.glsl" />
     <None Include="Core\Shaders\Include\DiffuseSH.glsl" />
@@ -306,6 +307,7 @@
     <None Include="Core\Shaders\Include\ProbeDebug.glsl" />
     <None Include="Core\Shaders\Include\SampleSkyVisibilityHemisSM.glsl" />
     <None Include="Core\Shaders\Include\SphereGridSDF.glsl" />
+    <None Include="Core\Shaders\IntegrateDFG.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStack.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStackless.glsl" />
     <None Include="Core\Shaders\PostProcessCombine.glsl" />

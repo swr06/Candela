@@ -6,6 +6,7 @@ in vec2 v_TexCoords;
 layout(location = 0) out vec3 o_Color;
 
 uniform sampler2D u_MainTexture;
+uniform sampler2D u_DOF;
 
 // ACES Tonemap operator 
 mat3 ACESInputMat = mat3(
@@ -42,7 +43,7 @@ vec4 ACESFitted(vec4 Color, float Exposure)
 void main()
 {
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
-    vec4 Sample = texelFetch(u_MainTexture, Pixel, 0).xyzw;
+    vec4 Sample = texture(u_DOF, v_TexCoords).xyzw;
 
     o_Color = Sample.xyz;
     o_Color.xyz = ACESFitted(vec4(o_Color.xyz, 1.0f), 0.8f).xyz;

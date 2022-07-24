@@ -50,6 +50,9 @@ uniform bool u_DoVolumetrics;
 
 uniform float u_Time;
 
+uniform float u_zNear;
+uniform float u_zFar;
+
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2DShadow u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
@@ -61,6 +64,11 @@ struct ProbeMapPixel {
 layout (std430, binding = 4) buffer SSBO_ProbeMaps {
 	ProbeMapPixel MapData[]; // x has luminance data, y has packed depth and depth^2
 };
+
+float LinearizeDepth(float depth)
+{
+	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
+}
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -206,6 +214,8 @@ void main()
 	vec4 Volumetrics = u_DoVolumetrics ? texelFetch(u_Volumetrics, Pixel, 0) : vec4(vec3(0.0f), 1.0f);
 
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
+
+	float LinearDepth = LinearizeDepth(Depth);
 
 	if (Depth > 0.999999f) {
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 2.5f; // <----- pow2 done here 
