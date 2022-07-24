@@ -491,8 +491,17 @@ void main() {
 				vec3 NudgedPosition = clamp(SamplePointP, 0.0002f, 0.9998f); 
 				NudgedPosition = u_ProbeBoxOrigin + (u_ProbeBoxSize * (2.0f * NudgedPosition - 1.0f));
 
-				vec3 InterpolatedRadiance = SampleProbes(NudgedPosition, iNormal);
-				Bounced = InterpolatedRadiance * 1.0f;
+				float DistanceError = distance(NudgedPosition, HitPosition);
+
+				if (DistanceError <= 16.0f) {
+					float Weight = max(1.0f - clamp(DistanceError / 16.0f, 0.0f, 1.0f), 0.15f); 
+					vec3 InterpolatedRadiance = SampleProbes(NudgedPosition, iNormal);
+					Bounced = Weight * InterpolatedRadiance * 1.0f;
+				}
+
+				else {
+					Bounced = vec3(0.07f) + (texture(u_Skymap, vec3(0.0f, 1.0f, 0.0f)).xyz * 0.03f);
+				}
 			}
 			
 		}

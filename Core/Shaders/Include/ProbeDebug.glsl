@@ -18,7 +18,7 @@ float Target(vec3 p){
 
 float MapSDF(vec3 p)
 {
-vec3 GridSpace = u_ProbeGridResolution / u_ProbeBoxSize;
+    vec3 GridSpace = u_ProbeGridResolution / u_ProbeBoxSize;
     Repeat(p, vec3(GridSpace));
     return SphereSDF(p, 0.15f);
 }

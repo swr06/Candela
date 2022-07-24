@@ -1284,7 +1284,7 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_NormalLFTexture", 18);
 		LightingShader.SetInteger("u_VoxelVolume", 19);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
-		LightingShader.SetBool("u_DrawProbeGridDebug", DrawProbeGridDebug);
+		LightingShader.SetBool("u_DrawProbeGridDebug", DrawProbeGridDebug && EditMode);
 
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 
