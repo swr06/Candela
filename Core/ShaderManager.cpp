@@ -8,6 +8,8 @@ void Candela::ShaderManager::CreateShaders()
 {
 	AddShader("GBUFFER", "Core/Shaders/GeometryVert.glsl", "Core/Shaders/GeometryFrag.glsl");
 	AddShader("LIGHTING_PASS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/ColorPass.glsl");
+	AddShader("PFX_COMBINE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/PostProcessCombine.glsl");
+	AddShader("DOF", "Core/Shaders/FBOVert.glsl", "Core/Shaders/DepthOfField.glsl");
 	AddShader("COMPOSITE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Composite.glsl");
 	AddShader("CAS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/CAS.glsl");
 	AddShader("DEPTH", "Core/Shaders/DepthVert.glsl", "Core/Shaders/DepthFrag.glsl");

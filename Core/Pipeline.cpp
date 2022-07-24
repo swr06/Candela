@@ -436,6 +436,8 @@ GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true
 
 // Post 
 GLClasses::Framebuffer Composited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
+GLClasses::Framebuffer PFXComposited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
+GLClasses::Framebuffer DOF(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
 GLClasses::Framebuffer VolumetricsCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
 
 // For temporal 
@@ -554,7 +556,6 @@ void Candela::StartPipeline()
 	GLClasses::Shader& GBufferShader = ShaderManager::GetShader("GBUFFER");
 	GLClasses::Shader& LightingShader = ShaderManager::GetShader("LIGHTING_PASS");
 	GLClasses::Shader& CheckerReconstructShader = ShaderManager::GetShader("CHECKER_UPSCALE");
-	GLClasses::Shader& CompositeShader = ShaderManager::GetShader("COMPOSITE");
 	GLClasses::Shader& TemporalFilterShader = ShaderManager::GetShader("TEMPORAL");
 	GLClasses::Shader& MotionVectorShader = ShaderManager::GetShader("MOTION_VECTORS");
 	GLClasses::Shader& SpatialVarianceShader = ShaderManager::GetShader("SVGF_VARIANCE");
@@ -566,6 +567,10 @@ void Candela::StartPipeline()
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
 	GLClasses::ComputeShader& CollisionShader = ShaderManager::GetComputeShader("COLLISIONS");
+
+	GLClasses::Shader& CompositeShader = ShaderManager::GetShader("COMPOSITE");
+	GLClasses::Shader& PostFXCombineShader = ShaderManager::GetShader("PFX_COMBINE");
+	GLClasses::Shader& DOFShader = ShaderManager::GetShader("DOF");
 
 	// Matrices
 	glm::mat4 PreviousView;
@@ -650,6 +655,9 @@ void Candela::StartPipeline()
 
 		// Other post buffers
 		Composited.SetSize(app.GetWidth(), app.GetHeight());
+		PFXComposited.SetSize(app.GetWidth(), app.GetHeight());
+		DOF.SetSize(app.GetWidth(), app.GetHeight());
+
 		BloomBufferA.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
 		BloomBufferB.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
 		
@@ -1398,19 +1406,20 @@ void Candela::StartPipeline()
 		GLuint BrightTex = 0;
 		BloomRenderer::RenderBloom(TAA.GetTexture(), GBuffer.GetTexture(3), BloomBufferA, BloomBufferB, BrightTex, true);
 
-		// Tonemap
+		// Combine Post FX (excluding DOF.)
 
-		Composited.Bind();
+		PFXComposited.Bind();
+		PostFXCombineShader.Use();
 
-		CompositeShader.Use();
-		CompositeShader.SetInteger("u_MainTexture", 0);
+		PostFXCombineShader.SetInteger("u_MainTexture", 0);
 
-		CompositeShader.SetInteger("u_BloomMips[0]", 1);
-		CompositeShader.SetInteger("u_BloomMips[1]", 2);
-		CompositeShader.SetInteger("u_BloomMips[2]", 3);
-		CompositeShader.SetInteger("u_BloomMips[3]", 4);
-		CompositeShader.SetInteger("u_BloomMips[4]", 5);
-		CompositeShader.SetInteger("u_BloomBrightTexture", 6);
+		PostFXCombineShader.SetInteger("u_BloomMips[0]", 1);
+		PostFXCombineShader.SetInteger("u_BloomMips[1]", 2);
+		PostFXCombineShader.SetInteger("u_BloomMips[2]", 3);
+		PostFXCombineShader.SetInteger("u_BloomMips[3]", 4);
+		PostFXCombineShader.SetInteger("u_BloomMips[4]", 5);
+		PostFXCombineShader.SetInteger("u_BloomBrightTexture", 6);
+		PostFXCombineShader.SetInteger("u_Depth", 7);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, TAA.GetTexture(0));
@@ -1432,6 +1441,34 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, BrightTex);
+
+		glActiveTexture(GL_TEXTURE7);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		PFXComposited.Unbind();
+
+		// DOF
+
+		DOFShader.Use();
+		DOF.Bind();
+
+
+
+		DOF.Unbind();
+
+		// Tonemap
+
+		Composited.Bind();
+
+		CompositeShader.Use();
+		CompositeShader.SetInteger("u_MainTexture", 0);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
