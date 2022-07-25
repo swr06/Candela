@@ -53,6 +53,8 @@ uniform float u_Time;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform vec2 u_FocusPoint;
+
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2DShadow u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
@@ -64,6 +66,11 @@ struct ProbeMapPixel {
 layout (std430, binding = 4) buffer SSBO_ProbeMaps {
 	ProbeMapPixel MapData[]; // x has luminance data, y has packed depth and depth^2
 };
+
+layout (std430, binding = 1) buffer EyeAdaptation_SSBO {
+    float o_FocusDepth;
+};
+
 
 float LinearizeDepth(float depth)
 {
@@ -201,6 +208,7 @@ const vec3 SunColor = vec3(16.0f);
 
 void main() 
 {	
+
 	vec3 rO = u_InverseView[3].xyz;
 	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
 
@@ -209,6 +217,10 @@ void main()
 	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time;
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
+
+	if (Pixel.x == 8 && Pixel.y == 8) {
+		o_FocusDepth = LinearizeDepth(texture(u_DepthTexture, u_FocusPoint).x);
+	}
 
 	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
 	vec4 Volumetrics = u_DoVolumetrics ? texelFetch(u_Volumetrics, Pixel, 0) : vec4(vec3(0.0f), 1.0f);

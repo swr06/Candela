@@ -89,6 +89,7 @@ static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
 static glm::vec2 DOFFocusPoint;
+static float FocusDepthSmooth = 1.0f;;
 
 // Hemispherical Shadow Mapping 
 // (Experiment)
@@ -604,6 +605,15 @@ void Candela::StartPipeline()
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::ivec4) * 16, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	// DOF 
+	GLuint DOFSSBO = 0;
+	float DOFDATA = 0.;
+	glGenBuffers(1, &DOFSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, DOFSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 1, &DOFDATA, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+
 	// Generate shadow maps
 	ShadowHandler::GenerateShadowMaps();
 
@@ -667,7 +677,7 @@ void Candela::StartPipeline()
 		// Other post buffers
 		Composited.SetSize(app.GetWidth(), app.GetHeight());
 		PFXComposited.SetSize(app.GetWidth(), app.GetHeight());
-		DOF.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		DOF.SetSize(app.GetWidth() / 4, app.GetHeight() / 4);
 
 		if (app.GetCursorLocked()) {
 			DOFFocusPoint = glm::vec2(app.GetWidth() / 2, app.GetHeight() / 2);
@@ -1309,6 +1319,8 @@ void Candela::StartPipeline()
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 		LightingShader.SetBool("u_DrawProbeGridDebug", DrawProbeGridDebug && EditMode);
 
+		LightingShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
+
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 
 		for (int i = 0; i < 5; i++) {
@@ -1335,6 +1347,7 @@ void Candela::StartPipeline()
 				LightingShader.SetMatrix4(NameM, ShadowHandler::GetSkyShadowViewProjectionMatrix(i));
 			}
 		}
+
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
@@ -1377,10 +1390,27 @@ void Candela::StartPipeline()
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, DOFSSBO);
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
+
+		// find center depth 
+		float DownloadedCenterDepth = 0.0f;
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, DOFSSBO);
+		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float), &DownloadedCenterDepth);;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		FocusDepthSmooth = glm::mix(DownloadedCenterDepth, FocusDepthSmooth, 0.75f);
+
+		//if (app.GetCurrentFrame() % 1 == 0)
+		//{
+		//	std::cout << "\n\nFocus Pos : " << DOFFocusPoint.x << "   " << DOFFocusPoint.y;
+		//	std::cout << "\nCenter Depth (Temporal) : " << FocusDepthSmooth;
+		//	std::cout << "\n\n";
+		//}
 
 		// Temporal Anti Aliasing 
 
@@ -1479,6 +1509,7 @@ void Candela::StartPipeline()
 		DOFShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
 		DOFShader.SetFloat("u_zVNear", Camera.GetNearPlane());
 		DOFShader.SetFloat("u_zVFar", Camera.GetFarPlane());
+		DOFShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 
 		SetCommonUniforms<GLClasses::Shader>(DOFShader, UniformBuffer);
 
@@ -1501,6 +1532,9 @@ void Candela::StartPipeline()
 		CompositeShader.Use();
 		CompositeShader.SetInteger("u_MainTexture", 0);
 		CompositeShader.SetInteger("u_DOF", 1);
+		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
+
+		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
