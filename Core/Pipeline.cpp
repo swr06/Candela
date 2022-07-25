@@ -88,6 +88,8 @@ static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
+static bool DoDOF = false;
+static bool HQDOF = false;
 static glm::vec2 DOFFocusPoint;
 static float FocusDepthSmooth = 1.0f;;
 
@@ -288,6 +290,10 @@ public:
 					ImGui::Checkbox("Spatially Filter Volumetrics?", &VolumetricsSpatial);
 				}
 			}
+
+			ImGui::NewLine();
+			ImGui::Checkbox("DOF?", &DoDOF);
+			ImGui::Checkbox("High Quality DOF?", &HQDOF);
 
 			ImGui::NewLine();
 			ImGui::Checkbox("TAA?", &DoTAA);
@@ -677,7 +683,7 @@ void Candela::StartPipeline()
 		// Other post buffers
 		Composited.SetSize(app.GetWidth(), app.GetHeight());
 		PFXComposited.SetSize(app.GetWidth(), app.GetHeight());
-		DOF.SetSize(app.GetWidth() / 4, app.GetHeight() / 4);
+		DOF.SetSize(app.GetWidth(), app.GetHeight());
 
 		if (app.GetCursorLocked()) {
 			DOFFocusPoint = glm::vec2(app.GetWidth() / 2, app.GetHeight() / 2);
@@ -1500,30 +1506,34 @@ void Candela::StartPipeline()
 
 		// DOF
 
-		DOFShader.Use();
-		DOF.Bind();
+		if (DoDOF) {
 
-		DOFShader.SetInteger("u_DepthTexture", 0);
-		DOFShader.SetInteger("u_Input", 1);
+			DOFShader.Use();
+			DOF.Bind();
 
-		DOFShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
-		DOFShader.SetFloat("u_zVNear", Camera.GetNearPlane());
-		DOFShader.SetFloat("u_zVFar", Camera.GetFarPlane());
-		DOFShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
+			DOFShader.SetInteger("u_DepthTexture", 0);
+			DOFShader.SetInteger("u_Input", 1);
+			DOFShader.SetBool("u_HQ", HQDOF);
 
-		SetCommonUniforms<GLClasses::Shader>(DOFShader, UniformBuffer);
+			DOFShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
+			DOFShader.SetFloat("u_zVNear", Camera.GetNearPlane());
+			DOFShader.SetFloat("u_zVFar", Camera.GetFarPlane());
+			DOFShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+			SetCommonUniforms<GLClasses::Shader>(DOFShader, UniformBuffer);
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
-		ScreenQuadVAO.Bind();
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		ScreenQuadVAO.Unbind();
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
 
-		DOF.Unbind();
+			ScreenQuadVAO.Bind();
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			ScreenQuadVAO.Unbind();
+
+			DOF.Unbind();
+		}
 
 		// Tonemap
 
@@ -1532,6 +1542,7 @@ void Candela::StartPipeline()
 		CompositeShader.Use();
 		CompositeShader.SetInteger("u_MainTexture", 0);
 		CompositeShader.SetInteger("u_DOF", 1);
+		CompositeShader.SetBool("u_DOFEnabled", DoDOF);
 		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 
 		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);

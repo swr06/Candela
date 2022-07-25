@@ -8,14 +8,15 @@ layout(location = 0) out vec3 o_Color;
 uniform sampler2D u_MainTexture;
 uniform sampler2D u_DOF;
 
+uniform bool u_DOFEnabled;
+
 uniform float u_zNear;
 uniform float u_zFar;
 
 uniform float u_FocusDepth;
 
 const float DOFBlurSize = 20.0f;
-const float DOFScale = 0.02f;
-const float DOFRadiusScale = 0.5f;
+const float DOFScale = 0.04f;
 
 float LinearizeDepth(float depth)
 {
@@ -66,13 +67,18 @@ void main()
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
     vec4 RawSample = texelFetch(u_MainTexture, Pixel, 0);
-    vec4 DOFSample = Bicubic(u_DOF, v_TexCoords).xyzw;
+    
+    //vec4 DOFSample = texture(u_DOF, v_TexCoords).xyzw;
 
-    float BlurScale = GetBlurScale(LinearizeDepth(RawSample.w), u_FocusDepth, DOFScale);
+    o_Color = RawSample.xyz;
 
-    float MixFactor = clamp(BlurScale, 0.0f, 1.0f);
+    if (u_DOFEnabled) {
+        vec4 DOFSample = texelFetch(u_DOF, Pixel, 0);
+        vec4 DOFSampleCubic = Bicubic(u_DOF, v_TexCoords).xyzw;
+        float BlurScale = GetBlurScale(LinearizeDepth(RawSample.w), u_FocusDepth, DOFScale);
+        o_Color = mix(DOFSample.xyz, DOFSampleCubic.xyz, BlurScale);
+    }
 
-    o_Color = mix(RawSample.xyz, DOFSample.xyz, MixFactor);
     o_Color.xyz = ACESFitted(vec4(o_Color.xyz, 1.0f), 0.8f).xyz;
 
     o_Color = clamp(o_Color, 0.0f, 1.0f);
