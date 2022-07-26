@@ -15,9 +15,8 @@ A realtime performance/graphics oriented 3D engine.
 - Volumetrics
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
-- Bloom (Mip Based)
+- Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration etc.)
 - Basic Editor Features + Debug Views
 
 # Planned
-- Bokeh DOF / Other post FX
 - Glass materials (OIT + Screenspace Refraction)
