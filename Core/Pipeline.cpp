@@ -88,11 +88,19 @@ static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
+// DOF
 static bool DoDOF = false;
 static bool HQDOFBlur = false;
 static bool PerformanceDOF = false;
 static glm::vec2 DOFFocusPoint;
 static float FocusDepthSmooth = 1.0f;;
+static float DOFBlurRadius = 10.0f;
+
+// Chromatic Aberration 
+static float CAScale = 0.04f;
+
+// Film Grain
+static float GrainStrength = 0.275f;
 
 // Hemispherical Shadow Mapping 
 // (Experiment)
@@ -294,10 +302,18 @@ public:
 
 			ImGui::NewLine();
 			ImGui::Checkbox("DOF?", &DoDOF);
-			ImGui::Checkbox("Performance DOF?", &PerformanceDOF);
-			ImGui::Checkbox("High Quality DOF Bokeh?", &HQDOFBlur);
+			if (DoDOF) {
+				ImGui::SliderFloat("DOF Blur Size", &DOFBlurRadius, 2.0f, 16.0f);
+				ImGui::Checkbox("Performance DOF?", &PerformanceDOF);
+				ImGui::Checkbox("High Quality DOF Bokeh?", &HQDOFBlur);
+			}
 
 			ImGui::NewLine();
+			ImGui::SliderFloat("Chromatic Aberration Strength", &CAScale, 0.0f, 0.50f);
+			ImGui::SliderFloat("Film Grain Strength", &GrainStrength, 0.0f, 1.0f);
+			
+			ImGui::NewLine();
+
 			ImGui::Checkbox("TAA?", &DoTAA);
 			ImGui::Checkbox("CAS?", &DoCAS);
 		} ImGui::End();
@@ -1473,6 +1489,7 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetInteger("u_BloomMips[4]", 5);
 		PostFXCombineShader.SetInteger("u_BloomBrightTexture", 6);
 		PostFXCombineShader.SetInteger("u_Depth", 7);
+		PostFXCombineShader.SetFloat("u_CAScale", CAScale);
 
 		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, UniformBuffer);
 
@@ -1522,6 +1539,7 @@ void Candela::StartPipeline()
 			DOFShader.SetFloat("u_zVNear", Camera.GetNearPlane());
 			DOFShader.SetFloat("u_zVFar", Camera.GetFarPlane());
 			DOFShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
+			DOFShader.SetFloat("u_BlurRadius", DOFBlurRadius);
 
 			SetCommonUniforms<GLClasses::Shader>(DOFShader, UniformBuffer);
 
@@ -1548,6 +1566,7 @@ void Candela::StartPipeline()
 		CompositeShader.SetBool("u_DOFEnabled", DoDOF);
 		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 		CompositeShader.SetBool("u_PerformanceDOF", PerformanceDOF);
+		CompositeShader.SetFloat("u_GrainStrength", GrainStrength);
 
 		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);
 
@@ -1571,6 +1590,9 @@ void Candela::StartPipeline()
 		CASShader.Use();
 
 		CASShader.SetBool("u_Enabled", DoCAS);
+		CASShader.SetFloat("u_GrainStrength", GrainStrength);
+
+		SetCommonUniforms<GLClasses::Shader>(CASShader, UniformBuffer);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Composited.GetTexture(0));

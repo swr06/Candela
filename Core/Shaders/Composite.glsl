@@ -17,6 +17,10 @@ uniform float u_FocusDepth;
 
 uniform bool u_PerformanceDOF;
 
+uniform float u_GrainStrength;
+
+uniform float u_Time;
+
 const float DOFBlurSize = 20.0f;
 const float DOFScale = 0.04f;
 
@@ -24,7 +28,6 @@ float LinearizeDepth(float depth)
 {
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
 }
-
 
 // ACES Tonemap operator 
 mat3 ACESInputMat = mat3(
@@ -79,6 +82,5 @@ void main()
     }
 
     o_Color.xyz = ACESFitted(vec4(o_Color.xyz, 1.0f), 0.8f).xyz;
-
     o_Color = clamp(o_Color, 0.0f, 1.0f);
 }

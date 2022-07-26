@@ -6,9 +6,22 @@
 
 layout (location = 0) out vec3 o_Color;
 
+in vec2 v_TexCoords;
+
 uniform sampler2D u_Texture; // <- Tonemapped input
 
 uniform bool u_Enabled;
+
+uniform float u_GrainStrength;
+
+uniform float u_Time;
+
+// Hash
+float HASH2SEED = 0.0f;
+vec2 hash2() 
+{
+	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
+}
 
 float GetSat(vec3 x) { 
     return length(x); 
@@ -44,6 +57,21 @@ vec3 ContrastAdaptiveSharpening(sampler2D Texture, ivec2 Pixel, float Sharpening
     return (w * (a + b + d + e) + c) / (4.0f * w + 1.0f);
 }
 
+
+void FilmGrain(inout vec3 oc) 
+{
+    if (u_GrainStrength < 0.001f) {
+        return;
+    }
+
+	float Strength = 0.08;
+	vec3 NoiseColor = vec3(0.2001f, 0.804f, 1.02348f);
+    vec3 Noise = vec3(hash2().xy, hash2().x);
+    vec3 NoiseC = Noise * exp(-oc) * NoiseColor * 0.01f;
+	oc += mix(clamp(NoiseC, 0.0f, 1.0f), vec3(0.0f), 1.-u_GrainStrength);
+    oc *= mix(vec3(1.0f), Noise, u_GrainStrength * u_GrainStrength * exp(-oc));
+}
+
 void BasicColorDither(inout vec3 color)
 {
 	const vec2 LestynCoefficients = vec2(171.0f, 231.0f);
@@ -55,6 +83,10 @@ void BasicColorDither(inout vec3 color)
 void main() 
 {
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
+
+    HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 489.0 * 20.0f;
+	HASH2SEED += fract(u_Time) * 100.0f;
+
     vec3 OriginalColor = texelFetch(u_Texture, Pixel, 0).xyz;
 
     float SharpeningAmount = 0.425f;
@@ -62,5 +94,7 @@ void main()
     
     o_Color = LinearToSRGB(Processed);
     o_Color = clamp(o_Color, 0.0f, 1.0f);
+
+    FilmGrain(o_Color);
 	BasicColorDither(o_Color);
 }
