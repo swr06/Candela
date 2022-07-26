@@ -11,8 +11,8 @@ A realtime performance/graphics oriented 3D engine.
 - Infinite bounce GI using irradiance probes
 - Hybrid Specular GI (SSR + World Space RT)
 - SVGF + Specialized Specular Denoiser
-- TAA
-- Volumetrics
+- Temporal Anti Aliasing
+- Volumetrics (Direct + Indirect light contribution)
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
 - Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping etc.)
