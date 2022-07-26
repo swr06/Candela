@@ -15,7 +15,7 @@ A realtime performance/graphics oriented 3D engine.
 - Volumetrics
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
-- Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration etc.)
+- Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping etc.)
 - Basic Editor Features + Debug Views
 
 # Planned
