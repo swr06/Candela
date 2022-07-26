@@ -20,3 +20,10 @@ A realtime performance/graphics oriented 3D engine.
 
 # Planned
 - Glass materials (OIT + Screenspace Refraction)
+- Debug Features (Lighting components, Material Properties, BVH, Wireframe)
+- IES lights?
+- LTC
+
+# Screenshots
+
+Nothing here.. for now.
