@@ -21,7 +21,7 @@ uniform float u_Time;
 
 uniform bool u_HQ;
 
-float DOFBlurSize = 12.0f;
+float DOFBlurSize = 10.0f;
 float DOFScale = 0.01f;
 float DOFRadiusScale = u_HQ ? 0.5f : 2.0f;
 
@@ -68,16 +68,23 @@ void main() {
 
 	int SamplesTaken = 0;
 
+	float MeanDepth = LinearizeDepth(CenterSample.w);
+	float MinDepth = MeanDepth;
+	float UseCircle = Radius;
+	float DepthWeights = 1.0f;
+
 	for (float Angle = 0.0f; Radius < DOFBlurSize ; Angle += 2.39996323f) {
 
 		vec2 Rotation = vec2(cos(Angle), sin(Angle));
 		vec2 SampleCoord = (v_TexCoords + RotationMatrix * Rotation * TexelSize * Radius);
 
-		vec4 Sample = TexelFetchNormalized(u_Input, SampleCoord);
+		vec4 Sample = texture(u_Input, SampleCoord);
 
 		float SampleDepth = LinearizeDepth(Sample.w);
 
 		float SampleSize = GetBlurScale(SampleDepth, u_FocusDepth, DOFScale);
+
+		UseCircle = max(UseCircle, SampleSize);
 
 		if (SampleDepth > LinearZ) 
 		{
@@ -85,13 +92,26 @@ void main() {
 		}
 
 		float MixFactor = smoothstep(Radius - 0.5f, Radius + 0.5f, SampleSize);
+		
+		//MeanDepth += mix(MeanDepth / DepthWeights, SampleDepth, MixFactor);
+
+		MinDepth = min(MinDepth, SampleDepth);
+
+
+		MeanDepth += SampleDepth;
+        DepthWeights += 1.0;
+
         TotalColor += mix(TotalColor / TotalWeight, Sample.xyz, MixFactor);
         TotalWeight += 1.0;
+
 		SamplesTaken++;
         Radius += DOFRadiusScale / Radius;
 	}
 
+	MeanDepth /= DepthWeights;
+
 	o_Color.xyz = TotalColor / TotalWeight;
-	o_Color.w = CenterSize / DOFBlurSize;
+	o_Color.w = UseCircle / (DOFBlurSize - 4.0f); ///GetBlurScale(MinDepth, u_FocusDepth, 0.05f) / DOFBlurSize;
+	//o_Color.w = GetBlurScale(MeanDepth, u_FocusDepth, 0.01f) / DOFBlurSize;
 
 }

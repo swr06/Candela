@@ -15,6 +15,8 @@ uniform float u_zFar;
 
 uniform float u_FocusDepth;
 
+uniform bool u_PerformanceDOF;
+
 const float DOFBlurSize = 20.0f;
 const float DOFScale = 0.04f;
 
@@ -23,12 +25,6 @@ float LinearizeDepth(float depth)
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
 }
 
-
-float GetBlurScale(float Depth, float FocusPoint, float FocusScale) {
-
-	float CircleOfConfusion = abs(clamp((1.0 / FocusPoint - 1.0 / Depth) * FocusScale, -1.0, 1.0));
-	return CircleOfConfusion;
-}
 
 // ACES Tonemap operator 
 mat3 ACESInputMat = mat3(
@@ -67,16 +63,19 @@ void main()
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
     vec4 RawSample = texelFetch(u_MainTexture, Pixel, 0);
+
+    float LinearDepth = LinearizeDepth(RawSample.w);
     
     //vec4 DOFSample = texture(u_DOF, v_TexCoords).xyzw;
 
     o_Color = RawSample.xyz;
 
     if (u_DOFEnabled) {
-        vec4 DOFSample = texelFetch(u_DOF, Pixel, 0);
+       
         vec4 DOFSampleCubic = Bicubic(u_DOF, v_TexCoords).xyzw;
-        float BlurScale = GetBlurScale(LinearizeDepth(RawSample.w), u_FocusDepth, DOFScale);
-        o_Color = mix(DOFSample.xyz, DOFSampleCubic.xyz, BlurScale);
+        float BlurScale = clamp(DOFSampleCubic.w, 0.0f, 1.0f);
+        o_Color = mix(RawSample.xyz, DOFSampleCubic.xyz, BlurScale);
+
     }
 
     o_Color.xyz = ACESFitted(vec4(o_Color.xyz, 1.0f), 0.8f).xyz;

@@ -89,7 +89,8 @@ static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
 static bool DoDOF = false;
-static bool HQDOF = false;
+static bool HQDOFBlur = false;
+static bool PerformanceDOF = false;
 static glm::vec2 DOFFocusPoint;
 static float FocusDepthSmooth = 1.0f;;
 
@@ -293,7 +294,8 @@ public:
 
 			ImGui::NewLine();
 			ImGui::Checkbox("DOF?", &DoDOF);
-			ImGui::Checkbox("High Quality DOF?", &HQDOF);
+			ImGui::Checkbox("Performance DOF?", &PerformanceDOF);
+			ImGui::Checkbox("High Quality DOF Bokeh?", &HQDOFBlur);
 
 			ImGui::NewLine();
 			ImGui::Checkbox("TAA?", &DoTAA);
@@ -395,7 +397,7 @@ public:
 			vsync = !vsync;
 		}
 
-		if (e.type == Candela::EventTypes::MousePress)
+		if (e.type == Candela::EventTypes::MousePress && !ImGui::GetIO().WantCaptureMouse)
 		{
 			if (!this->GetCursorLocked()) {
 				double mxx, myy;
@@ -683,7 +685,7 @@ void Candela::StartPipeline()
 		// Other post buffers
 		Composited.SetSize(app.GetWidth(), app.GetHeight());
 		PFXComposited.SetSize(app.GetWidth(), app.GetHeight());
-		DOF.SetSize(app.GetWidth(), app.GetHeight());
+		DOF.SetSize(app.GetWidth() / (PerformanceDOF ? 2 : 1), app.GetHeight() / (PerformanceDOF ? 2 : 1));
 
 		if (app.GetCursorLocked()) {
 			DOFFocusPoint = glm::vec2(app.GetWidth() / 2, app.GetHeight() / 2);
@@ -1513,7 +1515,8 @@ void Candela::StartPipeline()
 
 			DOFShader.SetInteger("u_DepthTexture", 0);
 			DOFShader.SetInteger("u_Input", 1);
-			DOFShader.SetBool("u_HQ", HQDOF);
+			DOFShader.SetBool("u_HQ", HQDOFBlur);
+			DOFShader.SetBool("u_PerformanceDOF", PerformanceDOF);
 
 			DOFShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
 			DOFShader.SetFloat("u_zVNear", Camera.GetNearPlane());
@@ -1544,6 +1547,7 @@ void Candela::StartPipeline()
 		CompositeShader.SetInteger("u_DOF", 1);
 		CompositeShader.SetBool("u_DOFEnabled", DoDOF);
 		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
+		CompositeShader.SetBool("u_PerformanceDOF", PerformanceDOF);
 
 		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);
 
