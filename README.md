@@ -11,13 +11,19 @@ A realtime performance/graphics oriented 3D engine.
 - Infinite bounce GI using irradiance probes
 - Hybrid Specular GI (SSR + World Space RT)
 - SVGF + Specialized Specular Denoiser
-- TAA
-- Volumetrics
+- Temporal Anti Aliasing
+- Volumetrics (Direct + Indirect light contribution)
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
-- Bloom (Mip Based)
+- Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping etc.)
 - Basic Editor Features + Debug Views
 
 # Planned
-- Bokeh DOF / Other post FX
 - Glass materials (OIT + Screenspace Refraction)
+- Debug Features (Lighting components, Material Properties, BVH, Wireframe)
+- IES lights?
+- LTC
+
+# Screenshots
+
+Nothing here.. for now.
