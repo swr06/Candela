@@ -59,7 +59,7 @@ static bool DoFaceCulling = true;
 
 static float ShadowDistanceMultiplier = 1.0f;
 
-static bool DoSecondBounce = true;
+static bool DoMultiBounce = true;
 static bool DoInfiniteBounceGI = true;
 
 static bool UpdateIrradianceVolume = true;
@@ -100,7 +100,11 @@ static float DOFBlurRadius = 10.0f;
 static float CAScale = 0.04f;
 
 // Film Grain
-static float GrainStrength = 0.275f;
+static float GrainStrength = 0.0f;
+
+// Barrel/Pincushion Distortion
+static bool DoDistortion = false;
+static float DistortionK = 0.0f;
 
 // Hemispherical Shadow Mapping 
 // (Experiment)
@@ -267,9 +271,9 @@ public:
 			ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
 			ImGui::Checkbox("Temporally Filter Irradiance Volume?", &FilterIrradianceVolume);
 			ImGui::NewLine();
-			ImGui::Checkbox("Do Diffuse Second Bounce?", &DoSecondBounce);
+			ImGui::Checkbox("Do Diffuse Multi Bounce?", &DoMultiBounce);
 
-			if (DoSecondBounce)
+			if (DoMultiBounce)
 				ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
 
 			ImGui::NewLine();
@@ -311,6 +315,12 @@ public:
 			ImGui::NewLine();
 			ImGui::SliderFloat("Chromatic Aberration Strength", &CAScale, 0.0f, 0.50f);
 			ImGui::SliderFloat("Film Grain Strength", &GrainStrength, 0.0f, 1.0f);
+			
+			ImGui::NewLine();
+			ImGui::Checkbox("Distortion? (Barrel/Pincushion)", &DoDistortion);
+			
+			if (DoDistortion)
+				ImGui::SliderFloat("Distortion Coefficient (Pincushion if -ve and Barrel if +ve)", &DistortionK, -1.0f, 1.0f);
 			
 			ImGui::NewLine();
 
@@ -915,7 +925,7 @@ void Candela::StartPipeline()
 		DiffuseShader.SetInteger("u_SHDataB", 15);
 		DiffuseShader.SetInteger("u_Albedo", 16);
 		DiffuseShader.SetBool("u_Checker", DoCheckering);
-		DiffuseShader.SetBool("u_SecondBounce", DoSecondBounce);
+		DiffuseShader.SetBool("u_SecondBounce", DoMultiBounce);
 		DiffuseShader.SetBool("u_SecondBounceRT", !DoInfiniteBounceGI);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
@@ -1590,7 +1600,9 @@ void Candela::StartPipeline()
 		CASShader.Use();
 
 		CASShader.SetBool("u_Enabled", DoCAS);
+		CASShader.SetBool("u_DoDistortion", DoDistortion);
 		CASShader.SetFloat("u_GrainStrength", GrainStrength);
+		CASShader.SetFloat("u_DistortionK", DistortionK);
 
 		SetCommonUniforms<GLClasses::Shader>(CASShader, UniformBuffer);
 

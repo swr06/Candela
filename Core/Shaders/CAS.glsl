@@ -16,6 +16,9 @@ uniform float u_GrainStrength;
 
 uniform float u_Time;
 
+uniform float u_DistortionK;
+uniform bool u_DoDistortion;
+
 // Hash
 float HASH2SEED = 0.0f;
 vec2 hash2() 
@@ -68,8 +71,31 @@ void FilmGrain(inout vec3 oc)
 	vec3 NoiseColor = vec3(0.2001f, 0.804f, 1.02348f);
     vec3 Noise = vec3(hash2().xy, hash2().x);
     vec3 NoiseC = Noise * exp(-oc) * NoiseColor * 0.01f;
-	oc += mix(clamp(NoiseC, 0.0f, 1.0f), vec3(0.0f), 1.-u_GrainStrength);
+	oc += mix(clamp(NoiseC, 0.0f, 1.0f), vec3(0.0f), 1.0f - u_GrainStrength);
     oc *= mix(vec3(1.0f), Noise, u_GrainStrength * u_GrainStrength * exp(-oc));
+}
+
+// k should be -ve for barrel distortion and +ve for pincushion distortion
+vec3 Distort(vec2 uv, float k) {
+
+    if (!u_DoDistortion) {
+        return vec3(v_TexCoords, 1.0f);
+    }
+
+    uv -= 0.5f;
+
+    float ArcTanUV = atan(uv.x, uv.y);
+    float DistanceFalloff = sqrt(dot(uv, uv));
+    
+    DistanceFalloff = DistanceFalloff * (1.0f + k * DistanceFalloff * DistanceFalloff);
+
+    vec2 NewCoordinate = vec2(0.5f) + vec2(sin(ArcTanUV), cos(ArcTanUV)) * DistanceFalloff; // + 0.5 because it is subtracted at the start
+
+    vec2 AbsNDC = abs(NewCoordinate * 2.0f - 1.0f);
+    vec2 Border = 1.0f - smoothstep(vec2(0.9f), vec2(1.0f), AbsNDC);
+    float Falloff = mix(0.1f, 1.0f, Border.x * Border.y);
+
+    return vec3(NewCoordinate, Falloff);
 }
 
 void BasicColorDither(inout vec3 color)
@@ -82,7 +108,13 @@ void BasicColorDither(inout vec3 color)
 
 void main() 
 {
-    ivec2 Pixel = ivec2(gl_FragCoord.xy);
+    vec2 TexCoord = v_TexCoords;
+
+    vec3 Distorted = Distort(v_TexCoords, clamp(u_DistortionK, -1.0f, 1.0f));
+    TexCoord = Distorted.xy;
+
+    //ivec2 Pixel = ivec2(gl_FragCoord.xy); 
+    ivec2 Pixel = ivec2(TexCoord * textureSize(u_Texture, 0).xy);
 
     HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 489.0 * 20.0f;
 	HASH2SEED += fract(u_Time) * 100.0f;
@@ -91,10 +123,14 @@ void main()
 
     float SharpeningAmount = 0.425f;
     vec3 Processed = u_Enabled ? ContrastAdaptiveSharpening(u_Texture, Pixel, SharpeningAmount) : OriginalColor;
-    
+
     o_Color = LinearToSRGB(Processed);
     o_Color = clamp(o_Color, 0.0f, 1.0f);
+ 
+    o_Color *= Distorted.z;
 
     FilmGrain(o_Color);
 	BasicColorDither(o_Color);
+
+    o_Color = clamp(o_Color, 0.0f, 1.0f);
 }

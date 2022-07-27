@@ -118,7 +118,7 @@ void main() {
 	MeanDepth /= DepthWeights;
 
 	o_Color.xyz = TotalColor / TotalWeight;
-	o_Color.w = clamp(UseCircle / clamp((u_BlurRadius - 4.0f), 0.0f, 128.0f), 0.0f, 4.0f); 
+	o_Color.w = clamp(UseCircle / clamp((u_BlurRadius - 5.0f), 0.0f, 128.0f), 0.0f, 4.0f); 
 
 	///GetBlurScale(MinDepth, u_FocusDepth, 0.05f) / DOFBlurSize;
 	//o_Color.w = GetBlurScale(MeanDepth, u_FocusDepth, 0.01f) / DOFBlurSize;
