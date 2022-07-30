@@ -7,7 +7,7 @@ static uint64_t PolygonsRendered = 0;
 extern int __TotalMeshesRendered;
 extern int __MainViewMeshesRendered;
 
-void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull, int entity_num)
+void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& frustum, bool fcull, int entity_num, bool transparent_pass)
 {
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
 
@@ -22,6 +22,12 @@ void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& f
 
 	for (auto& e : object->m_Meshes)
 	{
+		if (!transparent_pass) {
+			if (entity.m_TranslucencyAmount > 0.01f) {
+				continue;
+			}
+		}
+
 		if (fcull) {
 			bool FrustumTest = frustum.TestBox(e.Box, entity.m_Model);
 

@@ -46,6 +46,7 @@ uniform int u_Pass;
 uniform bool u_Enabled;
 
 uniform float u_PhiLMult;
+uniform bool u_RoughSpec;
 
 bool SPATIAL_OFF = !u_Enabled;
 
@@ -212,6 +213,8 @@ void main() {
 	vec3 CenterHFNormal = texelFetch(u_NormalsHF, Pixel * 2, 0).xyz;
 	float CenterRoughness = texelFetch(u_PBR, Pixel * 2, 0).x;
 
+	CenterRoughness *= float(u_RoughSpec);
+
 	float CenterSTraversal = UntransformReflectionTransversal(CenterSpec.w);
 
 	vec3 WorldPosition = WorldPosFromDepth(DepthFetch, v_TexCoords.xy).xyz;
@@ -268,7 +271,7 @@ void main() {
 			}
 
 			vec4 SampleDiffuse = texelFetch(u_Diffuse, SamplePixel, 0);
-			vec4 SampleSpecular = texelFetch(u_Specular, SamplePixel, 0);
+			vec4 SampleSpecular = u_RoughSpec ? texelFetch(u_Specular, SamplePixel, 0) : CenterSpec;
 			float SampleVariance = texelFetch(u_Variance, SamplePixel, 0).x;
             vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 			vec3 SampleHFNormal = texelFetch(u_NormalsHF, HighResPixel, 0).xyz;
@@ -292,8 +295,8 @@ void main() {
 			float AOWeightDetail = pow(clamp(exp(-AOError / 0.125f), 0.0f, 1.0f), 1.0f);
 
 			// Specular Weights 
-			float SpecLumaWeight = pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.));
-			float SpecLobeWeight = pow(GetLobeWeight(CenterRoughness, SampleRoughness, CenterHFNormal, SampleHFNormal, vec2(CenterSpec.w,SampleSpecular.w),Incident), 1.5f);
+			float SpecLumaWeight = u_RoughSpec ? pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.)) : 0.0f;
+			float SpecLobeWeight = u_RoughSpec ? pow(GetLobeWeight(CenterRoughness, SampleRoughness, CenterHFNormal, SampleHFNormal, vec2(CenterSpec.w,SampleSpecular.w),Incident), 1.5f) : 0.0f;
 
 			// Wavelet 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];
@@ -333,6 +336,9 @@ void main() {
 
 	o_Diffuse = Diffuse;
 	o_Variance = Variance;
+
 	o_Specular = Specular;
 	o_Volumetrics = Volumetrics;
+
+	
 }

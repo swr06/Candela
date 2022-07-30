@@ -51,7 +51,9 @@ uniform usampler3D u_SHDataA;
 uniform usampler3D u_SHDataB;
 
 uniform bool u_Checker;
+
 uniform bool u_FullRT;
+uniform bool u_RoughSpec;
 
 float LinearizeDepth(float depth)
 {
@@ -431,6 +433,8 @@ void main() {
 #ifndef ROUGH_REFLECTIONS
 	PBR.x *= 0.0f;
 #endif
+
+	PBR.x *= float(u_RoughSpec);
 
 	if (PBR.y > 0.04f || u_FullRT) {
 		TRACE_MODE = 1;

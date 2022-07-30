@@ -28,6 +28,8 @@ uniform float u_EntityRoughness;
 uniform float u_EntityMetalness;
 uniform float u_EmissivityAmount;
 
+uniform float u_GlassFactor;
+
 uniform vec3 u_ViewerPosition;
 
 uniform int u_EntityNumber;

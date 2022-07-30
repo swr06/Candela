@@ -34,6 +34,10 @@ namespace Candela
 		float m_EntityRoughness = 0.75f;
 		float m_EntityMetalness = 0.0f;
 
+		// 1.0 -> Completely translucent
+		// 0.0 -> Opaque
+		float m_TranslucencyAmount = 0.0f;
+
 		Physics::PhysicsObject m_PhysicsObject;
 
 		bool m_IsPhysicsObject = false;

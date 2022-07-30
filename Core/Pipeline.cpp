@@ -65,6 +65,7 @@ static bool DoInfiniteBounceGI = true;
 static bool UpdateIrradianceVolume = true;
 static bool FilterIrradianceVolume = true;
 
+static bool DoRoughSpecular = true;
 static bool DoFullRTSpecular = false;
 
 static bool DoCheckering = true;
@@ -127,13 +128,12 @@ static ImGuizmo::MODE Mode = ImGuizmo::MODE::LOCAL;
 static bool UseSnap = true;
 static glm::vec3 SnapSize = glm::vec3(0.5f);
 
-
 // Render list 
 std::vector<Candela::Entity*> EntityRenderList;
 
-// GBuffer
+// GBuffers
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
-
+GLClasses::Framebuffer GlassGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false} }, false, true);
 
 // Draws editor grid 
 void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, const glm::vec3& GridBasis, float size) 
@@ -277,6 +277,7 @@ public:
 				ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
 
 			ImGui::NewLine();
+			ImGui::Checkbox("Rough Specular?", &DoRoughSpecular);
 			ImGui::Checkbox("Full Worldspace RT Specular GI?", &DoFullRTSpecular);
 			ImGui::NewLine();
 			ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
@@ -575,12 +576,17 @@ void Candela::StartPipeline()
 	DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
 	DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
 
+	Entity GlassDragon(&Dragon);
+	GlassDragon.m_EmissiveAmount = 0.0f;
+	GlassDragon.m_TranslucencyAmount = 0.5f;
+	GlassDragon.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-4.25f, 0.5f, -0.5f));
+	GlassDragon.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
 
 	Entity MetalObjectEntity(&MetalObject);
 	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
 	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectStartPosition);
 
-	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity };
+	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity, &GlassDragon };
 
 	// Textures
 	Skymap.CreateCubeTextureMap(
@@ -828,6 +834,14 @@ void Candela::StartPipeline()
 		RenderEntityList(EntityRenderList, GBufferShader);
 		UnbindEverything();
 
+		// Glass passes 
+
+		GlassGBuffer.Bind();
+
+
+
+		GlassGBuffer.Unbind();
+
 		// Post processing passes here : 
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
@@ -988,6 +1002,7 @@ void Candela::StartPipeline()
 		SpecularShader.SetInteger("u_SHDataB", 15);
 		SpecularShader.SetBool("u_Checker", DoCheckering);
 		SpecularShader.SetBool("u_FullRT", DoFullRTSpecular);
+		SpecularShader.SetBool("u_RoughSpec", DoRoughSpecular);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1122,6 +1137,7 @@ void Candela::StartPipeline()
 		TemporalFilterShader.SetInteger("u_VolumetricsHistory", 13);
 		TemporalFilterShader.SetBool("u_DoVolumetrics", DoVolumetrics && VolumetricsTemporal);
 		TemporalFilterShader.SetBool("u_Enabled", DoTemporal);
+		TemporalFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
@@ -1244,6 +1260,8 @@ void Candela::StartPipeline()
 				SpatialFilterShader.SetBool("u_Enabled", DoSpatial);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SpatialFilterShader.SetFloat("u_PhiLMult", 1.0f/glm::max(SVGFStrictness,0.01f));
+				SpatialFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
+
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
 
 				glActiveTexture(GL_TEXTURE0);

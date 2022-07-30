@@ -51,6 +51,7 @@ uniform vec3 u_ViewerPosition;
 uniform bool u_DoVolumetrics;
 
 uniform bool u_Enabled;
+uniform bool u_RoughSpec;
 
 // GBuffer
 float LinearizeDepth(float depth)
@@ -137,6 +138,8 @@ void main() {
 	float Depth = texelFetch(u_Depth, HighResPixel, 0).x;
 	vec3 Normals = normalize(texelFetch(u_Normals, HighResPixel, 0).xyz);
 	vec3 PBR = texelFetch(u_PBR, HighResPixel, 0).xyz;
+
+	PBR.x *= float(u_RoughSpec);
 
 	float LinearDepth = LinearizeDepth(Depth);
 	vec2 DepthGradient = vec2(dFdx(LinearDepth), dFdy(LinearDepth));
@@ -252,7 +255,12 @@ void main() {
 		if (IsInScreenspaceBiased(ReprojectedReflection.xy)) {
 			vec4 HistorySpecular = CatmullRom(u_SpecularHistory, ReprojectedReflection.xy);
 
-			float ClipStrength = max(mix(1.0f, 5.0f, pow(PBR.x,1.5f)) * (MotionLength > 0.0025f ? 0.4f : 16.0f), 1.0f);
+			float ClipStrength = max(mix(1.0f, 5.0f, clamp(pow(PBR.x,1.7f),0.0f,1.0f)) * (MotionLength > 0.0025f ? 0.4f : 16.0f), 0.6f);
+			
+			if (PBR.x < 0.11f) {
+				ClipStrength = min(ClipStrength, mix(0.25f, 0.8f, clamp(PBR.x / 0.11f, 0.0f, 1.0f)));
+			}
+			
 			HistorySpecular.xyz = YCoCg2RGB(ClipToAABB(RGB2YCoCg(HistorySpecular.xyz), MeanSpec.xyz - Variance.xyz * ClipStrength, MeanSpec.xyz + Variance.xyz * ClipStrength));
 
 			float TransversalError = abs(UntransformReflectionTransversal(HistorySpecular.w) - Transversal);
