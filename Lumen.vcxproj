@@ -350,7 +350,6 @@
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl" />
     <None Include="Core\Shaders\TAA.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
-    <None Include="Core\Shaders\TransparentForward.glsl" />
     <None Include="Core\Shaders\TransparentForwardFrag.glsl" />
     <None Include="Core\Shaders\TransparentForwardVert.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />

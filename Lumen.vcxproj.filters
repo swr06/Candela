@@ -643,9 +643,6 @@
     <None Include="Core\Shaders\OITComposite.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\TransparentForward.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
     <None Include="Core\Shaders\TransparentForwardFrag.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>

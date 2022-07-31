@@ -484,30 +484,33 @@ void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 }
 
 // Deferred
-GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
+GLClasses::Framebuffer LightingPass(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
+
+// Transparent Forward
+GLClasses::Framebuffer TransparentPass(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true} }, false, true);
 
 // Post 
-GLClasses::Framebuffer Composited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
-GLClasses::Framebuffer PFXComposited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
-GLClasses::Framebuffer DOF(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true);
-GLClasses::Framebuffer VolumetricsCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
+GLClasses::Framebuffer Composited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
+GLClasses::Framebuffer PFXComposited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
+GLClasses::Framebuffer DOF(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
+GLClasses::Framebuffer VolumetricsCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
 
 // For temporal 
-GLClasses::Framebuffer MotionVectors(16, 16, { GL_RG16F, GL_RG, GL_FLOAT, true, true }, false, true);
+GLClasses::Framebuffer MotionVectors(16, 16, { GL_RG16F, GL_RG, GL_FLOAT, true, true }, false, false);
 
 // Raw output 
-GLClasses::Framebuffer DiffuseCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
-GLClasses::Framebuffer SpecularCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
-GLClasses::Framebuffer SSRefractions(16, 16, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, false, true);
+GLClasses::Framebuffer DiffuseCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
+GLClasses::Framebuffer SpecularCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
+GLClasses::Framebuffer SSRefractions(16, 16, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, false, false);
 
 // Upscaling 
-GLClasses::Framebuffer CheckerboardUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true },{ GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, true);
-GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true},  {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true},  {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true) };
+GLClasses::Framebuffer CheckerboardUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true },{ GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, false);
+GLClasses::Framebuffer TemporalBuffersIndirect[2]{ GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true},  {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, false), GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RG16F, GL_RED, GL_FLOAT, true, true}, {GL_RG16F, GL_RG, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true},  {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, false) };
 
 // Denoiser 
-GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, true);
-GLClasses::Framebuffer SpatialUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, true);
-GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, true) };
+GLClasses::Framebuffer SpatialVariance(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_R16F, GL_RED, GL_FLOAT, true, true } }, false, false);
+GLClasses::Framebuffer SpatialUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, false);
+GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, false),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}}, false, false) };
 
 // Antialiasing 
 GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
@@ -628,6 +631,7 @@ void Candela::StartPipeline()
 	GLClasses::Shader& TAAShader = ShaderManager::GetShader("TAA");
 	GLClasses::Shader& CASShader = ShaderManager::GetShader("CAS");
 
+	GLClasses::Shader& TransparentForwardShader = ShaderManager::GetShader("TRANSPARENT_FORWARD");
 	GLClasses::Shader& SSRefractionShader = ShaderManager::GetShader("SS_REFRACT");
 
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
@@ -835,6 +839,10 @@ void Candela::StartPipeline()
 		}
 
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+
+		glDisable(GL_BLEND);
 
 		glm::mat4 TAAMatrix = DoTAA ? GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions()) : glm::mat4(1.0f);
 
@@ -873,21 +881,36 @@ void Candela::StartPipeline()
 		GlassGBuffer.Unbind();
 		UnbindEverything();
 
-		// OIT Passes 
+		// Transparent Forward pass 
+
+		glDepthMask(GL_FALSE);
+		glEnable(GL_BLEND);
+		glBlendFunci(0, GL_ONE, GL_ONE);
+		glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+		glBlendEquation(GL_FUNC_ADD);
+
+		TransparentForwardShader.Use();
+		TransparentPass.Bind();
+
+		glClearBufferfv(GL_COLOR, 0, glm::value_ptr(glm::vec4(0.0f)));
+		glClearBufferfv(GL_COLOR, 1, glm::value_ptr(glm::vec4(1.0f)));
 
 
-
-
+		TransparentPass.Unbind();
 
 		// OIT Composite 
 
+		glDepthFunc(GL_ALWAYS);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
 
-		
-
-		// SSRefractions 
-
+		// Post processing passes :
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+
+		// Refractions
 
 		SSRefractions.Bind();
 		SSRefractionShader.Use();
@@ -912,24 +935,6 @@ void Candela::StartPipeline()
 		ScreenQuadVAO.Unbind();
 
 		SSRefractions.Unbind();
-
-		// Glass rendering 
-
-		if (DoFaceCulling) {
-			glEnable(GL_CULL_FACE);
-		}
-
-		else {
-			glDisable(GL_CULL_FACE);
-		}
-
-		glEnable(GL_DEPTH_TEST);
-
-
-		// Post processing passes :
-
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_DEPTH_TEST);
 
 		// Motion vectors 
 
