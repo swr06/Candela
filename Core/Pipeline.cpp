@@ -292,8 +292,8 @@ public:
 
 			if (DoVolumetrics) {
 				ImGui::SliderFloat("Volumetrics Strength", &VolumetricsGlobalStrength, 0.1f, 6.0f);
-				ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.01f, 8.0f);
-				ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.01f, 8.0f);
+				ImGui::SliderFloat("Volumetrics Direct Strength", &VolumetricsDirectStrength, 0.0f, 8.0f);
+				ImGui::SliderFloat("Volumetrics Indirect Strength", &VolumetricsIndirectStrength, 0.0f, 8.0f);
 				ImGui::SliderInt("Volumetrics Steps", &VolumetricsSteps, 4, 128);
 
 				if (DoTemporal) {

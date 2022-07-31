@@ -95,7 +95,7 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			
 			if (x == 0 && y == 0) { continue ; }
 
-			float KernelWeight = Atrous[abs(x)] * Atrous[abs(y)];
+			float KernelWeight = 1.0f; //Atrous[abs(x)] * Atrous[abs(y)];
 
 			ivec2 SampleCoord = ivec2(PixelDownscaled) + ivec2(x, y);
 			ivec2 SampleCoordHighRes = SampleCoord * 2;
