@@ -7,6 +7,7 @@ static std::unordered_map<std::string, GLClasses::ComputeShader> ShaderManager_S
 void Candela::ShaderManager::CreateShaders()
 {
 	AddShader("GBUFFER", "Core/Shaders/GeometryVert.glsl", "Core/Shaders/GeometryFrag.glsl");
+	AddShader("GLASS_PREPASS", "Core/Shaders/GlassPrePassVert.glsl", "Core/Shaders/GlassPrePassFrag.glsl");
 	AddShader("LIGHTING_PASS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/ColorPass.glsl");
 	AddShader("PFX_COMBINE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/PostProcessCombine.glsl");
 	AddShader("DOF", "Core/Shaders/DOFVert.glsl", "Core/Shaders/DepthOfField.glsl");
@@ -26,6 +27,7 @@ void Candela::ShaderManager::CreateShaders()
 	AddShader("SPATIAL_UPSCALE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/SpatialUpscale.glsl");
 	AddShader("BLOOM_MASK", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BloomMask.glsl");
 	AddShader("BLOOM_BLUR", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BloomBlurTwoPass.glsl");
+	AddShader("SS_REFRACT", "Core/Shaders/FBOVert.glsl", "Core/Shaders/RefractionTrace.glsl");
 	AddComputeShader("PROBE_UPDATE", "Core/Shaders/UpdateRadianceProbes.glsl");
 	AddComputeShader("COPY_VOLUME", "Core/Shaders/CopyVolume.glsl");
 	AddComputeShader("COLLISIONS", "Core/Shaders/Collide.comp");

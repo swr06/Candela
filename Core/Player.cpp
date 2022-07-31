@@ -15,6 +15,11 @@ namespace Candela
 
 	void Player::OnUpdate(GLFWwindow* window, float dt, float speed, int frame)
 	{
+		if (frame < 6) {
+			Camera.SetPosition(m_Position);
+			return;
+		}
+
 		glm::vec3 StartPosition = m_Position;
 
 		float camera_speed = speed;

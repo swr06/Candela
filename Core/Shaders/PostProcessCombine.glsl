@@ -13,6 +13,8 @@ uniform sampler2D u_BloomBrightTexture;
 
 uniform float u_CAScale;
 
+uniform bool u_BloomEnabled;
+
 vec3 ChromaticAberation()
 {
 	const float ChannelCount = 3.0f;
@@ -59,6 +61,11 @@ vec3 ChromaticAberation()
 
 
 vec3 UpscaleBloom(vec2 TexCoords) {
+
+	if (!u_BloomEnabled) {
+		return vec3(0.0f);
+	}
+
 	vec3 UpscaledBloom = vec3(0.0f);
     vec3 BaseBrightTex = Bicubic(u_BloomBrightTexture, TexCoords).xyz;
 

@@ -313,8 +313,9 @@
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStack.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStackless.glsl" />
     <None Include="Core\Shaders\LTC.glsl" />
-    <None Include="Core\Shaders\OIT.glsl" />
+    <None Include="Core\Shaders\OITComposite.glsl" />
     <None Include="Core\Shaders\PostProcessCombine.glsl" />
+    <None Include="Core\Shaders\RefractionTrace.glsl" />
     <None Include="Core\Shaders\SpatialUpscale.glsl" />
     <None Include="Core\Shaders\Composite.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />
@@ -349,6 +350,9 @@
     <None Include="Core\Shaders\Surfel\SurfelSpawn.glsl" />
     <None Include="Core\Shaders\TAA.glsl" />
     <None Include="Core\Shaders\Temporal.glsl" />
+    <None Include="Core\Shaders\TransparentForward.glsl" />
+    <None Include="Core\Shaders\TransparentForwardFrag.glsl" />
+    <None Include="Core\Shaders\TransparentForwardVert.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
     <None Include="Core\Shaders\UpdateRadianceProbes.glsl" />
     <None Include="Core\Shaders\Volumetrics.glsl" />

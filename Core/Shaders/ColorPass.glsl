@@ -36,6 +36,8 @@ uniform sampler2D u_IndirectSpecular;
 
 uniform sampler2D u_Volumetrics;
 
+uniform sampler2D u_DebugTexture;
+
 uniform vec3 u_ViewerPosition;
 uniform vec3 u_LightDirection;
 uniform mat4 u_InverseView;
@@ -290,4 +292,7 @@ void main()
 	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
 
 	DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
+
+	//o_Color = texture(u_AlbedoTexture, texture(u_DebugTexture, v_TexCoords).xy).xyz;
+	o_Color = max(o_Color, 0.0f);
 }

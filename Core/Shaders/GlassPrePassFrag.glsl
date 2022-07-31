@@ -40,6 +40,5 @@ void main()
 		HQN = -HQN;
 	}
 	
-	float Depth = gl_FragDepth;
-	o_Data = vec4(HQN, Depth);
+	o_Data = vec4(HQN.xyz, 1);
 }

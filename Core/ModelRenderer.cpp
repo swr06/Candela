@@ -22,10 +22,14 @@ void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& f
 
 	for (auto& e : object->m_Meshes)
 	{
-		if (!transparent_pass) {
-			if (entity.m_TranslucencyAmount > 0.01f) {
-				continue;
-			}
+		bool EntityTransparent = entity.m_TranslucencyAmount > 0.01f;
+
+		if (!transparent_pass && EntityTransparent) {
+			continue;
+		}
+
+		if (!EntityTransparent && transparent_pass) {
+			continue;
 		}
 
 		if (fcull) {
@@ -78,6 +82,8 @@ void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& f
 		shader.SetFloat("u_ModelEmission", entity.m_EmissiveAmount);
 		shader.SetFloat("u_EntityRoughness", entity.m_EntityRoughness);
 		shader.SetFloat("u_EntityMetalness", entity.m_EntityMetalness);
+		shader.SetFloat("u_Transparency", entity.m_TranslucencyAmount);
+		shader.SetFloat("u_GlassFactor", entity.m_TranslucencyAmount);
 		shader.SetInteger("u_EntityNumber", entity_num);
 
 		if (mesh->TexturePaths[5].size() > 0 && mesh->m_MetalnessRoughnessMap.GetID() > 0) {

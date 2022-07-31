@@ -74,6 +74,8 @@ static bool DoTAA = true;
 
 static bool DoCAS = true;
 
+static bool DoBloom = true;
+
 static bool DoTemporal = true;
 
 static bool DoSpatial = true;
@@ -134,6 +136,7 @@ std::vector<Candela::Entity*> EntityRenderList;
 // GBuffers
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
 GLClasses::Framebuffer GlassGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false} }, false, true);
+
 
 // Draws editor grid 
 void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, const glm::vec3& GridBasis, float size) 
@@ -306,6 +309,8 @@ public:
 			}
 
 			ImGui::NewLine();
+			ImGui::Checkbox("Bloom?", &DoBloom);
+			ImGui::NewLine();
 			ImGui::Checkbox("DOF?", &DoDOF);
 			if (DoDOF) {
 				ImGui::SliderFloat("DOF Blur Size", &DOFBlurRadius, 2.0f, 16.0f);
@@ -439,12 +444,12 @@ public:
 };
 
 
-void RenderEntityList(const std::vector<Candela::Entity*> EntityList, GLClasses::Shader& shader) {
+void RenderEntityList(const std::vector<Candela::Entity*> EntityList, GLClasses::Shader& shader, bool glasspass) {
 
 	int En = 0;
 		
 	for (auto& e : EntityList) {
-		Candela::RenderEntity(*e, shader, Player.CameraFrustum, DoFrustumCulling, En);
+		Candela::RenderEntity(*e, shader, Player.CameraFrustum, DoFrustumCulling, En, glasspass);
 		En++;
 	}
 }
@@ -493,6 +498,7 @@ GLClasses::Framebuffer MotionVectors(16, 16, { GL_RG16F, GL_RG, GL_FLOAT, true, 
 // Raw output 
 GLClasses::Framebuffer DiffuseCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
 GLClasses::Framebuffer SpecularCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, true) };
+GLClasses::Framebuffer SSRefractions(16, 16, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, false, true);
 
 // Upscaling 
 GLClasses::Framebuffer CheckerboardUpscaled(16, 16, { { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true },{ GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true }, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, true);
@@ -605,19 +611,29 @@ void Candela::StartPipeline()
 
 	// Create Shaders
 	ShaderManager::CreateShaders();
+
 	GLClasses::Shader& GBufferShader = ShaderManager::GetShader("GBUFFER");
+	GLClasses::Shader& GBufferGlassPrepassShader = ShaderManager::GetShader("GLASS_PREPASS");
+
 	GLClasses::Shader& LightingShader = ShaderManager::GetShader("LIGHTING_PASS");
+
 	GLClasses::Shader& CheckerReconstructShader = ShaderManager::GetShader("CHECKER_UPSCALE");
 	GLClasses::Shader& TemporalFilterShader = ShaderManager::GetShader("TEMPORAL");
 	GLClasses::Shader& MotionVectorShader = ShaderManager::GetShader("MOTION_VECTORS");
+
 	GLClasses::Shader& SpatialVarianceShader = ShaderManager::GetShader("SVGF_VARIANCE");
 	GLClasses::Shader& SpatialFilterShader = ShaderManager::GetShader("SPATIAL_FILTER");
+	GLClasses::Shader& SpatialUpscaleShader = ShaderManager::GetShader("SPATIAL_UPSCALE");
+
 	GLClasses::Shader& TAAShader = ShaderManager::GetShader("TAA");
 	GLClasses::Shader& CASShader = ShaderManager::GetShader("CAS");
-	GLClasses::Shader& VolumetricsShader = ShaderManager::GetShader("VOLUMETRICS");
-	GLClasses::Shader& SpatialUpscaleShader = ShaderManager::GetShader("SPATIAL_UPSCALE");
+
+	GLClasses::Shader& SSRefractionShader = ShaderManager::GetShader("SS_REFRACT");
+
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
+	GLClasses::Shader& VolumetricsShader = ShaderManager::GetShader("VOLUMETRICS");
+
 	GLClasses::ComputeShader& CollisionShader = ShaderManager::GetComputeShader("COLLISIONS");
 
 	GLClasses::Shader& CompositeShader = ShaderManager::GetShader("COMPOSITE");
@@ -685,6 +701,7 @@ void Candela::StartPipeline()
 		// Resize FBOs
 		GBuffers[0].SetSize(app.GetWidth(), app.GetHeight());
 		GBuffers[1].SetSize(app.GetWidth(), app.GetHeight());
+		GlassGBuffer.SetSize(app.GetWidth(), app.GetHeight());
 		MotionVectors.SetSize(app.GetWidth(), app.GetHeight());
 
 		// Lighting
@@ -693,6 +710,9 @@ void Candela::StartPipeline()
 		// Antialiasing
 		TAABuffers[0].SetSize(app.GetWidth(), app.GetHeight());
 		TAABuffers[1].SetSize(app.GetWidth(), app.GetHeight());
+		
+		// SS refractions
+		SSRefractions.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
 
 		// Diffuse FBOs
 		int Denominator = DoCheckering ? 4 : 2;
@@ -831,22 +851,88 @@ void Candela::StartPipeline()
 		GBufferShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 		GBufferShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 
-		RenderEntityList(EntityRenderList, GBufferShader);
+		RenderEntityList(EntityRenderList, GBufferShader, false);
 		UnbindEverything();
 
-		// Glass passes 
+		// Glass pre-pass
 
 		GlassGBuffer.Bind();
 
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		GBufferGlassPrepassShader.Use();
+		GBufferGlassPrepassShader.SetMatrix4("u_ViewProjection", TAAMatrix * Camera.GetViewProjection());
+		GBufferGlassPrepassShader.SetInteger("u_AlbedoMap", 0);
+		GBufferGlassPrepassShader.SetInteger("u_NormalMap", 1);
+		GBufferGlassPrepassShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
+		GBufferGlassPrepassShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
+
+		RenderEntityList(EntityRenderList, GBufferGlassPrepassShader, true);
 
 		GlassGBuffer.Unbind();
+		UnbindEverything();
 
-		// Post processing passes here : 
+		// OIT Passes 
+
+
+
+
+
+		// OIT Composite 
+
+
+		
+
+		// SSRefractions 
+
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+
+		SSRefractions.Bind();
+		SSRefractionShader.Use();
+
+		SSRefractionShader.SetInteger("u_RefractDepth", 0);
+		SSRefractionShader.SetInteger("u_Normals", 1);
+		SSRefractionShader.SetInteger("u_Depth", 2);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GlassGBuffer.GetDepthBuffer());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, GlassGBuffer.GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+		SetCommonUniforms<GLClasses::Shader>(SSRefractionShader, UniformBuffer);
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		SSRefractions.Unbind();
+
+		// Glass rendering 
+
+		if (DoFaceCulling) {
+			glEnable(GL_CULL_FACE);
+		}
+
+		else {
+			glDisable(GL_CULL_FACE);
+		}
+
+		glEnable(GL_DEPTH_TEST);
+
+
+		// Post processing passes :
+
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
 
 		// Motion vectors 
+
 		MotionVectors.Bind();
 		MotionVectorShader.Use();
 		MotionVectorShader.SetInteger("u_Depth", 0);
@@ -1367,7 +1453,7 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_SHDataB", 16);
 		LightingShader.SetInteger("u_Volumetrics", 17);
 		LightingShader.SetInteger("u_NormalLFTexture", 18);
-		LightingShader.SetInteger("u_VoxelVolume", 19);
+		LightingShader.SetInteger("u_DebugTexture", 19);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 		LightingShader.SetBool("u_DrawProbeGridDebug", DrawProbeGridDebug && EditMode);
 
@@ -1440,6 +1526,9 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE18);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+		
+		glActiveTexture(GL_TEXTURE19);
+		glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, DOFSSBO);
@@ -1501,7 +1590,10 @@ void Candela::StartPipeline()
 		// Bloom 
 
 		GLuint BrightTex = 0;
-		BloomRenderer::RenderBloom(TAA.GetTexture(), GBuffer.GetTexture(3), BloomBufferA, BloomBufferB, BrightTex, true);
+
+		if (DoBloom) {
+			BloomRenderer::RenderBloom(TAA.GetTexture(), GBuffer.GetTexture(3), BloomBufferA, BloomBufferB, BrightTex, true);
+		}
 
 		// Combine Post FX (excluding DOF.)
 
@@ -1517,6 +1609,7 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetInteger("u_BloomMips[4]", 5);
 		PostFXCombineShader.SetInteger("u_BloomBrightTexture", 6);
 		PostFXCombineShader.SetInteger("u_Depth", 7);
+		PostFXCombineShader.SetBool("u_BloomEnabled", DoBloom);
 		PostFXCombineShader.SetFloat("u_CAScale", CAScale);
 
 		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, UniformBuffer);
