@@ -816,6 +816,9 @@ void Candela::StartPipeline()
 		CommonUniforms UniformBuffer = { View, Projection, InverseView, InverseProjection, PreviousProjection, PreviousView, glm::inverse(PreviousProjection), glm::inverse(PreviousView), (int)app.GetCurrentFrame(), SunDirection};
 
 		// Render shadow maps
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
 		ShadowHandler::UpdateDirectShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier);
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 		
@@ -897,6 +900,7 @@ void Candela::StartPipeline()
 
 
 		TransparentPass.Unbind();
+
 
 		// OIT Composite 
 
