@@ -64,7 +64,7 @@ void main()
 
 	vec3 Color = AlbedoColor;
 	
-	float Alpha = u_Transparency;
+	float Alpha = 1.0f - u_Transparency;
 
 	float Weight = max(min(1.0, max(max(Color.r, Color.g), Color.b) * Alpha), Alpha) * clamp(0.03f / (1e-5f + pow(Z / 200.0f, 4.0f)), 1e-2, 3e3);
 

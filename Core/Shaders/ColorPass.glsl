@@ -293,6 +293,6 @@ void main()
 
 	DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
 
-	//o_Color = texture(u_AlbedoTexture, texture(u_DebugTexture, v_TexCoords).xy).xyz;
+	//o_Color = texture(u_DebugTexture, v_TexCoords).xyz; // / max(texture(u_DebugTexture, v_TexCoords).w, 0.0001f);
 	o_Color = max(o_Color, 0.0f);
 }
