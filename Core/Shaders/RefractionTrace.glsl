@@ -21,7 +21,6 @@ uniform float u_Time;
 uniform int u_Frame;
 
 
-
 const float INV_RES = 2;
 
 float LinearizeDepth(float depth)
@@ -193,22 +192,37 @@ void main() {
 	}
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords);
-	vec3 WorldPositionOpaque = WorldPosFromDepth(texelFetch(u_Depth, HighResPixel, 0).x, TexCoords);
 
-	float Transversal = distance(WorldPosition, WorldPositionOpaque);
+	float OpaqueDepth = texelFetch(u_Depth, HighResPixel, 0).x;
+	vec3 WorldPositionOpaque = (OpaqueDepth > 0.9999999999f || OpaqueDepth == 1.0f) ? vec3(100000.0f) : WorldPosFromDepth(OpaqueDepth, TexCoords);
+
+	float Transversal = (OpaqueDepth > 0.9999999999f || OpaqueDepth == 1.0f) ? 1000.0f : distance(WorldPosition, WorldPositionOpaque);
+
+	Transversal = clamp(Transversal, 0.0f, 32.0f);
 
 	vec3 Normal = normalize(texelFetch(u_Normals, HighResPixel, 0).xyz);
 
 	vec3 Player = u_InverseView[3].xyz;
-
 	vec3 Incident = normalize(WorldPosition - Player);
 
 	vec3 RefractedDirection = refract(Incident, Normal, 1.0f / 1.5f);
 
-	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, 12, 5, 0.004f);
+	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, 10, 6, 0.0045f);
 
 	if (Res.xy != clamp(Res.xy, 0.0f, 1.0f)) {
-		Res.xy = v_TexCoords;
+		
+		vec3 ApproximateIntersection = WorldPosition + Transversal * RefractedDirection * 0.75f;
+
+		vec3 Projected = ProjectToScreenSpace(ApproximateIntersection);
+
+		if (Projected.xy != clamp(Projected.xy, 0.0f, 1.0f)) {
+
+			Projected.xy = v_TexCoords;
+			
+		}
+
+		Res.xy = Projected.xy;
+
 	}
 
 	o_Output = vec3(Res.xy, Res.z);

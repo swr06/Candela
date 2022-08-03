@@ -24,6 +24,10 @@ uniform vec2 u_Dimensions;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform sampler2D u_RefractionData;
+uniform sampler2D u_OpaqueLighting;
+
+
 in vec2 v_TexCoords;
 in vec3 v_FragPosition;
 in vec3 v_Normal;
@@ -44,6 +48,12 @@ void main()
 	const float LODBias = -1.0f;
 	const bool GenerateNormals = false;
 
+	vec2 ScreenspaceUV = vec2(gl_FragCoord.xy) / u_Dimensions;
+
+	vec3 RefractionData = texture(u_RefractionData, ScreenspaceUV).xyz;
+
+	vec3 Refracted = texture(u_OpaqueLighting, RefractionData.xy).xyz;
+	
 	vec3 Incident = normalize(v_FragPosition - u_ViewerPosition);
 
 	vec3 AlbedoColor = (u_UsesAlbedoTexture ? texture(u_AlbedoMap, v_TexCoords, LODBias).xyz : u_ModelColor);
@@ -62,11 +72,20 @@ void main()
 
 	float Z = LinearizeDepth(gl_FragCoord.z);
 
-	vec3 Color = AlbedoColor;
+	vec3 Color = Refracted * AlbedoColor;
 	
 	float Alpha = 1.0f - u_Transparency;
 
-	float Weight = max(min(1.0, max(max(Color.r, Color.g), Color.b) * Alpha), Alpha) * clamp(0.03f / (1e-5f + pow(Z / 200.0f, 4.0f)), 1e-2, 3e3);
+	float InversePers = abs(1.0f / gl_FragCoord.w);
+	//float Factor = 1.0 / 200.0f; 
+	//float ZFactor = Factor * InversePers;
+    //float Weight = clamp((0.03 / (1e-5 + pow(ZFactor, 4.0))), 1e-4, 3e3);
+
+	float a = 58.3765228;
+    float b = 1.45434782;
+    float c = 0.00630901288;
+    float fz = a * exp(-b * InversePers) + c;
+    float Weight = clamp(fz, 1e-2, 3e3);
 
 	o_Blend = vec4(Color.xyz * Alpha, Alpha) * Weight;
 	o_Revealage = Alpha;
