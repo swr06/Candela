@@ -40,5 +40,5 @@ void main()
 		HQN = -HQN;
 	}
 	
-	o_Data = vec4(HQN.xyz, 1);
+	o_Data = vec4(HQN.xyz, float(u_EntityNumber + 2));
 }

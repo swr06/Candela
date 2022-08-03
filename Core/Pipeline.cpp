@@ -55,6 +55,7 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 // Options
 
 static bool RENDER_GLASS = true;
+static bool HQ_Refractions = false;
 
 static bool DoFrustumCulling = false;
 static bool DoFaceCulling = true;
@@ -137,7 +138,7 @@ std::vector<Candela::Entity*> EntityRenderList;
 
 // GBuffers
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
-GLClasses::Framebuffer GlassGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false} }, false, true);
+GLClasses::Framebuffer TransparentGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false} }, false, true);
 
 
 // Draws editor grid 
@@ -267,6 +268,7 @@ public:
 			ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 			ImGui::NewLine();
 			ImGui::Checkbox("Glass Rendering (OIT/Refractions)?", &RENDER_GLASS);
+			ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
 			ImGui::NewLine();
 			ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
 			ImGui::Checkbox("Face Culling?", &DoFaceCulling);
@@ -355,14 +357,38 @@ public:
 					glfwGetCursorPos(this->m_Window, &mxx, &myy);
 					myy = (double)this->GetHeight() - myy;
 
-					short data = 0;
-					glBindFramebuffer(GL_FRAMEBUFFER, GBuffers[0].GetFramebuffer());
-					glReadBuffer(GL_COLOR_ATTACHMENT0 + 4);
-					glReadPixels((int)mxx, (int)myy, 1, 1, GL_RED_INTEGER, GL_SHORT, &data);
+					float d1, d2;
 
-					if (data >= 2) {
-						data -= 2;
-						SelectedEntity = EntityRenderList[data];
+					glBindFramebuffer(GL_FRAMEBUFFER, GBuffers[0].GetFramebuffer());
+					glReadPixels((int)mxx, (int)myy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &d1);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, TransparentGBuffer.GetFramebuffer());
+					glReadPixels((int)mxx, (int)myy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &d2);
+
+					if (d1 < d2) {
+						short read_data = 0;
+						glBindFramebuffer(GL_FRAMEBUFFER, GBuffers[0].GetFramebuffer());
+						glReadBuffer(GL_COLOR_ATTACHMENT0 + 4);
+						glReadPixels((int)mxx, (int)myy, 1, 1, GL_RED_INTEGER, GL_SHORT, &read_data);
+
+						if (read_data >= 2) {
+							read_data -= 2;
+							SelectedEntity = EntityRenderList[read_data];
+						}
+					}
+
+					else {
+						glm::vec4 read_data;
+						glBindFramebuffer(GL_FRAMEBUFFER, TransparentGBuffer.GetFramebuffer());
+						glReadBuffer(GL_COLOR_ATTACHMENT0 + 0);
+						glReadPixels((int)mxx, (int)myy, 1, 1, GL_RGBA, GL_FLOAT, &read_data);
+
+						int data = int(floor(read_data.w));
+
+						if (data >= 2) {
+							data -= 2;
+							SelectedEntity = EntityRenderList[data];
+						}
 					}
 				}
 			}
@@ -623,7 +649,7 @@ void Candela::StartPipeline()
 	ShaderManager::CreateShaders();
 
 	GLClasses::Shader& GBufferShader = ShaderManager::GetShader("GBUFFER");
-	GLClasses::Shader& GBufferGlassPrepassShader = ShaderManager::GetShader("GLASS_PREPASS");
+	GLClasses::Shader& GBufferTransparentPrepassShader = ShaderManager::GetShader("GLASS_PREPASS");
 
 	GLClasses::Shader& TransparentForwardShader = ShaderManager::GetShader("TRANSPARENT_FORWARD");
 	GLClasses::Shader& OITCompositeShader = ShaderManager::GetShader("OIT_COMPOSITE");
@@ -714,7 +740,7 @@ void Candela::StartPipeline()
 		// Resize FBOs
 		GBuffers[0].SetSize(app.GetWidth(), app.GetHeight());
 		GBuffers[1].SetSize(app.GetWidth(), app.GetHeight());
-		GlassGBuffer.SetSize(app.GetWidth(), app.GetHeight());
+		TransparentGBuffer.SetSize(app.GetWidth(), app.GetHeight());
 
 		// Transparent 
 		TransparentPass.SetSize(app.GetWidth(), app.GetHeight());
@@ -886,21 +912,21 @@ void Candela::StartPipeline()
 		// Glass pre-pass
 
 		if (RENDER_GLASS) {
-			GlassGBuffer.Bind();
+			TransparentGBuffer.Bind();
 
 			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			GBufferGlassPrepassShader.Use();
-			GBufferGlassPrepassShader.SetMatrix4("u_ViewProjection", TAAMatrix * Camera.GetViewProjection());
-			GBufferGlassPrepassShader.SetInteger("u_AlbedoMap", 0);
-			GBufferGlassPrepassShader.SetInteger("u_NormalMap", 1);
-			GBufferGlassPrepassShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
-			GBufferGlassPrepassShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
+			GBufferTransparentPrepassShader.Use();
+			GBufferTransparentPrepassShader.SetMatrix4("u_ViewProjection", TAAMatrix * Camera.GetViewProjection());
+			GBufferTransparentPrepassShader.SetInteger("u_AlbedoMap", 0);
+			GBufferTransparentPrepassShader.SetInteger("u_NormalMap", 1);
+			GBufferTransparentPrepassShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
+			GBufferTransparentPrepassShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 
-			RenderEntityList(EntityRenderList, GBufferGlassPrepassShader, true);
+			RenderEntityList(EntityRenderList, GBufferTransparentPrepassShader, true);
 
-			GlassGBuffer.Unbind();
+			TransparentGBuffer.Unbind();
 			UnbindEverything();
 		}
 
@@ -920,12 +946,13 @@ void Candela::StartPipeline()
 			SSRefractionShader.SetInteger("u_RefractDepth", 0);
 			SSRefractionShader.SetInteger("u_Normals", 1);
 			SSRefractionShader.SetInteger("u_Depth", 2);
+			SSRefractionShader.SetBool("u_HQ", HQ_Refractions);
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, GlassGBuffer.GetDepthBuffer());
+			glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
 
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, GlassGBuffer.GetTexture(0));
+			glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(0));
 
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1605,6 +1632,8 @@ void Candela::StartPipeline()
 
 			OITCompositeShader.SetInteger("u_Blend", 0);
 			OITCompositeShader.SetInteger("u_Revealage", 1);
+			OITCompositeShader.SetInteger("u_OpaqueDepth", 2);
+			OITCompositeShader.SetInteger("u_TransparentDepth", 3);
 
 			SetCommonUniforms<GLClasses::Shader>(OITCompositeShader, UniformBuffer);
 
@@ -1613,6 +1642,12 @@ void Candela::StartPipeline()
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, TransparentPass.GetTexture(1));
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
 
 			ScreenQuadVAO.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 6);

@@ -20,6 +20,8 @@ uniform mat4 u_ViewProjection;
 uniform float u_Time;
 uniform int u_Frame;
 
+uniform bool u_HQ;
+
 
 const float INV_RES = 2;
 
@@ -205,11 +207,11 @@ void main() {
 	vec3 Player = u_InverseView[3].xyz;
 	vec3 Incident = normalize(WorldPosition - Player);
 
-	vec3 RefractedDirection = refract(Incident, Normal, 1.0f / 1.5f);
+	vec3 RefractedDirection = refract(Incident, Normal, 1.0f / 1.52f);
 
-	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, 10, 6, 0.0045f);
+	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, u_HQ ? 20 : 8, u_HQ ? 12 : 6, u_HQ ? 0.002f : 0.004f);
 
-	if (Res.xy != clamp(Res.xy, 0.0f, 1.0f)) {
+	if (Res.xy != clamp(Res.xy, 0.001f, 0.999f)) {
 		
 		vec3 ApproximateIntersection = WorldPosition + Transversal * RefractedDirection * 0.75f;
 

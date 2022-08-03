@@ -74,9 +74,9 @@ void main()
 
 	vec3 Color = Refracted * AlbedoColor;
 	
-	float Alpha = 1.0f - u_Transparency;
+	float Alpha = clamp((1.0f - u_Transparency) * 1.1f, 0.0f, 1.0f);
 
-	float InversePers = abs(1.0f / gl_FragCoord.w);
+	float InversePers = abs(1.0f / max(gl_FragCoord.w, 0.0000000001f));
 	//float Factor = 1.0 / 200.0f; 
 	//float ZFactor = Factor * InversePers;
     //float Weight = clamp((0.03 / (1e-5 + pow(ZFactor, 4.0))), 1e-4, 3e3);
