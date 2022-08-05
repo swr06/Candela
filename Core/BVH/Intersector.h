@@ -207,6 +207,7 @@ void Candela::RayIntersector<T>::PushEntity(const Entity& entity)
 	push.NodeOffset = m_ObjectData[(int)entity.m_Object->m_ObjectID].NodeOffset;
 	push.NodeCount = m_ObjectData[(int)entity.m_Object->m_ObjectID].NodeCount;
 	push.Data[0] = glm::floatBitsToInt(entity.m_EmissiveAmount);
+	push.Data[1] = glm::floatBitsToInt(entity.m_TranslucencyAmount);
 
 	m_Entities.push_back(push);
 }

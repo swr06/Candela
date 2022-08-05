@@ -323,7 +323,7 @@ vec3 UnpackNormal(in const uvec2 Packed) {
     return vec3(unpackHalf2x16(Packed.x).xy, unpackHalf2x16(Packed.y).x);
 }
 
-void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, in const int EntityIdx, out vec3 Normal, out vec3 Albedo, out float Emissivity) {
+void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, in const int EntityIdx, out vec3 Normal, out vec3 Albedo, out float Emissivity, out float Alpha) {
 
     if (TUVW.x < 0.0f || Mesh < 0) {
         Normal = vec3(-1.0f);
@@ -355,14 +355,26 @@ void GetData(in const vec4 TUVW, in const int Mesh, in const int TriangleIndex, 
     }
 
     Emissivity = intBitsToFloat(BVHEntities[EntityIdx].Data[0]);
+    Alpha = intBitsToFloat(BVHEntities[EntityIdx].Data[1]);
 }
 
 void IntersectRay(vec3 RayOrigin, vec3 RayDirection, out vec4 TUVW, out int Mesh, out int TriangleIdx, out vec4 Albedo, out vec3 Normal) {
     
     int IntersectedEntity = -1;
     TUVW = IntersectScene(RayOrigin, RayDirection, Mesh, TriangleIdx, IntersectedEntity);
-    GetData(TUVW, Mesh, TriangleIdx, IntersectedEntity, Normal, Albedo.xyz, Albedo.w);
+
+    float t = 0.0f;
+    GetData(TUVW, Mesh, TriangleIdx, IntersectedEntity, Normal, Albedo.xyz, Albedo.w, t);
 }
+
+void IntersectRay(vec3 RayOrigin, vec3 RayDirection, out vec4 TUVW, out int Mesh, out int TriangleIdx, out vec4 Albedo, out vec3 Normal, out float Alpha) {
+    
+    int IntersectedEntity = -1;
+    TUVW = IntersectScene(RayOrigin, RayDirection, Mesh, TriangleIdx, IntersectedEntity);
+
+    GetData(TUVW, Mesh, TriangleIdx, IntersectedEntity, Normal, Albedo.xyz, Albedo.w, Alpha);
+}
+
 
 
 // Shadow 
