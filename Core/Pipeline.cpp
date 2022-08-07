@@ -101,6 +101,7 @@ static bool PerformanceDOF = false;
 static glm::vec2 DOFFocusPoint;
 static float FocusDepthSmooth = 1.0f;;
 static float DOFBlurRadius = 10.0f;
+static float DOFScale = 0.01f;
 
 // Chromatic Aberration 
 static float CAScale = 0.04f;
@@ -138,7 +139,7 @@ std::vector<Candela::Entity*> EntityRenderList;
 
 // GBuffers
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
-GLClasses::Framebuffer TransparentGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false} }, false, true);
+GLClasses::Framebuffer TransparentGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false} }, false, true);
 
 
 // Draws editor grid 
@@ -319,7 +320,8 @@ public:
 			ImGui::NewLine();
 			ImGui::Checkbox("DOF?", &DoDOF);
 			if (DoDOF) {
-				ImGui::SliderFloat("DOF Blur Size", &DOFBlurRadius, 2.0f, 16.0f);
+				ImGui::SliderFloat("DOF Blur Radius", &DOFBlurRadius, 2.0f, 16.0f);
+				ImGui::SliderFloat("DOF Blur Scale", &DOFScale, 0.001f, 0.05f);
 				ImGui::Checkbox("Performance DOF?", &PerformanceDOF);
 				ImGui::Checkbox("High Quality DOF Bokeh?", &HQDOFBlur);
 			}
@@ -671,7 +673,9 @@ void Candela::StartPipeline()
 
 	GLClasses::ComputeShader& DiffuseShader = ShaderManager::GetComputeShader("DIFFUSE_TRACE");
 	GLClasses::ComputeShader& SpecularShader = ShaderManager::GetComputeShader("SPECULAR_TRACE");
+
 	GLClasses::Shader& VolumetricsShader = ShaderManager::GetShader("VOLUMETRICS");
+	GLClasses::Shader& VolumetricsCompositeShader = ShaderManager::GetShader("VOLUMETRICS_COMPOSITE");
 
 	GLClasses::ComputeShader& CollisionShader = ShaderManager::GetComputeShader("COLLISIONS");
 
@@ -839,7 +843,7 @@ void Candela::StartPipeline()
 		}
 
 		if (false) {
-			std::cout << Physics::CollideBox(Camera.GetPosition() - 0.5f, Camera.GetPosition() + 0.5f, Intersector) << "\n";
+			//std::cout << Physics::CollideBox(Camera.GetPosition() - 0.5f, Camera.GetPosition() + 0.5f, Intersector) << "\n";
 		}
 
 		// Physics Simulation
@@ -994,6 +998,7 @@ void Candela::StartPipeline()
 			VolumetricsShader.SetVector2f("u_Dims", glm::vec2(Volumetrics.GetWidth(), Volumetrics.GetHeight()));
 			VolumetricsShader.SetInteger("u_DepthTexture", 0);
 			VolumetricsShader.SetInteger("u_NormalTexture", 1);
+			VolumetricsShader.SetInteger("u_TransparentDepth", 15);
 			VolumetricsShader.SetInteger("u_Skymap", 2);
 			VolumetricsShader.SetInteger("u_Steps", VolumetricsSteps);
 
@@ -1036,6 +1041,9 @@ void Candela::StartPipeline()
 			glActiveTexture(GL_TEXTURE14);
 			glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
 
+			glActiveTexture(GL_TEXTURE15);
+			glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+
 			ScreenQuadVAO.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 			ScreenQuadVAO.Unbind();
@@ -1059,6 +1067,8 @@ void Candela::StartPipeline()
 		DiffuseShader.SetInteger("u_SHDataA", 14);
 		DiffuseShader.SetInteger("u_SHDataB", 15);
 		DiffuseShader.SetInteger("u_Albedo", 16);
+		DiffuseShader.SetInteger("u_TransparentDepth", 17);
+		DiffuseShader.SetInteger("u_TransparentAlbedo", 18);
 		DiffuseShader.SetBool("u_Checker", DoCheckering);
 		DiffuseShader.SetBool("u_SecondBounce", DoMultiBounce);
 		DiffuseShader.SetBool("u_SecondBounceRT", !DoInfiniteBounceGI);
@@ -1098,6 +1108,12 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE16);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE17);
+		glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+		
+		glActiveTexture(GL_TEXTURE18);
+		glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(1));
 
 		Intersector.BindEverything(DiffuseShader, true);
 		glBindImageTexture(0, DiffuseTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -1656,7 +1672,29 @@ void Candela::StartPipeline()
 			LightingPass.Unbind();
 		}
 
+		// Composite volumetrics (use post fx composite buffer for perf sake)
+
+		PFXComposited.Bind();
+
+		VolumetricsCompositeShader.Use();
+
+		VolumetricsCompositeShader.SetInteger("u_Lighting", 0);
+		VolumetricsCompositeShader.SetInteger("u_Volumetrics", 1);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, SpatialUpscaled.GetTexture(2));
+
+		ScreenQuadVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		ScreenQuadVAO.Unbind();
+
+		PFXComposited.Unbind();
+
 		// Reset
+
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
@@ -1671,13 +1709,14 @@ void Candela::StartPipeline()
 		TAAShader.SetInteger("u_DepthTexture", 2);
 		TAAShader.SetInteger("u_PreviousDepthTexture", 3);
 		TAAShader.SetInteger("u_MotionVectors", 4);
+		TAAShader.SetInteger("u_Volumetrics", 5);
 		TAAShader.SetBool("u_Enabled", DoTAA);
 		TAAShader.SetVector2f("u_CurrentJitter", GetTAAJitter(app.GetCurrentFrame()));
 
 		SetCommonUniforms<GLClasses::Shader>(TAAShader, UniformBuffer);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture());
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, PrevTAA.GetTexture());
@@ -1690,6 +1729,9 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
+
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, SpatialUpscaled.GetTexture(2));
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1769,6 +1811,7 @@ void Candela::StartPipeline()
 			DOFShader.SetFloat("u_zVFar", Camera.GetFarPlane());
 			DOFShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 			DOFShader.SetFloat("u_BlurRadius", DOFBlurRadius);
+			DOFShader.SetFloat("u_DOFScale", DOFScale);
 
 			SetCommonUniforms<GLClasses::Shader>(DOFShader, UniformBuffer);
 
@@ -1796,6 +1839,7 @@ void Candela::StartPipeline()
 		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 		CompositeShader.SetBool("u_PerformanceDOF", PerformanceDOF);
 		CompositeShader.SetFloat("u_GrainStrength", GrainStrength);
+		CompositeShader.SetFloat("u_DOFScale", DOFScale);
 
 		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);
 

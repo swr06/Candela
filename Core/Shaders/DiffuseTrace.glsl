@@ -21,6 +21,8 @@ uniform vec2 u_Dims;
 uniform vec3 u_SunDirection;
 
 uniform sampler2D u_DepthTexture;
+uniform sampler2D u_TransparentDepth;
+uniform sampler2D u_TransparentAlbedo;
 uniform sampler2D u_NormalTexture;
 uniform sampler2D u_Albedo;
 uniform samplerCube u_Skymap;
@@ -427,7 +429,7 @@ void main() {
 		int IntersectedTri = -1;
 			
 		// Intersect ray 
-		IntersectRay(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
+		IntersectRayIgnoreTransparent(RayOrigin, RayDirection, TUVW, IntersectedMesh, IntersectedTri, Albedo, iNormal);
 
 		if (dot(iNormal, RayDirection) > 0.0001f) {
 			iNormal = -iNormal;
@@ -517,6 +519,10 @@ void main() {
 			FinalRadiance += Bounced * (1.0f / PI) * Albedo.xyz;
 		}
 	}
+
+	// Todo : Handle glass caustics in screenspace (few steps, high error tolerance.)
+
+
 
 
 	if (!IsValid(FinalRadiance)) {

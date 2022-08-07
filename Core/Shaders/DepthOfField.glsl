@@ -23,7 +23,7 @@ uniform bool u_HQ;
 
 uniform float u_BlurRadius;
 
-float DOFScale = 0.01f;
+uniform float u_DOFScale;
 float DOFRadiusScale = u_HQ ? 0.5f : 2.2f;
 
 float LinearizeDepth(float depth)
@@ -52,7 +52,7 @@ void main() {
 	vec4 CenterSample = texture(u_Input, v_TexCoords);
 	float LinearZ = LinearizeDepth(CenterSample.w);
 
-	float CenterCircle = GetBlurScale(LinearZ, u_FocusDepth, DOFScale);
+	float CenterCircle = GetBlurScale(LinearZ, u_FocusDepth, u_DOFScale);
 
 	vec2 TexelSize = 1.0f / textureSize(u_Input, 0).xy;
 
@@ -89,7 +89,7 @@ void main() {
 
 		float SampleDepth = LinearizeDepth(Sample.w);
 
-		float SampleCircle = GetBlurScale(SampleDepth, u_FocusDepth, DOFScale);
+		float SampleCircle = GetBlurScale(SampleDepth, u_FocusDepth, u_DOFScale);
 
 		UseCircle = max(UseCircle, SampleCircle);
 

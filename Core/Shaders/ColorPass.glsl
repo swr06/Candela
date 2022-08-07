@@ -225,7 +225,6 @@ void main()
 	}
 
 	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
-	vec4 Volumetrics = u_DoVolumetrics ? texelFetch(u_Volumetrics, Pixel, 0) : vec4(vec3(0.0f), 1.0f);
 
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
 
@@ -233,7 +232,6 @@ void main()
 
 	if (Depth > 0.999999f) {
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 2.5f; // <----- pow2 done here 
-		o_Color = o_Color * Volumetrics.w + Volumetrics.xyz;
 		DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
 		return;
 	}
@@ -289,7 +287,7 @@ void main()
 
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect + EmissiveColor;
 
-	o_Color = Combined * Volumetrics.w + Volumetrics.xyz;
+	o_Color = Combined;
 
 	DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
 

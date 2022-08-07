@@ -19,6 +19,7 @@ uniform vec2 u_Dims;
 uniform vec3 u_SunDirection;
 
 uniform sampler2D u_DepthTexture;
+uniform sampler2D u_TransparentDepth;
 uniform sampler2D u_NormalTexture;
 uniform samplerCube u_Skymap;
 
@@ -216,7 +217,12 @@ void main() {
     vec2 HighResUV = vec2(HighResPixel) / textureSize(u_DepthTexture, 0).xy;
 
 	// Fetch 
-    float Depth = texelFetch(u_DepthTexture, HighResPixel, 0).x;
+    float OpaqueDepth = texelFetch(u_DepthTexture, HighResPixel, 0).x;
+
+	// Todo : Handle absorption from glass 
+    float TransparentDepth = texelFetch(u_TransparentDepth, HighResPixel, 0).x; 
+
+	float Depth = min(OpaqueDepth, TransparentDepth);
 
 	float Distance = 40.0f;
 
@@ -231,6 +237,7 @@ void main() {
 	if (Depth != 1.0f) {
 		Distance = distance(WorldPosition, Player);
     }
+
 	vec3 Direction = (Incident(v_TexCoords));
 
 	int Steps = u_Steps + 1;

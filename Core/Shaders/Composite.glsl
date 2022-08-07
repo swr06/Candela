@@ -13,6 +13,8 @@ uniform bool u_DOFEnabled;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform float u_DOFScale;
+
 uniform float u_FocusDepth;
 
 uniform bool u_PerformanceDOF;
@@ -22,7 +24,7 @@ uniform float u_GrainStrength;
 uniform float u_Time;
 
 const float DOFBlurSize = 20.0f;
-const float DOFScale = 0.04f;
+float DOFScale = u_DOFScale * 4.0f;
 
 float LinearizeDepth(float depth)
 {

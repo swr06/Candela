@@ -316,6 +316,53 @@ vec4 IntersectScene(vec3 RayOrigin, vec3 RayDirection, out int Mesh, out int Tri
     return vec4(-1.);
 }
 
+vec4 IntersectSceneIgnoreTransparent(vec3 RayOrigin, vec3 RayDirection, out int Mesh, out int TriangleIdx, out int Entity_) {
+
+    float ClosestT = -1.0f;
+
+    float TMax = 1000000.0f;
+
+    int Mesh_ = -1;
+    int Tri_ = -1;
+    Entity_ = -1;
+
+    for (int i = 0 ; i < u_EntityCount ; i++)
+    {
+        float Alpha = intBitsToFloat(BVHEntities[i].Data[1]);
+
+        if (Alpha < 0.99f) {
+            continue;
+        }
+
+        float T = IntersectBVHStackless(RayOrigin, RayDirection, BVHEntities[i].NodeOffset, BVHEntities[i].NodeCount, BVHEntities[i].InverseMatrix, TMax, Mesh_, Tri_);
+
+        if (T > 0.0f && T < TMax) {
+            TMax = T;
+            ClosestT = T;
+            Mesh = Mesh_;
+            TriangleIdx = Tri_;
+            Entity_ = i;
+        }
+
+    }
+
+    if (ClosestT > 0.0f && TriangleIdx > 0) {
+
+         RayOrigin = vec3(BVHEntities[Entity_].InverseMatrix * vec4(RayOrigin.xyz, 1.0f));
+         RayDirection = vec3(BVHEntities[Entity_].InverseMatrix * vec4(RayDirection.xyz, 0.0f));
+        
+         Triangle triangle = BVHTris[TriangleIdx];
+         
+         vec3 VertexA = BVHVertices[triangle.PackedData[0]].Position.xyz;
+         vec3 VertexB = BVHVertices[triangle.PackedData[1]].Position.xyz;
+         vec3 VertexC = BVHVertices[triangle.PackedData[2]].Position.xyz;
+
+         return vec4(ClosestT, ComputeBarycentrics(RayOrigin + RayDirection * ClosestT, VertexA, VertexB, VertexC));
+    }
+
+    return vec4(-1.);
+}
+
 
 // Closest rays 
 vec3 UnpackNormal(in const uvec2 Packed) {
@@ -375,6 +422,22 @@ void IntersectRay(vec3 RayOrigin, vec3 RayDirection, out vec4 TUVW, out int Mesh
     GetData(TUVW, Mesh, TriangleIdx, IntersectedEntity, Normal, Albedo.xyz, Albedo.w, Alpha);
 }
 
+void IntersectRayIgnoreTransparent(vec3 RayOrigin, vec3 RayDirection, out vec4 TUVW, out int Mesh, out int TriangleIdx, out vec4 Albedo, out vec3 Normal) {
+    
+    int IntersectedEntity = -1;
+    TUVW = IntersectSceneIgnoreTransparent(RayOrigin, RayDirection, Mesh, TriangleIdx, IntersectedEntity);
+
+    float t = 0.0f;
+    GetData(TUVW, Mesh, TriangleIdx, IntersectedEntity, Normal, Albedo.xyz, Albedo.w, t);
+}
+
+void IntersectRayIgnoreTransparent(vec3 RayOrigin, vec3 RayDirection, out vec4 TUVW, out int Mesh, out int TriangleIdx, out vec4 Albedo, out vec3 Normal, out float Alpha) {
+    
+    int IntersectedEntity = -1;
+    TUVW = IntersectSceneIgnoreTransparent(RayOrigin, RayDirection, Mesh, TriangleIdx, IntersectedEntity);
+
+    GetData(TUVW, Mesh, TriangleIdx, IntersectedEntity, Normal, Albedo.xyz, Albedo.w, Alpha);
+}
 
 
 // Shadow 

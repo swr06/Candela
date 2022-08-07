@@ -3,7 +3,9 @@
 #include "Include/Utility.glsl"
 
 layout (location = 0) out vec4 o_Data;
+layout (location = 1) out vec4 o_Albedo;
 
+uniform sampler2D u_AlbedoMap;
 uniform sampler2D u_NormalMap;
 
 uniform float u_GlassFactor;
@@ -41,4 +43,5 @@ void main()
 	}
 	
 	o_Data = vec4(HQN.xyz, float(u_EntityNumber + 2));
+	o_Albedo = vec4(texture(u_AlbedoMap, v_TexCoords).xyz, 1.0f);
 }

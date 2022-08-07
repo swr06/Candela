@@ -26,6 +26,7 @@ void Candela::ShaderManager::CreateShaders()
 	AddShader("SPATIAL_FILTER", "Core/Shaders/FBOVert.glsl", "Core/Shaders/SpatialFilter.glsl");
 	AddShader("TAA", "Core/Shaders/FBOVert.glsl", "Core/Shaders/TAA.glsl");
 	AddShader("VOLUMETRICS", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Volumetrics.glsl");
+	AddShader("VOLUMETRICS_COMPOSITE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/VolumetricsComposite.glsl");
 	AddShader("SPATIAL_UPSCALE", "Core/Shaders/FBOVert.glsl", "Core/Shaders/SpatialUpscale.glsl");
 	AddShader("BLOOM_MASK", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BloomMask.glsl");
 	AddShader("BLOOM_BLUR", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BloomBlurTwoPass.glsl");
