@@ -20,7 +20,9 @@ A realtime performance/graphics oriented 3D engine.
 - Glass materials (OIT + Screenspace Refraction)
 
 # Planned
+- Transparent Shadows, Direct caustics, Screenspace Indirect glass caustics
 - Debug Features (Lighting components, Material Properties, BVH, Wireframe)
+- Sky rendering
 - IES lights?
 - LTC
 
