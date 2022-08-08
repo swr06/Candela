@@ -529,16 +529,12 @@ void main() {
 	{
 		vec4 Glasstrace = vec4(-1.0f);
 
-		vec3 GDirection = mix(Normal, CosWeightedHemisphere(Normal, hash2()), 0.8f);
-		Glasstrace = ScreenspaceRaytrace(u_TransparentDepth, RayOrigin, GDirection, 8, 4, 0.004f, 8.0f);
+		vec3 GDirection = mix(Normal, CosWeightedHemisphere(Normal, hash2()), 0.9f);
+		Glasstrace = ScreenspaceRaytrace(u_TransparentDepth, RayOrigin, GDirection, 6, 3, 0.006f, 8.0f);
 
-		if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
-				    
-			vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
-			TUVW.x = Screentrace.z;
-
+		if (IsInScreenspace(Glasstrace.xy) && Glasstrace.z > 0.0f && Glasstrace.xy == clamp(Glasstrace.xy, 0.001f, 0.999f)) {
 			vec3 TintAlbedo = TexelFetchNormalized(u_TransparentAlbedo, Glasstrace.xy).xyz;
-			TintColor = TintAlbedo * 12.0f;
+			TintColor = pow(TintAlbedo, vec3(1.2)) * 7.0f;
 		}
 	}
 

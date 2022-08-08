@@ -54,7 +54,7 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 // Options
 
-static bool RENDER_GLASS = true;
+static bool RENDER_GLASS_FLAG = true;
 static bool HQ_Refractions = false;
 
 static bool DoFrustumCulling = false;
@@ -88,7 +88,7 @@ static float SVGFStrictness = 0.2f;
 static bool DoSpatialUpscaling = true;
 
 static bool DoVolumetrics = true;
-static float VolumetricsGlobalStrength = 1.25f;
+static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.0f;
 static float VolumetricsIndirectStrength = 1.25f;
 static int VolumetricsSteps = 24;
@@ -123,11 +123,12 @@ float CurrentTime = glfwGetTime();
 float Frametime = 0.0f;
 float DeltaTime = 0.0f;
 
-// 
+// Debug views
+static int DebugMode = -1; 
+
 // Edit mode 
 static bool EditMode = false;
 static bool ShouldDrawGrid = true;
-static bool DrawProbeGridDebug = false;
 static int EditOperation = 0;
 
 static Candela::Entity* SelectedEntity = nullptr;
@@ -186,6 +187,30 @@ public:
 
 			if (ImGui::Begin("Debug/Edit Mode")) {
 
+				// Drop down box
+				const char* DebugLabelItems[] = { "Default", "Probe Debug", "Indirect Diffuse", "Ambient Occlusion", "Indirect Specular", "Direct Shadows", "Volumetrics", "Albedo", "Normals", "Roughness", "Metalness", "Emissivity" };
+				static const char* CurrentDebugLabel = DebugLabelItems[0];
+
+				if (ImGui::BeginCombo("##combo", CurrentDebugLabel))
+				{
+					for (int n = 0; n < IM_ARRAYSIZE(DebugLabelItems); n++)
+					{
+						bool is_selected = (CurrentDebugLabel == DebugLabelItems[n]); 
+						if (ImGui::Selectable(DebugLabelItems[n], is_selected))
+						{
+							DebugMode = n - 1;
+							CurrentDebugLabel = DebugLabelItems[n];
+							if (is_selected)
+								ImGui::SetItemDefaultFocus();  
+						}
+					}
+					ImGui::EndCombo();
+				}
+
+				ImGui::NewLine();
+				ImGui::NewLine();
+
+				// Operations
 				std::string OperationLabels[4] = { "Translation", "Rotation", "Scaling", "Universal (T/R/S)" };
 				
 				static bool space = 1;
@@ -203,8 +228,7 @@ public:
 
 				ImGui::NewLine();
 				ImGui::NewLine();
-				ImGui::Text("Other Debug Views");
-				ImGui::Checkbox("Draw Probe Grid Debug View?", &DrawProbeGridDebug);
+
 			} ImGui::End();
 
 			// Draw editor
@@ -269,7 +293,7 @@ public:
 			ImGui::NewLine();
 			ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 			ImGui::NewLine();
-			ImGui::Checkbox("Glass Rendering (OIT/Refractions)?", &RENDER_GLASS);
+			ImGui::Checkbox("Glass Rendering (OIT/Refractions)?", &RENDER_GLASS_FLAG);
 			ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
 			ImGui::NewLine();
 			ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
@@ -288,7 +312,7 @@ public:
 				ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
 			}
 
-			if (RENDER_GLASS) {
+			if (RENDER_GLASS_FLAG) {
 				ImGui::Checkbox("Screenspace Indirect Caustics?", &IndirectSSCaustics);
 			}
 
@@ -408,7 +432,7 @@ public:
 		}
 
 
-		if (e.type == Candela::EventTypes::MouseScroll)
+		if (e.type == Candela::EventTypes::MouseScroll && !ImGui::GetIO().WantCaptureMouse)
 		{
 			float Sign = e.msy < 0.0f ? 1.0f : -1.0f;
 			Camera.SetFov(Camera.GetFov() + 2.0f * Sign);
@@ -743,6 +767,8 @@ void Candela::StartPipeline()
 		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
 
+		bool RENDER_GLASS = RENDER_GLASS_FLAG && (DebugMode < 0);
+
 		// Prepare Intersector
 		Intersector.PushEntities(EntityRenderList);
 		Intersector.BufferEntities();
@@ -938,6 +964,12 @@ void Candela::StartPipeline()
 
 			TransparentGBuffer.Unbind();
 			UnbindEverything();
+		}
+
+		else if (app.GetCurrentFrame() % 4 == 0) {
+			TransparentGBuffer.Bind();
+			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
 
@@ -1512,8 +1544,8 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_Volumetrics", 17);
 		LightingShader.SetInteger("u_NormalLFTexture", 18);
 		LightingShader.SetInteger("u_DebugTexture", 19);
+		LightingShader.SetInteger("u_DebugMode", DebugMode);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
-		LightingShader.SetBool("u_DrawProbeGridDebug", DrawProbeGridDebug && EditMode);
 
 		LightingShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
 
@@ -1687,7 +1719,7 @@ void Candela::StartPipeline()
 
 		VolumetricsCompositeShader.SetInteger("u_Lighting", 0);
 		VolumetricsCompositeShader.SetInteger("u_Volumetrics", 1);
-		VolumetricsCompositeShader.SetBool("u_VolumetricsEnabled", DoVolumetrics);
+		VolumetricsCompositeShader.SetBool("u_VolumetricsEnabled", DoVolumetrics && (DebugMode < 0 || DebugMode == 5));
 		VolumetricsCompositeShader.SetBool("IndirectSSCaustics", IndirectSSCaustics && RENDER_GLASS);
 
 		glActiveTexture(GL_TEXTURE0);

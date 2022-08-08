@@ -18,6 +18,8 @@
 
 #include "../GLClasses/Texture.h"
 
+#include "../GLClasses/Shader.h"
+
 #include <map>
 
 #include <type_traits>
@@ -69,6 +71,7 @@ namespace Candela {
 		void BufferEntities();
 		void IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera);
 		void BindEverything(GLClasses::ComputeShader& Shader, bool ShouldBindTextures);
+		void BindEverything(GLClasses::Shader& shader);
 		bool Collide(const glm::vec3& Point);
 
 		// if ClearCPUData is true, it deletes the CPU side BVH, else it keeps it
@@ -286,6 +289,33 @@ void Candela::RayIntersector<T>::BindEverything(GLClasses::ComputeShader& Shader
 		_BindTextures(Shader);
 		Shader._BVHTextureFlag = true;
 		std::cout << "BOUND";
+	}
+}
+
+template<typename T>
+void Candela::RayIntersector<T>::BindEverything(GLClasses::Shader& shader)
+{
+	shader.Use();
+
+	int StartIdx = 16;
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 0, m_BVHVerticesSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 1, m_BVHTriSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 2, m_BVHNodeSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 3, m_BVHEntitiesSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, StartIdx + 4, m_BVHTextureReferencesSSBO);
+
+	// verify
+	shader.SetInteger("u_EntityCount", m_EntityPushed);
+	shader.SetInteger("u_TotalNodes", m_NodeCountBuffered);
+
+	shader.Use();
+
+	for (int i = 0; i < 512; i++) {
+
+		std::string Name = "Textures[" + std::to_string(i) + "]";
+		glProgramUniformHandleui64ARB(shader.GetProgram(), shader.FetchUniformLocation(Name), m_MiscTex.GetTextureID());
+
 	}
 }
 

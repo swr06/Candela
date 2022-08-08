@@ -1,7 +1,4 @@
-#version 430 core
-
-#extension GL_ARB_bindless_texture : require
-#extension GL_ARB_bindless_texture : enable
+#version 450 core
 
 #define PI 3.14159265359
 
@@ -47,6 +44,8 @@ uniform mat4 u_View;
 uniform vec2 u_Dims;
 
 uniform int u_Frame;
+
+uniform int u_DebugMode;
 
 uniform bool u_DoVolumetrics;
 
@@ -232,7 +231,9 @@ void main()
 
 	if (Depth > 0.999999f) {
 		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 2.5f; // <----- pow2 done here 
-		DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
+		if (u_DebugMode == 0) {
+			DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
+		}
 		return;
 	}
 
@@ -289,7 +290,29 @@ void main()
 
 	o_Color = Combined;
 
-	DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
+	if (u_DebugMode == 0) {
+		DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
+	} else if (u_DebugMode == 1) {
+		o_Color = GI.xyz;
+	} else if (u_DebugMode == 2) {
+		o_Color = vec3(AO);
+	} else if (u_DebugMode == 3) {
+		o_Color = SpecGI.xyz;
+	} else if (u_DebugMode == 4) {
+		o_Color = vec3(Shadows);
+	} else if (u_DebugMode == 5) {
+		o_Color = vec3(0.0f);
+	}  else if (u_DebugMode == 6) {
+		o_Color = Albedo;
+	}  else if (u_DebugMode == 7) {
+		o_Color = Normal;
+	}  else if (u_DebugMode == 8) {
+		o_Color = vec3(PBR.x);
+	}  else if (u_DebugMode == 9) {
+		o_Color = vec3(PBR.y);
+	}  else if (u_DebugMode == 10) {
+		o_Color = vec3(EmissiveColor);
+	}
 
 	//o_Color = texture(u_DebugTexture, v_TexCoords).xyz; // / max(texture(u_DebugTexture, v_TexCoords).w, 0.0001f);
 	o_Color = max(o_Color, 0.0f);

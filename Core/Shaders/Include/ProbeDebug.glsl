@@ -1,5 +1,3 @@
-uniform bool u_DrawProbeGridDebug;
-
 
 float SphereSDF(vec3 p, float r){
     return (length(p) - r);
@@ -61,8 +59,6 @@ vec4 IntersectProbeGrid(vec3 Origin, vec3 Direction)
 }
 
 void DrawProbeSphereGrid(vec3 Origin, vec3 Direction, float SurfaceDistance, inout vec3 oColor) {
-	
-	if (!u_DrawProbeGridDebug) { return; }
 	
 	vec4 Intersection = IntersectProbeGrid(Origin, Direction);
 
