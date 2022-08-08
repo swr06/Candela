@@ -313,7 +313,6 @@
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStack.glsl" />
     <None Include="Core\Shaders\Intersectors\Include\CollideBVHStackless.glsl" />
     <None Include="Core\Shaders\LTC.glsl" />
-    <None Include="Core\Shaders\CombineTransparentOpaque.glsl" />
     <None Include="Core\Shaders\OITComposite.glsl" />
     <None Include="Core\Shaders\PostProcessCombine.glsl" />
     <None Include="Core\Shaders\RefractionTrace.glsl" />

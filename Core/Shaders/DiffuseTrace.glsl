@@ -49,6 +49,8 @@ uniform bool u_Checker;
 uniform bool u_SecondBounce;
 uniform bool u_SecondBounceRT;
 
+uniform bool u_IndirectSSCaustics;
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -85,9 +87,7 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
-vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps, const float ThresholdMultiplier) {
-
-    float TraceDistance = 32.0f;
+vec4 ScreenspaceRaytrace(sampler2D DepthTex, const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps, const float ThresholdMultiplier, float TraceDistance) {
 
     float StepSize = TraceDistance / Steps;
 
@@ -112,7 +112,7 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
 		ProjectedRayScreenspace.xyz = ProjectedRayScreenspace.xyz * 0.5f + 0.5f; 
 
 		// Depth texture uses nearest filtering
-        float DepthAt = texture(u_DepthTexture, ProjectedRayScreenspace.xy).x; 
+        float DepthAt = texture(DepthTex, ProjectedRayScreenspace.xy).x; 
 
         if (DepthAt == 1.0f) {
             SkyHits += 1;
@@ -136,7 +136,7 @@ vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Step
                 FinalProjected = Projected;
 
 				// Depth texture uses nearest filtering
-                float Fetch = texture(u_DepthTexture, Projected.xy).x;
+                float Fetch = texture(DepthTex, Projected.xy).x;
                 FinalDepth = Fetch;
 
 			    float BinaryDepthAt = LinearizeDepth(Fetch); 
@@ -404,7 +404,7 @@ void main() {
 	
 	if (DO_SCREENTRACE) 
 	{ 
-		Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 20, 18, 0.0011f);
+		Screentrace = ScreenspaceRaytrace(u_DepthTexture, RayOrigin, RayDirection, 20, 18, 0.0011f, 36.0f);
 	}
 
 	if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
@@ -520,10 +520,29 @@ void main() {
 		}
 	}
 
-	// Todo : Handle glass caustics in screenspace (few steps, high error tolerance.)
 
+	// Handle glass indirect caustics in screenspace 
 
+	vec3 TintColor = vec3(1.0f);
 
+	if (u_IndirectSSCaustics)
+	{
+		vec4 Glasstrace = vec4(-1.0f);
+
+		vec3 GDirection = mix(Normal, CosWeightedHemisphere(Normal, hash2()), 0.8f);
+		Glasstrace = ScreenspaceRaytrace(u_TransparentDepth, RayOrigin, GDirection, 8, 4, 0.004f, 8.0f);
+
+		if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
+				    
+			vec3 IntersectionPosition = RayOrigin + RayDirection * Screentrace.z;
+			TUVW.x = Screentrace.z;
+
+			vec3 TintAlbedo = TexelFetchNormalized(u_TransparentAlbedo, Glasstrace.xy).xyz;
+			TintColor = TintAlbedo * 12.0f;
+		}
+	}
+
+	FinalRadiance *= TintColor;
 
 	if (!IsValid(FinalRadiance)) {
 		FinalRadiance = vec3(0.0f);

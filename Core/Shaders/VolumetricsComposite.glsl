@@ -7,13 +7,18 @@ in vec2 v_TexCoords;
 uniform sampler2D u_Lighting;
 uniform sampler2D u_Volumetrics;
 
+uniform bool u_VolumetricsEnabled;
+
 void main() {
 	
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
 	vec4 Lighting = texelFetch(u_Lighting, Pixel, 0);
-	vec4 Volumetrics = texture(u_Volumetrics, v_TexCoords);
 
-	o_Color = Lighting.xyz * Volumetrics.w + Volumetrics.xyz;
+	o_Color = Lighting.xyz;
 
+	if (u_VolumetricsEnabled) {
+		vec4 Volumetrics = texture(u_Volumetrics, v_TexCoords);
+		o_Color = o_Color.xyz * Volumetrics.w + Volumetrics.xyz;
+	}
 }

@@ -64,6 +64,7 @@ static float ShadowDistanceMultiplier = 1.0f;
 
 static bool DoMultiBounce = true;
 static bool DoInfiniteBounceGI = true;
+static bool IndirectSSCaustics = true;
 
 static bool UpdateIrradianceVolume = true;
 static bool FilterIrradianceVolume = true;
@@ -87,7 +88,7 @@ static float SVGFStrictness = 0.2f;
 static bool DoSpatialUpscaling = true;
 
 static bool DoVolumetrics = true;
-static float VolumetricsGlobalStrength = 1.0f;
+static float VolumetricsGlobalStrength = 1.25f;
 static float VolumetricsDirectStrength = 1.0f;
 static float VolumetricsIndirectStrength = 1.25f;
 static int VolumetricsSteps = 24;
@@ -139,7 +140,7 @@ std::vector<Candela::Entity*> EntityRenderList;
 
 // GBuffers
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
-GLClasses::Framebuffer TransparentGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false} }, false, true);
+GLClasses::Framebuffer TransparentGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false} }, false, true);
 
 
 // Draws editor grid 
@@ -283,8 +284,13 @@ public:
 			ImGui::NewLine();
 			ImGui::Checkbox("Do Diffuse Multi Bounce?", &DoMultiBounce);
 
-			if (DoMultiBounce)
+			if (DoMultiBounce) {
 				ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
+			}
+
+			if (RENDER_GLASS) {
+				ImGui::Checkbox("Screenspace Indirect Caustics?", &IndirectSSCaustics);
+			}
 
 			ImGui::NewLine();
 			ImGui::Checkbox("Rough Specular?", &DoRoughSpecular);
@@ -1072,6 +1078,7 @@ void Candela::StartPipeline()
 		DiffuseShader.SetBool("u_Checker", DoCheckering);
 		DiffuseShader.SetBool("u_SecondBounce", DoMultiBounce);
 		DiffuseShader.SetBool("u_SecondBounceRT", !DoInfiniteBounceGI);
+		DiffuseShader.SetBool("u_IndirectSSCaustics", IndirectSSCaustics);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
@@ -1680,6 +1687,8 @@ void Candela::StartPipeline()
 
 		VolumetricsCompositeShader.SetInteger("u_Lighting", 0);
 		VolumetricsCompositeShader.SetInteger("u_Volumetrics", 1);
+		VolumetricsCompositeShader.SetBool("u_VolumetricsEnabled", DoVolumetrics);
+		VolumetricsCompositeShader.SetBool("IndirectSSCaustics", IndirectSSCaustics && RENDER_GLASS);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture());
