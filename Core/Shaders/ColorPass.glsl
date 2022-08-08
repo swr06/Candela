@@ -234,6 +234,7 @@ void main()
 		if (u_DebugMode == 0) {
 			DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
 		}
+		o_Color = u_DebugMode == 5 ? vec3(0.0f) : o_Color;
 		return;
 	}
 
