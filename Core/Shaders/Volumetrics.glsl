@@ -262,7 +262,7 @@ void main() {
 
     vec3 TotalScattering = vec3(0.0f);
 
-    float SigmaE = 0.034f; 
+    float SigmaE = 0.03f; 
 
     vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
 
