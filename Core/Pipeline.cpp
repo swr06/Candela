@@ -188,7 +188,7 @@ public:
 			if (ImGui::Begin("Debug/Edit Mode")) {
 
 				// Drop down box
-				const char* DebugLabelItems[] = { "Default", "Probe Debug", "Indirect Diffuse", "Ambient Occlusion", "Indirect Specular", "Direct Shadows", "Volumetrics", "Albedo", "Normals", "Roughness", "Metalness", "Emissivity" };
+				const char* DebugLabelItems[] = { "Default", "Probe Debug", "Indirect Diffuse", "Ambient Occlusion", "Indirect Specular", "Direct Shadows", "Volumetrics", "Probe GI", "Albedo", "Normals", "Roughness", "Metalness", "Emissivity" };
 				static const char* CurrentDebugLabel = DebugLabelItems[0];
 
 				if (ImGui::BeginCombo("##combo", CurrentDebugLabel))

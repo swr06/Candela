@@ -303,15 +303,17 @@ void main()
 		o_Color = vec3(Shadows);
 	} else if (u_DebugMode == 5) {
 		o_Color = vec3(0.0f);
-	}  else if (u_DebugMode == 6) {
-		o_Color = Albedo;
+	} else if (u_DebugMode == 6) {
+		o_Color = SampleProbes(WorldPosition, Normal, true).xyz;
 	}  else if (u_DebugMode == 7) {
-		o_Color = Normal;
+		o_Color = Albedo;
 	}  else if (u_DebugMode == 8) {
-		o_Color = vec3(PBR.x);
+		o_Color = Normal;
 	}  else if (u_DebugMode == 9) {
-		o_Color = vec3(PBR.y);
+		o_Color = vec3(PBR.x);
 	}  else if (u_DebugMode == 10) {
+		o_Color = vec3(PBR.y);
+	}  else if (u_DebugMode == 11) {
 		o_Color = vec3(EmissiveColor);
 	}
 
