@@ -17,11 +17,10 @@ A realtime performance/graphics oriented 3D engine.
 - Culling (Frustum/Face Culling)
 - Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping etc.)
 - Basic Editor Features + Debug Views
-- Glass materials (OIT + Screenspace Refraction)
+- Glass materials (OIT + Screenspace Refraction + Screenspace caustics)
 
 # Planned
-- Transparent Shadows, Direct caustics, Screenspace Indirect glass caustics
-- Debug Features (Lighting components, Material Properties, BVH, Wireframe)
+- Transparent Shadows
 - Sky rendering
 - IES lights?
 - LTC
