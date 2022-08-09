@@ -124,7 +124,7 @@ float Frametime = 0.0f;
 float DeltaTime = 0.0f;
 
 // Debug views
-static int DebugMode = -1; 
+static int SelectedDebugView = -1; 
 
 // Edit mode 
 static bool EditMode = false;
@@ -198,7 +198,7 @@ public:
 						bool is_selected = (CurrentDebugLabel == DebugLabelItems[n]); 
 						if (ImGui::Selectable(DebugLabelItems[n], is_selected))
 						{
-							DebugMode = n - 1;
+							SelectedDebugView = n - 1;
 							CurrentDebugLabel = DebugLabelItems[n];
 							if (is_selected)
 								ImGui::SetItemDefaultFocus();  
@@ -764,6 +764,9 @@ void Candela::StartPipeline()
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
 		// Prepare 
+
+		int DebugMode = EditMode ? SelectedDebugView : -1;
+
 		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
 
