@@ -766,6 +766,10 @@ void Candela::StartPipeline()
 		// Prepare 
 
 		int DebugMode = EditMode ? SelectedDebugView : -1;
+		bool DebugModeDefault = DebugMode == -1;
+		bool DoDOF_ = DebugModeDefault && DoDOF;
+		bool DoDistortion_ = DebugModeDefault && DoDistortion;
+		float CAScale_ = DebugModeDefault ? CAScale : 0.0f;
 
 		bool FrameMod2 = app.GetCurrentFrame() % 2 == 0;
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
@@ -1804,7 +1808,7 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetInteger("u_BloomBrightTexture", 6);
 		PostFXCombineShader.SetInteger("u_Depth", 7);
 		PostFXCombineShader.SetBool("u_BloomEnabled", DoBloom);
-		PostFXCombineShader.SetFloat("u_CAScale", CAScale);
+		PostFXCombineShader.SetFloat("u_CAScale", CAScale_);
 
 		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, UniformBuffer);
 
@@ -1840,7 +1844,7 @@ void Candela::StartPipeline()
 
 		// DOF
 
-		if (DoDOF) {
+		if (DoDOF_) {
 
 			DOFShader.Use();
 			DOF.Bind();
@@ -1879,7 +1883,7 @@ void Candela::StartPipeline()
 		CompositeShader.Use();
 		CompositeShader.SetInteger("u_MainTexture", 0);
 		CompositeShader.SetInteger("u_DOF", 1);
-		CompositeShader.SetBool("u_DOFEnabled", DoDOF);
+		CompositeShader.SetBool("u_DOFEnabled", DoDOF_);
 		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 		CompositeShader.SetBool("u_PerformanceDOF", PerformanceDOF);
 		CompositeShader.SetFloat("u_GrainStrength", GrainStrength);
@@ -1907,7 +1911,7 @@ void Candela::StartPipeline()
 		CASShader.Use();
 
 		CASShader.SetBool("u_Enabled", DoCAS);
-		CASShader.SetBool("u_DoDistortion", DoDistortion);
+		CASShader.SetBool("u_DoDistortion", DoDistortion_);
 		CASShader.SetFloat("u_GrainStrength", GrainStrength);
 		CASShader.SetFloat("u_DistortionK", DistortionK);
 
