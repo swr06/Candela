@@ -82,8 +82,10 @@ SG RoughnessLobe(float Roughness, vec3 Normal, vec3 Incident) {
 	return ReturnValue;
 }
 
-float GetLobeWeight(float CenterRoughness, float SampleRoughness, vec3 CenterNormal, vec3 SampleNormal, vec2 Transversals, const vec3 Incident) {
+float GetLobeWeight(float CenterRoughness, float SampleRoughness, vec3 CenterNormal, vec3 SampleNormal, vec2 Transversals, vec3 Incident) {
 	
+	Incident = -Incident; 
+
 	const float Beta = 32.0f;
 
 	float LobeSimilarity = 1.0f;
@@ -222,8 +224,8 @@ void main() {
 	float PrimaryTransversal = length(ViewPosition);
 	vec3 Incident = normalize(u_ViewerPosition - WorldPosition);
 
-	float F = CenterSTraversal / (CenterSTraversal + PrimaryTransversal);
-	float SpecularRadius = clamp(mix(0.7f * CenterRoughness, 1.0f, F), 0.0f, 1.0f);
+	float F = CenterSTraversal / max((CenterSTraversal + PrimaryTransversal), 0.0000001f);
+	float Radius = clamp(pow(mix(1.0f * CenterRoughness, 1.0f, F), pow((1.0f-CenterRoughness),1.0/1.4f)*5.0f), 0.0f, 1.0f);
 
 	float CenterAO = Diffuse.w;
 	float CenterDiffuseLuma = Luminance(Diffuse.xyz);
@@ -251,7 +253,18 @@ void main() {
 		{
 			if (x == 0 && y == 0) { continue; }
 
-			vec2 Shift = vec2(vec2(x,y) * u_StepSize);
+			vec2 Shift = vec2(vec2(x,y) * u_StepSize) + vec2(Hash * PhiS);
+
+			float ShiftLength = length(Shift);
+
+			bool ShouldSampleSpecular = true;
+
+			if (ShiftLength > Radius * 17.0f) {
+				ShouldSampleSpecular = false;
+			}
+
+			ShouldSampleSpecular = ShouldSampleSpecular && (CenterRoughness > 0.04025f);
+
 			ivec2 SamplePixel = Pixel + ivec2((vec2(x,y)) * u_StepSize) + ivec2(Hash * PhiS);
 
 			if (SamplePixel.x <= 1 || SamplePixel.x >= Size.x - 1 || SamplePixel.y <= 1 || SamplePixel.y >= Size.y - 1) {
@@ -271,14 +284,12 @@ void main() {
 			}
 
 			vec4 SampleDiffuse = texelFetch(u_Diffuse, SamplePixel, 0);
-			vec4 SampleSpecular = u_RoughSpec ? texelFetch(u_Specular, SamplePixel, 0) : CenterSpec;
 			float SampleVariance = texelFetch(u_Variance, SamplePixel, 0).x;
             vec3 SampleNormals = texelFetch(u_Normals, HighResPixel, 0).xyz;
 			vec3 SampleHFNormal = texelFetch(u_NormalsHF, HighResPixel, 0).xyz;
 			float SampleRoughness = texelFetch(u_PBR, HighResPixel, 0).x;
 
-			float SampleSTraversal = UntransformReflectionTransversal(SampleSpecular.w);
-
+			
 			//float DepthWeight = exp((-abs(CenterDepth - SampleDepth)) / max(abs(dot(Derivative,Shift)),0.000001f));
 			//float DepthWeight = exp(-abs(CenterDepth-SampleDepth)*DEPTH_EXPONENT);
 			//float DepthWeight = exp(-abs(SampleDepth-CenterDepth) / (max(abs(Derivative), 0.000001f)*10.));
@@ -288,23 +299,24 @@ void main() {
 			float LumaError = abs(CenterDiffuseLuma - Luminance(SampleDiffuse.xyz));
 			float AOError = abs(CenterAO - SampleDiffuse.w);
 
-			float SpecLumaError = abs(CenterSpecularLuma - Luminance(SampleSpecular.xyz));
-
 			// Diffuse Weights
 			float LumaWeight = pow(clamp(exp(-LumaError / (1.0f * PhiL + 0.0000001f)), 0.0f, 1.0f), 1.0f);
 			float AOWeightDetail = pow(clamp(exp(-AOError / 0.125f), 0.0f, 1.0f), 1.0f);
 
 			// Specular Weights 
-			float SpecLumaWeight = u_RoughSpec ? pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.)) : 0.0f;
-			float SpecLobeWeight = u_RoughSpec ? pow(GetLobeWeight(CenterRoughness, SampleRoughness, CenterHFNormal, SampleHFNormal, vec2(CenterSpec.w,SampleSpecular.w),Incident), 1.5f) : 0.0f;
+			//float SpecLumaWeight = u_RoughSpec ? pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.)) : 0.0f;
+			
+			vec4 SampleSpecular = ShouldSampleSpecular ? texelFetch(u_Specular, SamplePixel, 0) : CenterSpec;
+			float SampleSTraversal = UntransformReflectionTransversal(SampleSpecular.w);
+			float SpecLobeWeight = ShouldSampleSpecular ? pow(GetLobeWeight(CenterRoughness, SampleRoughness, CenterHFNormal, SampleHFNormal, vec2(CenterSpec.w,SampleSpecular.w),Incident), 1.5f) : 0.0f;
 
 			// Wavelet 
 			float KernelWeight = WaveletKernel[abs(x)] * WaveletKernel[abs(y)];
 
 			float RawWeight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
 			float DiffuseWeight = clamp(RawWeight * LumaWeight, 0.0f, 1.0f);
-			float SpecularWeight = clamp(DepthWeight * KernelWeight * pow(SpecLobeWeight, 1.0f), 0.0f, 1.0f);
 			float AOWeight = clamp(DepthWeight * NormalWeight * KernelWeight * AOWeightDetail, 0.0f, 1.0f);
+			float SpecularWeight = ShouldSampleSpecular ? clamp(KernelWeight * DepthWeight * min(SpecLobeWeight, NormalWeight * 5.0f), 0.0f, 1.0f) : 0.0f;
 
 			Specular += SampleSpecular * SpecularWeight;
 			TotalSpecularWeight += SpecularWeight;

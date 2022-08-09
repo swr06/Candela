@@ -534,7 +534,7 @@ void main() {
 
 		if (IsInScreenspace(Glasstrace.xy) && Glasstrace.z > 0.0f && Glasstrace.xy == clamp(Glasstrace.xy, 0.001f, 0.999f)) {
 			vec3 TintAlbedo = TexelFetchNormalized(u_TransparentAlbedo, Glasstrace.xy).xyz;
-			TintColor = pow(TintAlbedo, vec3(1.2)) * 7.0f;
+			TintColor = pow(TintAlbedo, vec3(1.2)) * 8.0f;
 		}
 	}
 

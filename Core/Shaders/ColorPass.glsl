@@ -254,7 +254,7 @@ void main()
 	vec3 DiffuseIndirect = vec3(0.0f);
 
 	#ifdef DO_INDIRECT
-		const vec2 IndirectStrength = vec2(1.125f, 1.0f); // x : diffuse strength, y : specular strength
+		const vec2 IndirectStrength = vec2(1.15f, 1.15f); // x : diffuse strength, y : specular strength
 
 		// Sample GI
 		vec4 GI = texelFetch(u_IndirectDiffuse, Pixel, 0).xyzw; 

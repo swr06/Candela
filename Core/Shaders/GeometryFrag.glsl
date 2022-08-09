@@ -29,6 +29,7 @@ uniform float u_EntityMetalness;
 uniform float u_EmissivityAmount;
 
 uniform float u_GlassFactor;
+uniform float u_RoughnessMultiplier;
 
 uniform vec3 u_ViewerPosition;
 
@@ -91,8 +92,7 @@ void main()
 	}
 
 	o_PBR.x *= pow(1.0f - u_GlassFactor, 4.0f);
-
-	o_PBR.x = clamp(o_PBR.x, 0.000001f, 1.0f);
+	o_PBR.x = clamp(o_PBR.x * u_RoughnessMultiplier, 0.00000001f, 1.0f);
 
 	o_PBR.w = u_ModelEmission;
 

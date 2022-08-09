@@ -452,7 +452,7 @@ void main() {
 	vec3 Incident = normalize(WorldPosition - Player);
 
     vec3 RayOrigin = WorldPosition + Normal * mix(0.05f, 0.1f, clamp(PBR.x*1.4f,0.0f,1.0f));
-    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x*0.925f); 
+    vec3 RayDirection = StochasticReflectionDirection(Incident, Normal, PBR.x*0.9f); 
 
     vec3 FinalRadiance = vec3(0.0f);
     float FinalTransversal = -1.0f;
@@ -507,6 +507,7 @@ void main() {
 
 		else {
 		    FinalRadiance = Screentrace.w * texture(u_SkyCube, RayDirection).xyz * 2.4f;
+			FinalTransversal = 8.0f;
 		}
 	}
 

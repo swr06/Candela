@@ -57,6 +57,8 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 static bool RENDER_GLASS_FLAG = true;
 static bool HQ_Refractions = false;
 
+static float RoughnessMultiplier = 1.0f;
+
 static bool DoFrustumCulling = false;
 static bool DoFaceCulling = true;
 
@@ -292,6 +294,8 @@ public:
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
+			ImGui::NewLine();
+			ImGui::SliderFloat("Roughness Multiplier", &RoughnessMultiplier, 0.0f, 3.0f);
 			ImGui::NewLine();
 			ImGui::Checkbox("Glass Rendering (OIT/Refractions)?", &RENDER_GLASS_FLAG);
 			ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
@@ -641,6 +645,7 @@ void Candela::StartPipeline()
 
 	// Create entities 
 	Entity MainModelEntity(&MainModel);
+	MainModelEntity.m_EntityRoughness = 0.65f;
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.35f));
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
@@ -943,6 +948,7 @@ void Candela::StartPipeline()
 		GBufferShader.SetInteger("u_MetalnessMap", 3);
 		GBufferShader.SetInteger("u_MetalnessRoughnessMap", 5);
 		GBufferShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
+		GBufferShader.SetFloat("u_RoughnessMultiplier", RoughnessMultiplier);
 		GBufferShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 
 		RenderEntityList(EntityRenderList, GBufferShader, false);
