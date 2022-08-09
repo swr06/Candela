@@ -530,11 +530,11 @@ void main() {
 		vec4 Glasstrace = vec4(-1.0f);
 
 		vec3 GDirection = mix(Normal, CosWeightedHemisphere(Normal, hash2()), 0.9f);
-		Glasstrace = ScreenspaceRaytrace(u_TransparentDepth, RayOrigin, GDirection, 6, 3, 0.006f, 8.0f);
+		Glasstrace = ScreenspaceRaytrace(u_TransparentDepth, RayOrigin, GDirection, 6, 3, 0.005f, 5.0f);
 
 		if (IsInScreenspace(Glasstrace.xy) && Glasstrace.z > 0.0f && Glasstrace.xy == clamp(Glasstrace.xy, 0.001f, 0.999f)) {
 			vec3 TintAlbedo = TexelFetchNormalized(u_TransparentAlbedo, Glasstrace.xy).xyz;
-			TintColor = pow(TintAlbedo, vec3(1.2)) * 8.0f;
+			TintColor = pow(TintAlbedo, vec3(1.2)) * 6.4f;
 		}
 	}
 
