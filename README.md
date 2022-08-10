@@ -29,25 +29,25 @@ A realtime performance/graphics oriented 3D engine.
 
 </br>
 
-![s1](https://github.com/swr06/Candela/tree/MainBranch/Screenshots/1.png)
+![s1](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/1.png)
 
 </br>
 
 </br>
 
-![s2](https://github.com/swr06/Candela/tree/MainBranch/Screenshots/2.png)
+![s2](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/2.png)
 
 </br>
 
 </br>
 
-![s3](https://github.com/swr06/Candela/tree/MainBranch/Screenshots/3.png)
+![s3](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/3.png)
 
 </br>
 
 </br>
 
-![s4](https://github.com/swr06/Candela/tree/MainBranch/Screenshots/4.png)
+![s4](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/4.png)
 
 </br>
 
@@ -59,7 +59,7 @@ A realtime performance/graphics oriented 3D engine.
 
 </br>
 
-![s6](https://github.com/swr06/Candela/tree/MainBranch/Screenshots/6.png)
+![s6](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/6.png)
 
 </br>
 
