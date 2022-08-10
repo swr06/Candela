@@ -83,6 +83,8 @@ void main()
 
     }
 
-    o_Color.xyz = ACESFitted(vec4(o_Color.xyz, 1.0f), 0.85f).xyz;
+    float Exposure = 0.825f;
+
+    o_Color.xyz = ACESFitted(vec4(o_Color.xyz, 1.0f), Exposure).xyz;
     o_Color = clamp(o_Color, 0.0f, 1.0f);
 }
