@@ -77,7 +77,7 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 
 </br>
 
-![s9(https://github.com/swr06/Candela/blob/MainBranch/Screenshots/9.png)
+![s9](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/9.png)
 
 </br>
 
