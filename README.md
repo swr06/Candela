@@ -74,3 +74,17 @@ A realtime performance/graphics oriented 3D engine.
 ![s8](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/8.png)
 
 </br>
+
+</br>
+
+![s9(https://github.com/swr06/Candela/blob/MainBranch/Screenshots/9.png)
+
+</br>
+
+
+</br>
+
+![s10](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/10.png)
+
+</br>
+
