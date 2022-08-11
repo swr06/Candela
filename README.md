@@ -1,6 +1,6 @@
 # The Candela Engine
 
-A realtime performance/graphics oriented 3D engine.
+A pathtraced realtime performance/graphics oriented 3D engine.
 
 # Implemented 
 - Model loading, abstracted program/application API
@@ -21,9 +21,9 @@ A realtime performance/graphics oriented 3D engine.
 
 # Planned
 - Transparent Shadows
-- Sky rendering
-- IES lights?
+- IES lights
 - LTC
+- Sky rendering
 
 # Screenshots
 
