@@ -19,6 +19,10 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 - Basic Editor Features + Debug Views
 - Glass materials (OIT + Screenspace Refraction + Screenspace caustics)
 
+# Known Issues
+- Volumetrics prone to light leaking
+- Small temporal artifacts on disocclusions
+
 # Planned
 - Transparent Shadows
 - IES lights
