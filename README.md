@@ -20,6 +20,7 @@
 - Cascaded Shadow Mapping + PCF
 - Indirect Diffuse GI
 - Infinite bounce GI using irradiance probes
+- Hemispherical Shadow Maps for a sky shadowing approximation
 - Hybrid Specular GI (SSR + World Space RT)
 - SVGF + Specialized Specular Denoiser
 - Temporal Anti Aliasing
