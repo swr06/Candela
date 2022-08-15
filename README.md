@@ -1,6 +1,8 @@
+<img src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" data-canonical-src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" width="120" height="120" />
+
 # The Candela Engine
 
-A pathtraced realtime performance/graphics oriented 3D engine.
+A ***EXPERIMENTAL*** Realtime Pathtraced 3D Graphics Engine.
 
 # Implemented 
 - Model loading, abstracted program/application API
@@ -32,7 +34,7 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 - Sky rendering
 
 # Note
-- Controls
+- Refer `Controls.txt` for engine controls/shortcuts.
 
 # Screenshots
 
