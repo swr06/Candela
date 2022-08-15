@@ -5,8 +5,9 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 # Implemented 
 - Model loading, abstracted program/application API
 - Custom SAH BVH Constructor
-- Support for Stack/Stackless traversal
-- Cascaded Shadow Mapping
+- Support for Stack/Stackless BVH traversal
+- Physically based direct lighting (Cook Torrance BRDF)
+- Cascaded Shadow Mapping + PCF
 - Indirect Diffuse GI
 - Infinite bounce GI using irradiance probes
 - Hybrid Specular GI (SSR + World Space RT)
@@ -15,13 +16,14 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 - Volumetrics (Direct + Indirect light contribution)
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
+- Environment Map Support 
 - Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping etc.)
 - Basic Editor Features + Debug Views
 - Glass materials (OIT + Screenspace Refraction + Screenspace caustics)
 
 # Known Issues
 - Volumetrics prone to light leaking
-- Small temporal artifacts on disocclusions
+- Temporal/Spatial artifacts or noise on aggressive movement or disocclusions 
 
 # Planned
 - Transparent Shadows
@@ -95,3 +97,6 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 
 </br>
 
+# Supporting
+
+If you like this project and would like to show your support, please consider starring the project. :)
