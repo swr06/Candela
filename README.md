@@ -21,7 +21,7 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 
 # Known Issues
 - Volumetrics prone to light leaking
-- Small temporal artifacts on disocclusions
+- Temporal/Spatial artifacts or noise on aggressive movement or disocclusions 
 
 # Planned
 - Transparent Shadows
