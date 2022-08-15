@@ -1,5 +1,3 @@
-<img src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" data-canonical-src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" width="240" height="240" />
-
 <!-- Allow this file to not have a first line heading -->
 <!-- markdownlint-disable-file MD041 -->
 
@@ -9,6 +7,8 @@
 <div align="center">
 
 # The Candela Engine
+  
+<img src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" data-canonical-src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" width="240" height="240" />
   
 </div>
 
