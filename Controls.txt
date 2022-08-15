@@ -1,6 +1,10 @@
+-- Controls for Candela. 
+
 WSAD/Shift/Space -> Move around 
 Mouse -> Pan
-Scroll Wheel -> Zoom
+Scroll Wheel -> Zoom (Changed FOV)
 F1 -> Lock/Unlock mouse
 F2 -> Recompile changed shaders
 F3 -> Recompile all shaders 
+F5 -> Toggle Edit/Debug Mode
+ESC -> Quit

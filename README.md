@@ -29,6 +29,9 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 - LTC
 - Sky rendering
 
+# Note
+- Controls
+
 # Screenshots
 
 </br>
