@@ -1,10 +1,16 @@
 <img src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" data-canonical-src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" width="120" height="120" />
 
+<!-- Allow this file to not have a first line heading -->
+<!-- markdownlint-disable-file MD041 -->
+
+<!-- inline html -->
+<!-- markdownlint-disable-file MD033 -->
+
+<div align="center">
+
 # The Candela Engine
 
-A ***EXPERIMENTAL*** Realtime Pathtraced 3D Graphics Engine.
-
-# Implemented 
+# Current Feature List 
 - Model loading, abstracted program/application API
 - Custom SAH BVH Constructor
 - Support for Stack/Stackless BVH traversal
