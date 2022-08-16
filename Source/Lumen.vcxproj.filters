@@ -440,14 +440,14 @@
     <ClCompile Include="Core\PhysicsIntegrator.cpp">
       <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Entity.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Core\SkyShadowMap.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
     <ClCompile Include="Core\MathsHelpers.cpp">
       <Filter>Source Files\Lumen\Lumen-Core\Maths</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Entity.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
