@@ -1,8 +1,18 @@
+<!-- Allow this file to not have a first line heading -->
+<!-- markdownlint-disable-file MD041 -->
+
+<!-- inline html -->
+<!-- markdownlint-disable-file MD033 -->
+
+<div align="center">
+
 # The Candela Engine
+  
+<img src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" data-canonical-src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" width="240" height="240" />
+  
+</div>
 
-A pathtraced realtime performance/graphics oriented 3D engine.
-
-# Implemented 
+# Current Feature List 
 - Model loading, abstracted program/application API
 - Custom SAH BVH Constructor
 - Support for Stack/Stackless BVH traversal
@@ -10,6 +20,7 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 - Cascaded Shadow Mapping + PCF
 - Indirect Diffuse GI
 - Infinite bounce GI using irradiance probes
+- Hemispherical Shadow Maps for a sky shadowing approximation
 - Hybrid Specular GI (SSR + World Space RT)
 - SVGF + Specialized Specular Denoiser
 - Temporal Anti Aliasing
@@ -19,7 +30,7 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 - Environment Map Support 
 - Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping etc.)
 - Basic Editor Features + Debug Views
-- Glass materials (OIT + Screenspace Refraction + Screenspace caustics)
+- Transparent/Refractive Material Support (OIT + Screenspace Refraction + Screenspace caustics)
 
 # Known Issues
 - Volumetrics prone to light leaking
@@ -32,7 +43,7 @@ A pathtraced realtime performance/graphics oriented 3D engine.
 - Sky rendering
 
 # Note
-- Controls
+- Refer `Controls.txt` for engine controls/shortcuts.
 
 # Screenshots
 
