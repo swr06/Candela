@@ -14,7 +14,7 @@
 
 # Current Feature List 
 - Model loading, abstracted program/application API
-- Custom SAH BVH Constructor
+- Custom SAH BVH Constructor and Ray Intersection API
 - Support for Stack/Stackless BVH traversal
 - Physically based direct lighting (Cook Torrance BRDF)
 - Cascaded Shadow Mapping + PCF
