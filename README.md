@@ -67,6 +67,12 @@
 
 </br>
 
+![s12](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/12.png)
+
+</br>
+
+</br>
+
 ![s4](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/4.png)
 
 </br>
