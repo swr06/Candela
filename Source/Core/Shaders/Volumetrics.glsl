@@ -225,7 +225,7 @@ void main() {
 
 	float Depth = min(OpaqueDepth, TransparentDepth);
 
-	float Distance = 40.0f; // 40 meters, is this enough?
+	float Distance = 40.0f; // 40 meters
 
 	vec2 TexCoords = HighResUV;
 	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
@@ -233,13 +233,13 @@ void main() {
 	vec3 Player = u_InverseView[3].xyz;
 
 	vec3 Normal = texelFetch(u_NormalTexture, HighResPixel, 0).xyz;
-	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords) + Normal * 0.3f;
+	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords) + Normal * 0.05f;
 
 	if (Depth != 1.0f) {
 		Distance = distance(WorldPosition, Player);
     }
 
-	vec3 Direction = (Incident(v_TexCoords));
+	vec3 Direction = (normalize(WorldPosition - Player));
 
 	int Steps = u_Steps + 1;
 	float StepSize = Distance / float(Steps);
@@ -290,8 +290,8 @@ void main() {
 
 		else {
 			VolumeHash.x = fract(fract(mod(float(u_Frame) + float((Step * 3) + 0) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer32(gl_FragCoord.xy));
-			VolumeHash.y = fract(fract(mod(float(u_Frame) + float((Step * 3) + 1) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer64(gl_FragCoord.xy));
-			VolumeHash.z = fract(fract(mod(float(u_Frame) + float((Step * 3) + 2) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer16(gl_FragCoord.xy));
+			VolumeHash.y = fract(fract(mod(float(u_Frame) + float((Step * 3) + 1) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer32(gl_FragCoord.xy));
+			VolumeHash.z = fract(fract(mod(float(u_Frame) + float((Step * 3) + 2) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer32(gl_FragCoord.xy));
 		}
 
         float DirectVisibility = GetDirectShadow(RayPosition);
