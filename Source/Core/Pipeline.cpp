@@ -1200,6 +1200,7 @@ void Candela::StartPipeline()
 		SpecularShader.SetInteger("u_PBR", 3);
 		SpecularShader.SetInteger("u_Albedo", 4);
 		SpecularShader.SetInteger("u_IndirectDiffuse", 5);
+		SpecularShader.SetInteger("u_MotionVectors", 17);
 		SpecularShader.SetInteger("u_SkyCube", 12);
 		SpecularShader.SetVector2f("u_Dimensions", glm::vec2(SpecularTrace.GetWidth(), SpecularTrace.GetHeight()));
 		SpecularShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
@@ -1228,6 +1229,9 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE17);
+		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
 
 		for (int i = 0; i < 5; i++) {
 
