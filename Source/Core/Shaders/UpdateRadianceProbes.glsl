@@ -6,6 +6,7 @@
 #include "Include/Octahedral.glsl"
 #include "Include/SphericalHarmonics.glsl"
 #include "Include/Utility.glsl"
+#include "Include/ColorConstants.h"
 
 layout(local_size_x = 8, local_size_y = 4, local_size_z = 8) in;
 
@@ -138,7 +139,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return max(vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f), 0.00000001f);
+	return max(vec3(Albedo) * SUN_COLOR_PROBES * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f), 0.00000001f);
 }
 
 float HASH2SEED = 0.0f;

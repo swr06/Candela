@@ -1,4 +1,4 @@
--- Controls for Candela. 
+-- Controls for Candela --
 
 WSAD/Shift/Space -> Move around 
 Mouse -> Pan
@@ -8,3 +8,6 @@ F2 -> Recompile changed shaders
 F3 -> Recompile all shaders 
 F5 -> Toggle Edit/Debug Mode
 ESC -> Quit
+
+Note :
+You can change the colors (of the sun etc.) by modifying the data in the ColorConstants.h file in the Core/Shaders/Include folder

@@ -11,14 +11,16 @@
 #include "Include/Karis.glsl"
 #include "Include/Utility.glsl"
 #include "Include/DDA.glsl"
+#include "Include/ColorConstants.h"
 
 #include "Include/DebugIrradianceCache.glsl" 
 #include "Include/ProbeDebug.glsl"
 
 layout (location = 0) out vec3 o_Color;
 
-in vec2 v_TexCoords;
+layout(rgba16f, binding = 0) uniform image2D o_NormalLFe;
 
+in vec2 v_TexCoords;
 
 uniform sampler2D u_AlbedoTexture;
 uniform sampler2D u_NormalTexture;
@@ -67,6 +69,11 @@ struct ProbeMapPixel {
 layout (std430, binding = 4) buffer SSBO_ProbeMaps {
 	ProbeMapPixel MapData[]; // x has luminance data, y has packed depth and depth^2
 };
+
+layout (std430, binding = 2) buffer SSBO_Player {
+	float PlayerShadow; // <- Average shadow player
+};
+
 
 layout (std430, binding = 1) buffer EyeAdaptation_SSBO {
     float o_FocusDepth;
@@ -128,11 +135,11 @@ bool IsInBox(vec3 point, vec3 Min, vec3 Max) {
          (point.z >= Min.z && point.z <= Max.z);
 }
 
-float FilterShadows(vec3 WorldPosition, vec3 N)
+float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool d)
 {
 	int ClosestCascade = -1;
 	float Shadow = 0.0;
-	float VogelScales[5] = float[5](0.003f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
+	float VogelScales[5] = float[5](0.0015f, 0.0015f, 0.0015f, 0.0015f, 0.002f);
 	float Biases[5] = float[5](0.02f, 0.03f, 0.04f, 0.05f, 0.06f);
 	
 	vec2 Hash = texture(u_BlueNoise, v_TexCoords * (u_Dims / textureSize(u_BlueNoise, 0).xy)).rg;
@@ -171,11 +178,12 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 
 	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
 
-	int SampleCount = 8;
+	int SampleCount = Samples;
+	float iStep = 1.0f;
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
-		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x) + (Hash.xy * TexelSize * 1.4f);
+		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x) * iStep + (Hash.xy * TexelSize) * float(d);
 		
 		if (SampleUV != clamp(SampleUV, 0.000001f, 0.999999f))
 		{ 
@@ -183,13 +191,14 @@ float FilterShadows(vec3 WorldPosition, vec3 N)
 		}
 
 		Shadow += 1.0f - SampleShadowMap(vec3(SampleUV, ProjectionCoordinates.z - Bias), ClosestCascade); 
-		
+		iStep *= ExpStep;
 	}
 
 	Shadow /= float(SampleCount);
 
 	return 1.0f - clamp(pow(Shadow, 1.0f), 0.0f, 1.0f);
 }
+
 
 vec3 SampleIncidentRayDirection(vec2 screenspace)
 {
@@ -205,7 +214,7 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
-const vec3 SunColor = vec3(16.0f);
+const vec3 SunColor = SUN_COLOR_LIGHTING;
 
 void main() 
 {	
@@ -221,6 +230,7 @@ void main()
 
 	if (Pixel.x == 8 && Pixel.y == 8) {
 		o_FocusDepth = LinearizeDepth(texture(u_DepthTexture, u_FocusPoint).x);
+		PlayerShadow = FilterShadows(u_ViewerPosition + vec3(0.0f, 1.0f, 0.0f) * 0.01f, vec3(0.0f, 1.0f, 0.0f), 32, 1.035f, false);
 	}
 
 	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
@@ -230,7 +240,15 @@ void main()
 	float LinearDepth = LinearizeDepth(Depth);
 
 	if (Depth > 0.999999f) {
-		o_Color = pow(texture(u_Skymap, rD).xyz,vec3(2.)) * 2.5f; // <----- pow2 done here 
+		o_Color = pow(texture(u_Skymap, rD).xyz, vec3(2.07f)) * 2.65f; // Color tweaking, temporary, while the cloud skybox is being used. 
+
+		// Sun Disc 
+		if (dot(rD, -u_LightDirection) > 0.99985f) {
+			imageStore(o_NormalLFe, Pixel, vec4(vec3(0.0f), 256.0f));
+			o_Color = SUN_COLOR_LIGHTING; 
+		}
+
+		// Draw probe spheres 
 		if (u_DebugMode == 0) {
 			DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
 		}
@@ -276,12 +294,12 @@ void main()
 		float AO = clamp(pow(GI.w, 1.1f) + 0.0f, 0.0f, 1.0f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * IndirectStrength.x * AO;
 
-		mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
+		const mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
 		DiffuseIndirect = vec3(ColorTweakMatrix * vec4(DiffuseIndirect, 1.0f));
 
 	#endif
 
-	float Shadows = FilterShadows(WorldPosition, Normal);
+	float Shadows = FilterShadows(WorldPosition, Normal, 8, 1.0f, true);
 
 	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), Shadows) ;
 	

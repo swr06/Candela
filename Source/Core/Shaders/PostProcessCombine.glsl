@@ -8,12 +8,67 @@ layout(location = 0) out vec4 o_Color;
 uniform sampler2D u_MainTexture;
 uniform sampler2D u_Depth;
 
+uniform sampler2D u_BlueNoise;
+
+uniform vec2 u_SunScreenPosition;
+
+uniform float u_PlayerShadow;
+
 uniform sampler2D u_BloomMips[5];
 uniform sampler2D u_BloomBrightTexture;
 
 uniform float u_CAScale;
 
 uniform bool u_BloomEnabled;
+
+uniform float u_LensFlareStrength;
+
+// Noise functions 
+float Fnoise(float t)
+{
+	return texture(u_BlueNoise, vec2(t, 0.0f) / vec2(256).xy).x;
+}
+
+float Fnoise(vec2 t)
+{
+	return texture(u_BlueNoise, t / vec2(256).xy).x;
+}
+
+// Credits : mu6k
+vec3 LensFlare(vec2 uv, vec2 pos)
+{
+	vec2 main = uv - pos;
+	vec2 uvd = uv * (length(uv));
+	float ang = atan(main.x,main.y);
+	float dist = length(main); 
+	dist = pow(dist, 0.1f);
+	float n = Fnoise(vec2(ang * 16.0f, dist * 32.0f));
+	float f0 = 1.0 / (length(uv - pos) * 16.0f + 1.0f);
+	f0 = f0 + f0 * (sin(Fnoise(sin(ang * 2.0f + pos.x) * 4.0f - cos(ang * 3.0f + pos.y)) * 16.0f) * 0.1 + dist * 0.1f + 0.8f);
+	float f1 = max(0.01f - pow(length(uv + 1.2f * pos), 1.9f), 0.0f) * 7.0f;
+	float f2 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.8f * pos), 2.0f)), 0.0f) * 0.25f;
+	float f22 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.85f * pos), 2.0f)), 0.0f) * 0.23f;
+	float f23 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.9f * pos), 2.0f)), 0.0f) * 0.21f;
+	vec2 uvx = mix(uv, uvd, -0.5f);
+	float f4 = max(0.01f - pow(length(uvx + 0.4f * pos), 2.4f), 0.0f) * 6.0f;
+	float f42 = max(0.01f - pow(length(uvx + 0.45f * pos), 2.4f), 0.0f) * 5.0f;
+	float f43 = max(0.01f - pow(length(uvx + 0.5f *pos), 2.4f), 0.0f) * 3.0f;
+	uvx = mix(uv, uvd, -0.4f);
+	float f5 = max(0.01f - pow(length(uvx + 0.2f * pos), 5.5f), 0.0f) * 2.0f;
+	float f52 = max(0.01f - pow(length(uvx + 0.4f * pos), 5.5f), 0.0f) * 2.0f;
+	float f53 = max(0.01f - pow(length(uvx + 0.6f * pos), 5.5f), 0.0f) * 2.0f;
+	uvx = mix(uv, uvd, -0.5f);
+	float f6 = max(0.01f - pow(length(uvx - 0.3f * pos), 1.6f), 0.0f) * 6.0f;
+	float f62 = max(0.01f - pow(length(uvx - 0.325f * pos), 1.6f), 0.0f) * 3.0f;
+	float f63 = max(0.01f - pow(length(uvx - 0.35f * pos), 1.6f), 0.0f) * 5.0f;
+	vec3 c = vec3(0.0f);
+	c.r += f2 + f4 + f5 + f6; 
+	c.g += f22 + f42 + f52 + f62;
+	c.b += f23 + f43 + f53 + f63;
+	c = c * 1.3f - vec3(length(uvd) * 0.05f);
+	return c;
+}
+
 
 vec3 ChromaticAberation()
 {
@@ -96,7 +151,11 @@ void main()
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
     vec3 Sample = u_CAScale > 0.000001f ? ChromaticAberation() : texelFetch(u_MainTexture, Pixel, 0).xyz;
 	float Depth = texelFetch(u_Depth, Pixel, 0).x;
+	vec2 Dims = textureSize(u_Depth, 0);
 
-    o_Color.xyz = Sample + UpscaleBloom(v_TexCoords);
+	vec2 AspectCorrectCoord = v_TexCoords - 0.5f;
+	AspectCorrectCoord.x *= Dims.x / Dims.y;
+	vec3 Flare = u_LensFlareStrength > 0.001f ? vec3(1.6f, 1.2f, 1.0f) * u_LensFlareStrength * clamp(LensFlare(AspectCorrectCoord, u_SunScreenPosition), 0.0f, 1.0f) * 1.0f * u_PlayerShadow : vec3(0.0f);
+    o_Color.xyz = Sample.xyz + UpscaleBloom(v_TexCoords) + Flare;
 	o_Color.w = Depth; // <- DOF
 }

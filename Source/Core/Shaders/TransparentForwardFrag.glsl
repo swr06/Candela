@@ -74,7 +74,7 @@ void main()
 
 	vec3 Color = Refracted * AlbedoColor;
 	
-	float Alpha = clamp((1.0f - u_Transparency) * 1.1f, 0.0f, 1.0f);
+	float Alpha = clamp((1.0f - u_Transparency) * 1.2f, 0.0f, 1.0f);
 
 	float InversePers = abs(1.0f / max(gl_FragCoord.w, 0.0000000001f));
 	//float Factor = 1.0 / 200.0f; 

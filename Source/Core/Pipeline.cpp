@@ -92,25 +92,32 @@ static bool DoSpatialUpscaling = true;
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.0f;
-static float VolumetricsIndirectStrength = 1.25f;
+static float VolumetricsIndirectStrength = 1.4f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
+
+// Exposure
+static float ExposureMultiplier = 1.0f;
 
 // DOF
 static bool DoDOF = false;
 static bool HQDOFBlur = false;
 static bool PerformanceDOF = false;
 static glm::vec2 DOFFocusPoint;
-static float FocusDepthSmooth = 1.0f;;
+static float FocusDepthSmooth = 1.0f;
+static float PlayerShadowSmooth = 1.0f;
 static float DOFBlurRadius = 10.0f;
 static float DOFScale = 0.01f;
 
 // Chromatic Aberration 
 static float CAScale = 0.04f;
 
+// Lens Flare
+static float LensFlareStrength = 0.4f;
+
 // Film Grain
-static float GrainStrength = 0.0f;
+static float GrainStrength = 0.f;
 
 // Barrel/Pincushion Distortion
 static bool DoDistortion = false;
@@ -350,8 +357,11 @@ public:
 			}
 
 			ImGui::NewLine();
-			ImGui::Checkbox("Bloom?", &DoBloom);
 			ImGui::NewLine();
+			ImGui::Text("Camera/Post Process");
+			ImGui::NewLine();
+			ImGui::SliderFloat("Exposure Multiplier", &ExposureMultiplier, 0.01f, 4.0f);
+			ImGui::Checkbox("Bloom?", &DoBloom);
 			ImGui::Checkbox("DOF?", &DoDOF);
 			if (DoDOF) {
 				ImGui::SliderFloat("DOF Blur Radius", &DOFBlurRadius, 2.0f, 16.0f);
@@ -363,6 +373,7 @@ public:
 			ImGui::NewLine();
 			ImGui::SliderFloat("Chromatic Aberration Strength", &CAScale, 0.0f, 0.50f);
 			ImGui::SliderFloat("Film Grain Strength", &GrainStrength, 0.0f, 1.0f);
+			ImGui::SliderFloat("Lens Flare Strength", &LensFlareStrength, 0.0f, 6.0f);
 			
 			ImGui::NewLine();
 			ImGui::Checkbox("Distortion? (Barrel/Pincushion)", &DoDistortion);
@@ -647,7 +658,6 @@ void Candela::StartPipeline()
 	Entity MainModelEntity(&MainModel);
 	MainModelEntity.m_EntityRoughness = 0.65f;
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
-	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.35f));
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
 
 	Entity DragonEntity(&Dragon);
@@ -745,6 +755,14 @@ void Candela::StartPipeline()
 	glGenBuffers(1, &DOFSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, DOFSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 1, &DOFDATA, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Lens Flare 
+	GLuint PlayerSSBO = 0;
+	float PlayerInShadow = 0.;
+	glGenBuffers(1, &PlayerSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, PlayerSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 1, &PlayerInShadow, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
@@ -1635,6 +1653,8 @@ void Candela::StartPipeline()
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, DOFSSBO);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, PlayerSSBO);
+		glBindImageTexture(0, GBuffer.GetTexture(3), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1646,10 +1666,19 @@ void Candela::StartPipeline()
 		float DownloadedCenterDepth = 0.0f;
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, DOFSSBO);
-		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float), &DownloadedCenterDepth);;
+		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float), &DownloadedCenterDepth);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 		FocusDepthSmooth = glm::mix(DownloadedCenterDepth, FocusDepthSmooth, 0.75f);
+
+		// find avg player shadow
+		float DownloadedPlayerShadow = 0.0f;
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, PlayerSSBO);
+		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float), &DownloadedPlayerShadow);;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		PlayerShadowSmooth = glm::mix(DownloadedPlayerShadow, PlayerShadowSmooth, 0.6f);
 
 		// Transparent Forward pass 
 
@@ -1799,6 +1828,20 @@ void Candela::StartPipeline()
 			BloomRenderer::RenderBloom(TAA.GetTexture(), GBuffer.GetTexture(3), BloomBufferA, BloomBufferB, BrightTex, true);
 		}
 
+		glm::vec2 SunScreenspaceCoord;
+		{	
+			glm::vec4 ViewSpace = Camera.GetViewMatrix() * glm::vec4(-SunDirection * 10000.0f, 1.0f);
+			glm::vec4 Projected = Camera.GetProjectionMatrix() * ViewSpace;
+			Projected.x /= Projected.w;
+			Projected.y /= Projected.w;
+			Projected.z /= Projected.w;
+			Projected = Projected * 0.5f + 0.5f;
+
+			SunScreenspaceCoord = glm::vec2(Projected.x, Projected.y) - 0.5f;
+			SunScreenspaceCoord.x *= float(app.GetWidth()) / float(app.GetHeight());
+
+		}
+
 		// Combine Post FX (excluding DOF.)
 
 		PFXComposited.Bind();
@@ -1813,8 +1856,12 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetInteger("u_BloomMips[4]", 5);
 		PostFXCombineShader.SetInteger("u_BloomBrightTexture", 6);
 		PostFXCombineShader.SetInteger("u_Depth", 7);
+		PostFXCombineShader.SetInteger("u_BlueNoise", 8);
 		PostFXCombineShader.SetBool("u_BloomEnabled", DoBloom);
 		PostFXCombineShader.SetFloat("u_CAScale", CAScale_);
+		PostFXCombineShader.SetFloat("u_PlayerShadow", PlayerShadowSmooth);
+		PostFXCombineShader.SetFloat("u_LensFlareStrength", LensFlareStrength);
+		PostFXCombineShader.SetVector2f("u_SunScreenPosition", SunScreenspaceCoord);
 
 		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, UniformBuffer);
 
@@ -1841,6 +1888,9 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE7);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+		
+		glActiveTexture(GL_TEXTURE8);
+		glBindTexture(GL_TEXTURE_2D, BlueNoise.GetTextureID());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1894,6 +1944,7 @@ void Candela::StartPipeline()
 		CompositeShader.SetBool("u_PerformanceDOF", PerformanceDOF);
 		CompositeShader.SetFloat("u_GrainStrength", GrainStrength);
 		CompositeShader.SetFloat("u_DOFScale", DOFScale);
+		CompositeShader.SetFloat("u_Exposure", ExposureMultiplier);
 
 		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);
 

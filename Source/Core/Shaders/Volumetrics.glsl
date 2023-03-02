@@ -5,6 +5,7 @@
 #include "Include/SpatialUtility.glsl"
 #include "Include/Sampling.glsl"
 #include "Include/3DNoise.glsl"
+#include "Include/ColorConstants.h"
 
 layout (location = 0) out vec4 o_Volumetrics; // w -> Transmittance 
 
@@ -224,7 +225,7 @@ void main() {
 
 	float Depth = min(OpaqueDepth, TransparentDepth);
 
-	float Distance = 40.0f;
+	float Distance = 40.0f; // 40 meters, is this enough?
 
 	vec2 TexCoords = HighResUV;
 	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
@@ -264,7 +265,7 @@ void main() {
 
     float SigmaE = 0.03f; 
 
-    vec3 SunColor = (vec3(253.,184.,100.)/255.0f) * 0.12f * 2.0f * 0.3333f;
+    vec3 SunColor = VOL_SUN_COLOR;
 
 	float LightingStrength = u_Strength * 0.2f;
 

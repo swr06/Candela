@@ -23,6 +23,8 @@ uniform float u_GrainStrength;
 
 uniform float u_Time;
 
+uniform float u_Exposure;
+
 const float DOFBlurSize = 20.0f;
 float DOFScale = u_DOFScale * 4.0f;
 
@@ -83,7 +85,7 @@ void main()
 
     }
 
-    float Exposure = 0.825f;
+    float Exposure = 0.825f * u_Exposure;
 
     o_Color.xyz = ACESFitted(vec4(o_Color.xyz, 1.0f), Exposure).xyz;
     o_Color = clamp(o_Color, 0.0f, 1.0f);

@@ -191,6 +191,7 @@
     <ClInclude Include="Core\Pipeline.h" />
     <ClInclude Include="Core\ProbeMap.h" />
     <ClInclude Include="Core\ShaderManager.h" />
+    <ClInclude Include="Core\Shaders\Include\ColorConstants.h" />
     <ClInclude Include="Core\Shadowmap.h" />
     <ClInclude Include="Core\ShadowMapHandler.h" />
     <ClInclude Include="Core\ShadowRenderer.h" />
@@ -285,14 +286,21 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Core\Shaders\2DElementShaderFrag.glsl" />
+    <None Include="Core\Shaders\2DElementShaderVert.glsl" />
+    <None Include="Core\Shaders\BasicBlit.glsl" />
     <None Include="Core\Shaders\BasicFrag.glsl" />
     <None Include="Core\Shaders\BasicVert.glsl" />
+    <None Include="Core\Shaders\BilateralBlurNonDepthGuided.glsl" />
     <None Include="Core\Shaders\BloomBlurTwoPass.glsl" />
     <None Include="Core\Shaders\BloomMask.glsl" />
     <None Include="Core\Shaders\CAS.glsl" />
     <None Include="Core\Shaders\CheckerboardReconstruct.glsl" />
+    <None Include="Core\Shaders\ClearData.comp" />
+    <None Include="Core\Shaders\ClearIntData.comp" />
     <None Include="Core\Shaders\Collide.comp" />
     <None Include="Core\Shaders\ColorPass.glsl" />
+    <None Include="Core\Shaders\ConeTraceConvolution.glsl" />
     <None Include="Core\Shaders\CopyVolume.glsl" />
     <None Include="Core\Shaders\DepthFrag.glsl" />
     <None Include="Core\Shaders\DepthOfField.glsl" />
@@ -300,6 +308,7 @@
     <None Include="Core\Shaders\DiffuseRayGenerate.glsl" />
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
     <None Include="Core\Shaders\DOFVert.glsl" />
+    <None Include="Core\Shaders\FXAA311.glsl" />
     <None Include="Core\Shaders\GlassPrePassFrag.glsl" />
     <None Include="Core\Shaders\GlassPrePassVert.glsl" />
     <None Include="Core\Shaders\Include\3DNoise.glsl" />
@@ -316,6 +325,7 @@
     <None Include="Core\Shaders\OITComposite.glsl" />
     <None Include="Core\Shaders\PostProcessCombine.glsl" />
     <None Include="Core\Shaders\RefractionTrace.glsl" />
+    <None Include="Core\Shaders\ScreenspaceConeTracing.glsl" />
     <None Include="Core\Shaders\SpatialUpscale.glsl" />
     <None Include="Core\Shaders\Composite.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />

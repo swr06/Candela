@@ -9,6 +9,7 @@
 #include "Include/SpatialUtility.glsl"
 #include "Include/Sampling.glsl"
 #include "Include/SphericalHarmonics.glsl"
+#include "Include/ColorConstants.h"
 
 layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
@@ -389,14 +390,14 @@ vec3 SampleLighting(in vec2 TexCoords, in vec3 WorldPosition, in vec3 Normal, in
 
 	vec4 DiffuseIndirect = texture(u_IndirectDiffuse, TexCoords).xyzw;
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return (vec3(Albedo) * 16.0f * Shadow) + (Albedo * 0.5f * DiffuseIndirect.xyz * DiffuseIndirect.w * DiffuseIndirect.w); 
+	return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * 0.5f * DiffuseIndirect.xyz * DiffuseIndirect.w * DiffuseIndirect.w); 
 }
 
 vec3 SampleLighting(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) { // For global/world traces 
 
 	vec3 DiffuseIndirect = SampleProbes(WorldPosition,Normal);
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return (vec3(Albedo) * 16.0f * Shadow) + (Albedo * 0.75f * DiffuseIndirect.xyz); 
+	return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * 0.75f * DiffuseIndirect.xyz); 
 }
 
 int TRACE_MODE = 0; 

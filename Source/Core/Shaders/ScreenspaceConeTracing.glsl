@@ -1,5 +1,8 @@
 #version 330 core
 
+// Rough reflections without noise? 
+// Reference paper : https://www.tobias-franke.eu/publications/hermanns14ssct/
+
 layout (location = 0) out vec3 o_Color;
 
 in vec2 v_TexCoords;

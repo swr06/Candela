@@ -7,6 +7,7 @@
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
 #include "Include/Sampling.glsl"
+#include "Include/ColorConstants.h"
 
 layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
@@ -344,7 +345,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return vec3(Albedo) * 16.0f * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
+	return vec3(Albedo) * SUN_COLOR_DIFF * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
 }
 
 bool DO_SECOND_BOUNCE = u_SecondBounce;
@@ -534,7 +535,7 @@ void main() {
 
 		if (IsInScreenspace(Glasstrace.xy) && Glasstrace.z > 0.0f && Glasstrace.xy == clamp(Glasstrace.xy, 0.001f, 0.999f)) {
 			vec3 TintAlbedo = TexelFetchNormalized(u_TransparentAlbedo, Glasstrace.xy).xyz;
-			TintColor = pow(TintAlbedo, vec3(1.2)) * 4.0f;
+			TintColor = pow(TintAlbedo, vec3(1.2)) * 2.8f;
 		}
 	}
 
