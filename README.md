@@ -28,7 +28,7 @@
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
 - Environment Map Support 
-- Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping etc.)
+- Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping, Procedural Lens Flare etc.)
 - Basic Editor Features + Debug Views
 - Transparent/Refractive Material Support (OIT + Screenspace Refraction + Screenspace caustics)
 
