@@ -9,6 +9,8 @@ uniform sampler2D u_Volumetrics;
 
 uniform bool u_VolumetricsEnabled;
 
+uniform float u_InternalRenderResolution;
+
 void main() {
 	
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);

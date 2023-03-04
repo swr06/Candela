@@ -31,9 +31,13 @@ uniform mat4 u_PrevInverseView;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform float u_InternalRenderResolution;
+
 uniform bool u_Enabled;
 
 uniform vec3 u_ViewerPosition;
+
+float ScaleMultiplier = 1.0f;
 
 float LinearizeDepth(float depth)
 {
@@ -88,7 +92,7 @@ void GatherStatistics(sampler2D Texture, ivec2 Pixel, in vec4 Center, out vec4 M
 		
 		for (int y = -1 ; y <= 1 ; y++) {
 			
-			vec4 Fetch = (x == 0 && y == 0) ? Center : texelFetch(Texture, Pixel + ivec2(x, y), 0);
+			vec4 Fetch = (x == 0 && y == 0) ? Center : texelFetch(Texture, ivec2((Pixel + ivec2(x, y))), 0);
 			Fetch.xyz = Tonemap(Fetch.xyz);
 			Min = min(Min, Fetch);
 			Max = max(Max, Fetch);
@@ -113,7 +117,7 @@ ivec2 GetNearestFragment(ivec2 Pixel, out float ClosestDepth) {
 
     for (int x = 0 ; x < 5 ; x++) {
 
-        ivec2 SampleTexel = Pixel + Kernel[x];
+        ivec2 SampleTexel = ivec2((Pixel + Kernel[x]) * ScaleMultiplier);
 
         float Depth = texelFetch(u_DepthTexture, SampleTexel, 0).x;
 
@@ -132,11 +136,13 @@ void main() {
     
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
+    ScaleMultiplier = u_InternalRenderResolution;
+
     vec2 Dimensions = textureSize(u_CurrentColorTexture, 0).xy;
 
-	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
+	float Depth = texelFetch(u_DepthTexture, ivec2(Pixel * ScaleMultiplier), 0).x;
     
-    vec4 Current = texelFetch(u_CurrentColorTexture, Pixel, 0).xyzw;
+    vec4 Current = texelFetch(u_CurrentColorTexture, ivec2(Pixel * ScaleMultiplier), 0).xyzw;
     //vec4 Current = CatmullRom(u_CurrentColorTexture, v_TexCoords).xyzw;
 
     o_Color = vec4(Current.xyz, 1.0f);
@@ -161,7 +167,7 @@ void main() {
     if (IsInScreenspaceBiased(Reprojected)) {
 
         vec4 Min, Max, Mean, Moments;
-        GatherStatistics(u_CurrentColorTexture, Pixel, Current, Min, Max, Mean, Moments);
+        GatherStatistics(u_CurrentColorTexture, ivec2(Pixel * ScaleMultiplier), Current, Min, Max, Mean, Moments);
         
         vec4 History = CatmullRom(u_PreviousColorTexture, Reprojected.xy);
 

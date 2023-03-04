@@ -59,6 +59,7 @@ static bool RENDER_GLASS_FLAG = true;
 static bool HQ_Refractions = false;
 
 // Misc 
+static float InternalRenderResolution = 1.0f;
 static float RoughnessMultiplier = 1.0f;
 
 // Perf
@@ -167,6 +168,10 @@ void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, c
 	//CurrentMatrix *= glm::rotate(CameraMatrix, glm::radians(90.0f), GridBasis);
 	//CurrentMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(Camera.GetPosition().x, Camera.GetPosition().y - 20.0f, Camera.GetPosition().z));
 	ImGuizmo::DrawGrid(glm::value_ptr(CameraMatrix), glm::value_ptr(ProjectionMatrix), value_ptr(CurrentMatrix), size);
+}
+
+static double RoundToNearest(double n, double x) {
+	return round(n / x) * x;
 }
 
 class RayTracerApp : public Candela::Application
@@ -368,6 +373,10 @@ public:
 			ImGui::NewLine();
 			ImGui::Text("Camera/Post Process");
 			ImGui::NewLine();
+			ImGui::SliderFloat("Internal Render Resolution", &InternalRenderResolution, 0.25f, 2.0f);
+			ImGui::Checkbox("TAA?", &DoTAA);
+			ImGui::Checkbox("CAS?", &DoCAS);
+			ImGui::NewLine();
 			ImGui::SliderFloat("Exposure Multiplier", &ExposureMultiplier, 0.01f, 4.0f);
 			ImGui::Checkbox("Bloom?", &DoBloom);
 			ImGui::Checkbox("DOF?", &DoDOF);
@@ -391,8 +400,6 @@ public:
 			
 			ImGui::NewLine();
 
-			ImGui::Checkbox("TAA?", &DoTAA);
-			ImGui::Checkbox("CAS?", &DoCAS);
 		} ImGui::End();
 
 		__TotalMeshesRendered = 0;
@@ -539,6 +546,7 @@ void RenderEntityList(const std::vector<Candela::Entity*> EntityList, GLClasses:
 	}
 }
 
+
 void UnbindEverything() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glUseProgram(0);
@@ -579,6 +587,7 @@ GLClasses::Framebuffer TransparentPass(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT,
 
 // Post 
 GLClasses::Framebuffer Composited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
+GLClasses::Framebuffer VolComposited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
 GLClasses::Framebuffer PFXComposited(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
 GLClasses::Framebuffer DOF(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false);
 GLClasses::Framebuffer VolumetricsCheckerboardBuffers[2]{ GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
@@ -809,50 +818,53 @@ void Candela::StartPipeline()
 
 		bool RENDER_GLASS = RENDER_GLASS_FLAG && (DebugMode < 0);
 
+		InternalRenderResolution = RoundToNearest(InternalRenderResolution, 0.25f);
+
 		// Prepare Intersector
 		Intersector.PushEntities(EntityRenderList);
 		Intersector.BufferEntities();
 
 		// Resize FBOs
-		GBuffers[0].SetSize(app.GetWidth(), app.GetHeight());
-		GBuffers[1].SetSize(app.GetWidth(), app.GetHeight());
-		TransparentGBuffer.SetSize(app.GetWidth(), app.GetHeight());
+		GBuffers[0].SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+		GBuffers[1].SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+		TransparentGBuffer.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 
 		// Transparent 
-		TransparentPass.SetSize(app.GetWidth(), app.GetHeight());
+		TransparentPass.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 
 		// Temporal
-		MotionVectors.SetSize(app.GetWidth(), app.GetHeight());
+		MotionVectors.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 
 		// Lighting
-		LightingPass.SetSize(app.GetWidth(), app.GetHeight());
+		LightingPass.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 		
 		// Antialiasing
 		TAABuffers[0].SetSize(app.GetWidth(), app.GetHeight());
 		TAABuffers[1].SetSize(app.GetWidth(), app.GetHeight());
 		
 		// SS refractions
-		SSRefractions.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		SSRefractions.SetSize(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
 
 		// Diffuse FBOs
 		int Denominator = DoCheckering ? 4 : 2;
-		DiffuseCheckerboardBuffers[0].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
-		DiffuseCheckerboardBuffers[1].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
-		SpecularCheckerboardBuffers[0].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
-		SpecularCheckerboardBuffers[1].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
+		DiffuseCheckerboardBuffers[0].SetSize(app.GetWidth() * InternalRenderResolution / Denominator, app.GetHeight() * InternalRenderResolution / 2);
+		DiffuseCheckerboardBuffers[1].SetSize(app.GetWidth() * InternalRenderResolution / Denominator, app.GetHeight() * InternalRenderResolution / 2);
+		SpecularCheckerboardBuffers[0].SetSize(app.GetWidth() * InternalRenderResolution / Denominator, app.GetHeight() * InternalRenderResolution / 2);
+		SpecularCheckerboardBuffers[1].SetSize(app.GetWidth() * InternalRenderResolution / Denominator, app.GetHeight() * InternalRenderResolution / 2);
 
 		// Volumetrics
-		VolumetricsCheckerboardBuffers[0].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
-		VolumetricsCheckerboardBuffers[1].SetSize(app.GetWidth() / Denominator, app.GetHeight() / 2);
+		VolumetricsCheckerboardBuffers[0].SetSize(app.GetWidth() * InternalRenderResolution / Denominator, app.GetHeight() * InternalRenderResolution / 2);
+		VolumetricsCheckerboardBuffers[1].SetSize(app.GetWidth() * InternalRenderResolution / Denominator, app.GetHeight() * InternalRenderResolution / 2);
 
 		// Temporal/Spatial resolve buffers
-		SpatialUpscaled.SetSize(app.GetWidth(), app.GetHeight());
-		CheckerboardUpscaled.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
-		SpatialVariance.SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
-		SpatialBuffers[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
-		SpatialBuffers[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
-		TemporalBuffersIndirect[0].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
-		TemporalBuffersIndirect[1].SetSize(app.GetWidth() / 2, app.GetHeight() / 2);
+		SpatialUpscaled.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+		CheckerboardUpscaled.SetSize(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
+		SpatialVariance.SetSize(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
+		SpatialBuffers[0].SetSize(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
+		SpatialBuffers[1].SetSize(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
+		TemporalBuffersIndirect[0].SetSize(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
+		TemporalBuffersIndirect[1].SetSize(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
+		VolComposited.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 
 		// Other post buffers
 		Composited.SetSize(app.GetWidth(), app.GetHeight());
@@ -860,11 +872,11 @@ void Candela::StartPipeline()
 		DOF.SetSize(app.GetWidth() / (PerformanceDOF ? 2 : 1), app.GetHeight() / (PerformanceDOF ? 2 : 1));
 
 		if (app.GetCursorLocked()) {
-			DOFFocusPoint = glm::vec2(app.GetWidth() / 2, app.GetHeight() / 2);
+			DOFFocusPoint = glm::vec2(app.GetWidth() * InternalRenderResolution / 2, app.GetHeight() * InternalRenderResolution / 2);
 		}
 
-		BloomBufferA.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
-		BloomBufferB.SetSize(app.GetWidth() * BloomResolution, app.GetHeight() * BloomResolution);
+		BloomBufferA.SetSize(app.GetWidth()  * InternalRenderResolution * BloomResolution, app.GetHeight() * InternalRenderResolution * BloomResolution);
+		BloomBufferB.SetSize(app.GetWidth()  * InternalRenderResolution * BloomResolution, app.GetHeight() * InternalRenderResolution * BloomResolution);
 		
 		// Set FBO references
 		GLClasses::Framebuffer& GBuffer = FrameMod2 ? GBuffers[0] : GBuffers[1];
@@ -963,8 +975,11 @@ void Candela::StartPipeline()
 
 		glDisable(GL_BLEND);
 
-		glm::mat4 TAAMatrix = DoTAA ? GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions()) : glm::mat4(1.0f);
+		// TAA
+		float TAAJitterMultiplier = 1.0f; // 1.0f / InternalRenderResolution;
+		glm::mat4 TAAMatrix = DoTAA ? GetTAAJitterMatrix(app.GetCurrentFrame(), GBuffer.GetDimensions() * TAAJitterMultiplier) : glm::mat4(1.0f);
 
+		// Render GBuffer
 		GBuffer.Bind();
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1770,7 +1785,7 @@ void Candela::StartPipeline()
 
 		// Composite volumetrics (use post fx composite buffer for perf sake)
 
-		PFXComposited.Bind();
+		VolComposited.Bind();
 
 		VolumetricsCompositeShader.Use();
 
@@ -1778,6 +1793,7 @@ void Candela::StartPipeline()
 		VolumetricsCompositeShader.SetInteger("u_Volumetrics", 1);
 		VolumetricsCompositeShader.SetBool("u_VolumetricsEnabled", DoVolumetrics && (DebugMode < 0 || DebugMode == 5));
 		VolumetricsCompositeShader.SetBool("IndirectSSCaustics", IndirectSSCaustics && RENDER_GLASS);
+		VolumetricsCompositeShader.SetFloat("u_InternalRenderResolution", InternalRenderResolution);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture());
@@ -1789,7 +1805,7 @@ void Candela::StartPipeline()
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
 
-		PFXComposited.Unbind();
+		VolComposited.Unbind();
 
 		// Reset
 
@@ -1809,12 +1825,13 @@ void Candela::StartPipeline()
 		TAAShader.SetInteger("u_MotionVectors", 4);
 		TAAShader.SetInteger("u_Volumetrics", 5);
 		TAAShader.SetBool("u_Enabled", DoTAA);
+		TAAShader.SetFloat("u_InternalRenderResolution", InternalRenderResolution);
 		TAAShader.SetVector2f("u_CurrentJitter", GetTAAJitter(app.GetCurrentFrame()));
 
 		SetCommonUniforms<GLClasses::Shader>(TAAShader, UniformBuffer);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, VolComposited.GetTexture());
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, PrevTAA.GetTexture());
