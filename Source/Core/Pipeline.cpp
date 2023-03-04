@@ -4,7 +4,7 @@
 #include "GLClasses/Shader.h"
 #include "Object.h"
 #include "Entity.h"
-#include "ModelFileLoader.h"
+#include "ModelFileLoader.h" 
 #include "ModelRenderer.h"
 #include "GLClasses/Fps.h"
 #include "GLClasses/Framebuffer.h"
@@ -54,41 +54,42 @@ static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
 // Options
 
+// Refractions 
 static bool RENDER_GLASS_FLAG = true;
 static bool HQ_Refractions = false;
 
+// Misc 
 static float RoughnessMultiplier = 1.0f;
 
+// Perf
 static bool DoFrustumCulling = false;
 static bool DoFaceCulling = true;
 
+// Direct shadow 
 static float ShadowDistanceMultiplier = 1.0f;
 
+// GI
 static bool DoMultiBounce = true;
 static bool DoInfiniteBounceGI = true;
 static bool IndirectSSCaustics = true;
 
+// Irradiance volume 
 static bool UpdateIrradianceVolume = true;
 static bool FilterIrradianceVolume = true;
 
+// Specular 
 static bool DoRoughSpecular = true;
 static bool DoFullRTSpecular = false;
 
+// Filtering 
+static bool HQTextureFiltering = false;
 static bool DoCheckering = true;
-
-static bool DoTAA = true;
-
-static bool DoCAS = true;
-
-static bool DoBloom = true;
-
 static bool DoTemporal = true;
-
 static bool DoSpatial = true;
 static float SVGFStrictness = 0.2f;
-
 static bool DoSpatialUpscaling = true;
 
+// Volumetrics 
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.0f;
@@ -96,6 +97,11 @@ static float VolumetricsIndirectStrength = 1.4f;
 static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
+
+// Post 
+static bool DoTAA = true;
+static bool DoCAS = true;
+static bool DoBloom = true;
 
 // Exposure
 static float ExposureMultiplier = 1.0f;
@@ -303,6 +309,8 @@ public:
 			ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 			ImGui::NewLine();
 			ImGui::SliderFloat("Roughness Multiplier", &RoughnessMultiplier, 0.0f, 3.0f);
+			ImGui::NewLine();
+			ImGui::Checkbox("High Quality Texture Filtering", &HQTextureFiltering);
 			ImGui::NewLine();
 			ImGui::Checkbox("Glass Rendering (OIT/Refractions)?", &RENDER_GLASS_FLAG);
 			ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
@@ -642,6 +650,7 @@ void Candela::StartPipeline()
 	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/mario/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/mc/scene.gltf");
@@ -659,8 +668,9 @@ void Candela::StartPipeline()
 	MainModelEntity.m_EntityRoughness = 0.65f;
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
+	//MainModelEntity.m_Model *= ZOrientMatrix;
 
-	Entity DragonEntity(&Dragon);
+	Entity DragonEntity(&Dragon); 
 	DragonEntity.m_EmissiveAmount = 15.0f;
 	DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
 	DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
@@ -965,6 +975,7 @@ void Candela::StartPipeline()
 		GBufferShader.SetInteger("u_RoughnessMap", 2);
 		GBufferShader.SetInteger("u_MetalnessMap", 3);
 		GBufferShader.SetInteger("u_MetalnessRoughnessMap", 5);
+		GBufferShader.SetBool("u_CatmullRom", HQTextureFiltering);
 		GBufferShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 		GBufferShader.SetFloat("u_RoughnessMultiplier", RoughnessMultiplier);
 		GBufferShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));

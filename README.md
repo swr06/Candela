@@ -120,6 +120,12 @@
 
 </br>
 
+</br>
+
+![s14](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/14.png)
+
+</br>
+
 # Supporting
 
 If you like this project and would like to show your support, please consider starring the project. :)

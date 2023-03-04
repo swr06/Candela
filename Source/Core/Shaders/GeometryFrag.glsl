@@ -36,6 +36,8 @@ uniform vec3 u_ViewerPosition;
 uniform int u_EntityNumber;
 uniform vec2 u_Dimensions;
 
+uniform bool u_CatmullRom;
+
 in vec2 v_TexCoords;
 in vec3 v_FragPosition;
 in vec3 v_Normal;
@@ -55,13 +57,13 @@ void main()
 	vec3 Incident = normalize(v_FragPosition - u_ViewerPosition);
 
 	vec2 AlbedoTexSize = textureSize(u_AlbedoMap, 0);
-	o_Albedo.xyz = Whiteworld ? vec3(1.0f) : (u_UsesAlbedoTexture ? texture(u_AlbedoMap, v_TexCoords, LODBias).xyz : u_ModelColor);
+	o_Albedo.xyz = Whiteworld ? vec3(1.0f) : (u_UsesAlbedoTexture ? (u_CatmullRom ? CatmullRom(u_AlbedoMap, v_TexCoords, LODBias).xyz : texture(u_AlbedoMap, v_TexCoords, LODBias).xyz) : u_ModelColor);
 
 	//o_Albedo += o_Albedo * u_EmissiveColor * u_ModelEmission * 8.0f;
-
+	 
 	vec3 LFN = normalize(v_Normal);
 
-	vec3 HQN = u_UsesNormalMap ? normalize(v_TBNMatrix * (texture(u_NormalMap, v_TexCoords).xyz * 2.0f - 1.0f)) 
+	vec3 HQN = u_UsesNormalMap ? normalize(v_TBNMatrix * ((u_CatmullRom ? CatmullRom(u_NormalMap, v_TexCoords).xyz : texture(u_NormalMap, v_TexCoords).xyz) * 2.0f - 1.0f)) 
 			 : ((!GenerateNormals) ? (LFN) : normalize(v_TBNMatrix * CreateNormalMap(o_Albedo.xyz,AlbedoTexSize)));
 
 	if (dot(LFN, Incident) > 0.0001f) {
