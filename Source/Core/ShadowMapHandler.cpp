@@ -1,9 +1,9 @@
 #include "ShadowMapHandler.h"
 
-static const int Resolution = 1536;
-const float CascadeDistances[5] = { 8.0f, 16.0f, 32.0f, 64.0f, 128.0f};
+static int Resolution = 1024;
+const float CascadeDistances[5] = { 6.0f, 12.0f, 18.0f, 36.0f, 72.0f };
 
-static Candela::Shadowmap Shadowmaps[5];
+static std::vector<Candela::Shadowmap> Shadowmaps;
 static glm::mat4 ProjectionMatrices[5];
 static glm::mat4 ViewMatrices[5];
 static float ClipPlanes[5];
@@ -16,9 +16,24 @@ static Candela::Shadowmap SkyShadowingMaps[SKY_SHADOWMAP_COUNT];
 static glm::mat4 SkyProjectionMatrices[SKY_SHADOWMAP_COUNT];
 static glm::mat4 SkyViewMatrices[SKY_SHADOWMAP_COUNT];
 
+void Candela::ShadowHandler::SetDirectShadowMapRes(int r)
+{
+	if (r != Resolution) {
+
+		Resolution = r;
+		Shadowmaps.clear();
+
+		for (int i = 0; i < 5; i++) {
+			Shadowmaps[i].Create(Resolution, Resolution);
+		}
+
+	}
+}
+
 void Candela::ShadowHandler::GenerateShadowMaps()
 {
 	ShadowRenderer::Initialize();
+	Shadowmaps.resize(5);
 
 	for (int i = 0; i < 5; i++) {
 		Shadowmaps[i].Create(Resolution, Resolution);

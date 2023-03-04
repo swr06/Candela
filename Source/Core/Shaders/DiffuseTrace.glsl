@@ -405,7 +405,7 @@ void main() {
 	
 	if (DO_SCREENTRACE) 
 	{ 
-		Screentrace = ScreenspaceRaytrace(u_DepthTexture, RayOrigin, RayDirection, 20, 18, 0.0011f, 36.0f);
+		Screentrace = ScreenspaceRaytrace(u_DepthTexture, RayOrigin, RayDirection, 16, 8, 0.00113f, 32.0f);
 	}
 
 	if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
@@ -524,10 +524,10 @@ void main() {
 
 	// Handle glass indirect caustics in screenspace 
 
-	vec3 TintColor = vec3(1.0f);
-
-	if (u_IndirectSSCaustics)
+	if (false)
 	{
+		vec3 TintColor = vec3(1.0f);
+		
 		vec4 Glasstrace = vec4(-1.0f);
 
 		vec3 GDirection = mix(Normal, CosWeightedHemisphere(Normal, hash2()), 0.9f);
@@ -537,9 +537,10 @@ void main() {
 			vec3 TintAlbedo = TexelFetchNormalized(u_TransparentAlbedo, Glasstrace.xy).xyz;
 			TintColor = pow(TintAlbedo, vec3(1.2)) * 2.8f;
 		}
+
+		FinalRadiance *= TintColor;
 	}
 
-	FinalRadiance *= TintColor;
 
 	if (!IsValid(FinalRadiance)) {
 		FinalRadiance = vec3(0.0f);

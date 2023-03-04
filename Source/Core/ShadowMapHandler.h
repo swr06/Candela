@@ -22,6 +22,8 @@ namespace Candela {
 		GLuint GetSkyShadowmap(int n);
 		const Candela::Shadowmap& GetSkyShadowmapRef(int n);
 
+		void SetDirectShadowMapRes(int r);
+
 		glm::mat4 GetShadowViewMatrix(int n);
 		glm::mat4 GetShadowProjectionMatrix(int n);
 		glm::mat4 GetShadowViewProjectionMatrix(int n);

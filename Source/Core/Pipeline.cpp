@@ -14,6 +14,7 @@
 #include "ShadowRenderer.h"
 #include "GLClasses/CubeTextureMap.h"
 #include "ProbeGI.h"
+#include "Utils/Timer.h"
 
 #include "ProbeMap.h"
 
@@ -51,6 +52,9 @@ Candela::FPSCamera& Camera = Player.Camera;
 static bool vsync = false;
 static float SunTick = 50.0f;
 static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
+static glm::vec3 PrevSunDir = _SunDirection;
+
+static int ShadowmapRes = 1024;
 
 // Options
 
@@ -328,6 +332,7 @@ public:
 			ImGui::Checkbox("Face Culling?", &DoFaceCulling);
 			ImGui::NewLine();
 			ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 4.0f);
+			ImGui::SliderInt("Shadowmap Resolution", &ShadowmapRes, 256, 4096);
 			ImGui::NewLine();
 			ImGui::Checkbox("Checkerboard Lighting? (effectively computes lighting for half the pixels)", &DoCheckering);
 			ImGui::NewLine();
@@ -805,6 +810,8 @@ void Candela::StartPipeline()
 	BloomFBO BloomBufferB(16, 16);
 	BloomRenderer::Initialize();
 
+	
+
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
 
@@ -883,6 +890,8 @@ void Candela::StartPipeline()
 		BloomBufferA.SetSize(app.GetWidth()  * InternalRenderResolution * BloomResolution, app.GetHeight() * InternalRenderResolution * BloomResolution);
 		BloomBufferB.SetSize(app.GetWidth()  * InternalRenderResolution * BloomResolution, app.GetHeight() * InternalRenderResolution * BloomResolution);
 		
+		ShadowHandler::SetDirectShadowMapRes(ShadowmapRes);
+
 		// Set FBO references
 		GLClasses::Framebuffer& GBuffer = FrameMod2 ? GBuffers[0] : GBuffers[1];
 		GLClasses::Framebuffer& PrevGBuffer = FrameMod2 ? GBuffers[1] : GBuffers[0];
@@ -936,9 +945,16 @@ void Candela::StartPipeline()
 		}
 
 		// Physics Simulation
-		Physics::Integrate(EntityRenderList, DeltaTime);
+		//Physics::Integrate(EntityRenderList, DeltaTime);
 
+		PrevSunDir = _SunDirection;
 		app.OnUpdate(); 
+		
+		bool UpdatedLightThisFrame = false;
+
+		if (PrevSunDir != _SunDirection) {
+			UpdatedLightThisFrame = true;
+		}
 
 		// Set matrices
 		Projection = Camera.GetProjectionMatrix();
@@ -961,7 +977,7 @@ void Candela::StartPipeline()
 
 		// Update probes
 		if (UpdateIrradianceVolume) {
-			ProbeGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID(), FilterIrradianceVolume);
+			ProbeGI::UpdateProbes(app.GetCurrentFrame(), Intersector, UniformBuffer, Skymap.GetID(), FilterIrradianceVolume && !UpdatedLightThisFrame);
 		}
 
 		// Render GBuffer

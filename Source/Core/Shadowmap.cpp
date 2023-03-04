@@ -38,6 +38,7 @@ namespace Candela
 
     Shadowmap::~Shadowmap()
     {
+        glDeleteTextures(1, &m_DepthMap);
         glDeleteFramebuffers(1, &m_DepthMapFBO);
     }
 

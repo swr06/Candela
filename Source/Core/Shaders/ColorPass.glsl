@@ -230,7 +230,7 @@ void main()
 
 	if (Pixel.x == 8 && Pixel.y == 8) {
 		o_FocusDepth = LinearizeDepth(texture(u_DepthTexture, u_FocusPoint).x);
-		PlayerShadow = FilterShadows(u_ViewerPosition + vec3(0.0f, 1.0f, 0.0f) * 0.01f, vec3(0.0f, 1.0f, 0.0f), 32, 1.035f, false);
+		PlayerShadow = FilterShadows(u_ViewerPosition + vec3(0.0f, 1.0f, 0.0f) * 0.01f, vec3(0.0f, 1.0f, 0.0f), 18, 1.035f, false);
 	}
 
 	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
@@ -291,7 +291,7 @@ void main()
 
 		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
 		
-		float AO = clamp(pow(GI.w, 1.3f) + 0.0f, 0.0f, 1.0f);
+		float AO = clamp(pow(GI.w, 1.4f) + 0.0f, 0.0f, 1.0f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * IndirectStrength.x * AO;
 
 		const mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);

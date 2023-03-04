@@ -30,6 +30,11 @@ namespace Candela
 			v.m_DepthMapFBO = 0;
 		}
 
+		void Destroy() {
+			glDeleteTextures(1, &m_DepthMap);
+			glDeleteFramebuffers(1, &m_DepthMapFBO);
+		}
+
 		void Create(int,int);
 
 		inline GLuint GetDepthTexture() const
