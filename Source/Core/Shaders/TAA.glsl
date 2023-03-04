@@ -2,6 +2,7 @@
 
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
+#include "Include/Library/FSR.glsl"
 
 const float PI = 3.1415926f;
 
@@ -34,6 +35,7 @@ uniform float u_zFar;
 uniform float u_InternalRenderResolution;
 
 uniform bool u_Enabled;
+uniform bool u_FSRU;
 
 uniform vec3 u_ViewerPosition;
 
@@ -140,10 +142,30 @@ void main() {
 
     vec2 Dimensions = textureSize(u_CurrentColorTexture, 0).xy;
 
+    vec2 FullDimensions = Dimensions / u_InternalRenderResolution;
+
 	float Depth = texelFetch(u_DepthTexture, ivec2(Pixel * ScaleMultiplier), 0).x;
     
-    vec4 Current = texelFetch(u_CurrentColorTexture, ivec2(Pixel * ScaleMultiplier), 0).xyzw;
-    //vec4 Current = CatmullRom(u_CurrentColorTexture, v_TexCoords).xyzw;
+    vec4 Current;
+    
+    // 1x 
+    if (abs(u_InternalRenderResolution - 1.0f) < 0.001f) {
+        Current = texelFetch(u_CurrentColorTexture, ivec2(Pixel * ScaleMultiplier), 0).xyzw;
+    }
+
+    else {
+
+
+        if (u_FSRU) {
+            Current = vec4(FSRUpscaleEASU(u_CurrentColorTexture, Pixel, FullDimensions), 1.0f);
+        }
+
+        else {
+            Current = CatmullRom(u_CurrentColorTexture, v_TexCoords);
+        }
+
+
+    }
 
     o_Color = vec4(Current.xyz, 1.0f);
 
@@ -169,6 +191,10 @@ void main() {
         vec4 Min, Max, Mean, Moments;
         GatherStatistics(u_CurrentColorTexture, ivec2(Pixel * ScaleMultiplier), Current, Min, Max, Mean, Moments);
         
+        vec2 Offset = 1.0 - abs(2.0 * fract(textureSize(u_CurrentColorTexture,0) * (Reprojected + u_CurrentJitter / textureSize(u_CurrentColorTexture,0)) ) - 1.0);
+	    float JitteredBlend = sqrt(Offset.x * Offset.y) * 0.25f + (1.0 - 0.25f);
+        JitteredBlend = pow(JitteredBlend, 2.0f);
+
         vec4 History = CatmullRom(u_PreviousColorTexture, Reprojected.xy);
 
         float Frames = (History.w) + 1.0f;
@@ -180,6 +206,7 @@ void main() {
 
         History.xyz = ClipToAABB(History.xyz, Min.xyz - Bias, Max.xyz + Bias);
 
+        //float BlendFactor = clamp(exp(-length(MotionVector * FullDimensions) * 0.5f) + 0.5f, 0.0f, 1.0f);
         float BlendFactor = exp(-length((MotionVector * Dimensions))) * 0.9f + 0.7f;
 
         float FrameBlend = 1.0f - clamp(1.0f / Frames, 0.0f, 1.0f);

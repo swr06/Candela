@@ -79,6 +79,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include\Const">
       <UniqueIdentifier>{4645fbfd-49c4-4a62-978b-10939e46571d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include\Library">
+      <UniqueIdentifier>{03343941-0065-4581-aa15-b212ea141982}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -684,6 +687,9 @@
     </None>
     <None Include="Core\Shaders\FXAA311.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
+    <None Include="Core\Shaders\Include\Library\FSR.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include\Library</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

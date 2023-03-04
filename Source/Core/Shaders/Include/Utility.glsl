@@ -333,6 +333,39 @@ vec4 Bicubic(sampler2D tex, vec2 coord) {
     return mix( mix(sample3, sample2, sx), mix(sample1, sample0, sx), sy);
 }
 
+// Super fast lanczos resampler 
+vec4 LanczosResamplerFast(sampler2D tex, vec2 UV) 
+{
+     vec4 scale = vec4(
+        1. / vec2(textureSize(tex, 0)),
+        vec2(textureSize(tex, 0)) / textureSize(tex,0).xy
+    );
+    
+    vec2 fragCoord = UV * textureSize(tex,0);
+    vec2 src_pos = scale.zw * fragCoord;
+    vec2 src_centre = floor(src_pos - .5) + .5;
+    vec4 f; f.zw = 1. - (f.xy = src_pos - src_centre);
+    vec4 l2_w0_o3 = ((1.5672 * f - 2.6445) * f + 0.0837) * f + 0.9976;
+    vec4 l2_w1_o3 = ((-0.7389 * f + 1.3652) * f - 0.6295) * f - 0.0004;
+    vec4 w1_2 = l2_w0_o3;
+    vec2 w12 = w1_2.xy + w1_2.zw;
+    vec4 wedge = l2_w1_o3.xyzw * w12.yxyx;
+    vec2 tc12 = scale.xy * (src_centre + w1_2.zw / w12);
+    vec2 tc0 = scale.xy * (src_centre - 1.);
+    vec2 tc3 = scale.xy * (src_centre + 2.);
+    float sum = wedge.x + wedge.y + wedge.z + wedge.w + w12.x * w12.y;    
+    wedge /= sum;
+    vec4 col = vec4(
+        texture(tex, vec2(tc12.x, tc0.y)) * wedge.y +
+        texture(tex, vec2(tc0.x, tc12.y)) * wedge.x +
+        texture(tex, tc12.xy) * (w12.x * w12.y) +
+        texture(tex, vec2(tc3.x, tc12.y)) * wedge.z +
+        texture(tex, vec2(tc12.x, tc3.y)) * wedge.w
+    );
+
+    return col;
+}
+
 float RayleighPhase(float cosTheta) 
 {
 	float y = 0.035 / (2.0 - 0.035);

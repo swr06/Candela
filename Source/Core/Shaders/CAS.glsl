@@ -3,6 +3,7 @@
 #define EPSILON 0.01f
 
 #include "Include/Utility.glsl"
+#include "Include/Library/FSR.glsl"
 
 layout (location = 0) out vec3 o_Color;
 
@@ -123,6 +124,7 @@ void main()
 
     float SharpeningAmount = 0.425f;
     vec3 Processed = u_Enabled ? ContrastAdaptiveSharpening(u_Texture, Pixel, SharpeningAmount) : OriginalColor;
+    //vec3 Processed = u_Enabled ? FSRCAS(u_Texture, Pixel, SharpeningAmount) : OriginalColor;
 
     o_Color = LinearToSRGB(Processed);
     o_Color = clamp(o_Color, 0.0f, 1.0f);

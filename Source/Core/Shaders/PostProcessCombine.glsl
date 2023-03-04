@@ -23,6 +23,8 @@ uniform bool u_BloomEnabled;
 
 uniform float u_LensFlareStrength;
 
+uniform float u_InternalRenderResolution;
+
 // Noise functions 
 float Fnoise(float t)
 {
@@ -150,7 +152,7 @@ void main()
 {
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
     vec3 Sample = u_CAScale > 0.000001f ? ChromaticAberation() : texelFetch(u_MainTexture, Pixel, 0).xyz;
-	float Depth = texelFetch(u_Depth, Pixel, 0).x;
+	float Depth = texelFetch(u_Depth, ivec2(u_InternalRenderResolution * vec2(Pixel)), 0).x;
 	vec2 Dims = textureSize(u_Depth, 0);
 
 	vec2 AspectCorrectCoord = v_TexCoords - 0.5f;

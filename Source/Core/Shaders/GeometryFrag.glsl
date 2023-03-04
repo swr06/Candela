@@ -38,6 +38,8 @@ uniform vec2 u_Dimensions;
 
 uniform bool u_CatmullRom;
 
+uniform float u_ScaleLODBias;
+
 in vec2 v_TexCoords;
 in vec3 v_FragPosition;
 in vec3 v_Normal;
@@ -50,7 +52,7 @@ vec3 CreateNormalMap(in vec3 Albedo, vec2 Size) {
 
 void main()
 {
-	const float LODBias = -1.0f;
+	float LODBias = u_ScaleLODBias;
 	const bool Whiteworld = false;
 	const bool GenerateNormals = false;
 

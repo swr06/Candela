@@ -103,6 +103,10 @@ static bool VolumetricsSpatial = true;
 static bool DoTAA = true;
 static bool DoCAS = true;
 static bool DoBloom = true;
+static bool FSR = false;
+
+// FSR 1.0
+static float FSRUpscaleResolution = 1.0f;
 
 // Exposure
 static float ExposureMultiplier = 1.0f;
@@ -376,6 +380,7 @@ public:
 			ImGui::SliderFloat("Internal Render Resolution", &InternalRenderResolution, 0.25f, 2.0f);
 			ImGui::Checkbox("TAA?", &DoTAA);
 			ImGui::Checkbox("CAS?", &DoCAS);
+			ImGui::Checkbox("AMD FSR?", &FSR);
 			ImGui::NewLine();
 			ImGui::SliderFloat("Exposure Multiplier", &ExposureMultiplier, 0.01f, 4.0f);
 			ImGui::Checkbox("Bloom?", &DoBloom);
@@ -993,6 +998,7 @@ void Candela::StartPipeline()
 		GBufferShader.SetBool("u_CatmullRom", HQTextureFiltering);
 		GBufferShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 		GBufferShader.SetFloat("u_RoughnessMultiplier", RoughnessMultiplier);
+		GBufferShader.SetFloat("u_ScaleLODBias", floor(log2(InternalRenderResolution)));
 		GBufferShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 
 		RenderEntityList(EntityRenderList, GBufferShader, false);
@@ -1825,6 +1831,7 @@ void Candela::StartPipeline()
 		TAAShader.SetInteger("u_MotionVectors", 4);
 		TAAShader.SetInteger("u_Volumetrics", 5);
 		TAAShader.SetBool("u_Enabled", DoTAA);
+		TAAShader.SetBool("u_FSRU", FSR);
 		TAAShader.SetFloat("u_InternalRenderResolution", InternalRenderResolution);
 		TAAShader.SetVector2f("u_CurrentJitter", GetTAAJitter(app.GetCurrentFrame()));
 
@@ -1894,6 +1901,7 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetFloat("u_PlayerShadow", PlayerShadowSmooth);
 		PostFXCombineShader.SetFloat("u_LensFlareStrength", LensFlareStrength);
 		PostFXCombineShader.SetVector2f("u_SunScreenPosition", SunScreenspaceCoord);
+		PostFXCombineShader.SetFloat("u_InternalRenderResolution", InternalRenderResolution);
 
 		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, UniformBuffer);
 
