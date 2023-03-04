@@ -23,7 +23,8 @@
 - Hemispherical Shadow Maps for a sky shadowing approximation
 - Hybrid Specular GI (SSR + World Space RT)
 - SVGF + Specialized Specular Denoiser
-- Temporal Anti Aliasing
+- Temporal Anti Aliasing + Upscaling
+- Spatial Image Upscaling (Custom CAS + AMD FSR EASU)
 - Volumetrics (Direct + Indirect light contribution)
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
