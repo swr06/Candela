@@ -34,6 +34,8 @@ void Candela::ShaderManager::CreateShaders()
 	AddComputeShader("PROBE_UPDATE", "Core/Shaders/UpdateRadianceProbes.glsl");
 	AddComputeShader("COPY_VOLUME", "Core/Shaders/CopyVolume.glsl");
 	AddComputeShader("COLLISIONS", "Core/Shaders/Collide.comp");
+	AddShader("GLASS_DEFERRED", "Core/Shaders/FBOVert.glsl", "Core/Shaders/GlassDeferred.glsl");
+	AddShader("BASIC_BLIT", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BasicBlit.glsl");
 }
 
 void Candela::ShaderManager::AddShader(const std::string& name, const std::string& vert, const std::string& frag, const std::string& geo)

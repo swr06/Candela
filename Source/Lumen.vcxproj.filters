@@ -691,6 +691,9 @@
     <None Include="Core\Shaders\Include\Library\FSR.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include\Library</Filter>
     </None>
+    <None Include="Core\Shaders\GlassDeferred.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Shaders\Surfel\Readme.txt">

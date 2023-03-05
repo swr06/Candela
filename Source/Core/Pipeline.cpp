@@ -59,8 +59,10 @@ static int ShadowmapRes = 1024;
 // Options
 
 // Refractions 
+
 static bool RENDER_GLASS_FLAG = true;
 static bool HQ_Refractions = false;
+static bool OIT = false;
 
 // Misc 
 static float InternalRenderResolution = 1.0f;
@@ -325,7 +327,8 @@ public:
 			ImGui::NewLine();
 			ImGui::Checkbox("High Quality Texture Filtering", &HQTextureFiltering);
 			ImGui::NewLine();
-			ImGui::Checkbox("Glass Rendering (OIT/Refractions)?", &RENDER_GLASS_FLAG);
+			ImGui::Checkbox("Translucent Rendering?", &RENDER_GLASS_FLAG);
+			ImGui::Checkbox("Use OIT? (if off, uses ssrt refractions)", &OIT);
 			ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
 			ImGui::NewLine();
 			ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
@@ -590,7 +593,7 @@ void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 GLClasses::Framebuffer LightingPass(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, false);
 
 // Transparency passes
-GLClasses::Framebuffer OITComposite(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, false);
+GLClasses::Framebuffer TempFramebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true} }, false, false);
 
 // Forward pass
 GLClasses::Framebuffer TransparentPass(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, {GL_R16F, GL_RED, GL_FLOAT, true, true} }, false, false);
@@ -696,9 +699,9 @@ void Candela::StartPipeline()
 
 	Entity GlassDragon(&Dragon);
 	GlassDragon.m_EmissiveAmount = 0.0f;
-	GlassDragon.m_TranslucencyAmount = 0.3f;
 	GlassDragon.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-4.25f, 0.5f, -0.5f));
 	GlassDragon.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
+	GlassDragon.m_TranslucencyAmount = 0.4f;
 
 	Entity MetalObjectEntity(&MetalObject);
 	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
@@ -756,6 +759,9 @@ void Candela::StartPipeline()
 	GLClasses::Shader& CompositeShader = ShaderManager::GetShader("COMPOSITE");
 	GLClasses::Shader& PostFXCombineShader = ShaderManager::GetShader("PFX_COMBINE");
 	GLClasses::Shader& DOFShader = ShaderManager::GetShader("DOF");
+
+	GLClasses::Shader& GlassDeferredShader = ShaderManager::GetShader("GLASS_DEFERRED");
+	GLClasses::Shader& BasicBlitShader = ShaderManager::GetShader("BASIC_BLIT");
 
 	// Matrices
 	glm::mat4 PreviousView;
@@ -849,6 +855,7 @@ void Candela::StartPipeline()
 
 		// Lighting
 		LightingPass.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+		TempFramebuffer.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 		
 		// Antialiasing
 		TAABuffers[0].SetSize(app.GetWidth(), app.GetHeight());
@@ -1044,13 +1051,6 @@ void Candela::StartPipeline()
 			TransparentGBuffer.Unbind();
 			UnbindEverything();
 		}
-
-		else if (app.GetCurrentFrame() % 4 == 0) {
-			TransparentGBuffer.Bind();
-			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		}
-
 
 		// Post processing passes :
 
@@ -1736,73 +1736,137 @@ void Candela::StartPipeline()
 
 		if (RENDER_GLASS)
 		{
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_CULL_FACE);
-			glDepthMask(GL_FALSE);
-			glEnable(GL_BLEND);
-			glBlendFunci(0, GL_ONE, GL_ONE);
-			glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
-			glBlendEquation(GL_FUNC_ADD);
+			glDisable(GL_BLEND);
 
-			TransparentForwardShader.Use();
-			TransparentPass.Bind();
-			glClearBufferfv(GL_COLOR, 0, glm::value_ptr(glm::vec4(0.0f)));
-			glClearBufferfv(GL_COLOR, 1, glm::value_ptr(glm::vec4(1.0f)));
+			if (OIT) {
+				glDisable(GL_DEPTH_TEST);
+				glDisable(GL_CULL_FACE);
+				glDepthMask(GL_FALSE);
+				glEnable(GL_BLEND);
+				glBlendFunci(0, GL_ONE, GL_ONE);
+				glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+				glBlendEquation(GL_FUNC_ADD);
 
-			TransparentForwardShader.SetMatrix4("u_ViewProjection", TAAMatrix * Camera.GetViewProjection());
-			TransparentForwardShader.SetInteger("u_AlbedoMap", 0);
-			TransparentForwardShader.SetInteger("u_NormalMap", 1);
-			TransparentForwardShader.SetInteger("u_RefractionData", 8);
-			TransparentForwardShader.SetInteger("u_OpaqueLighting", 9);
-			TransparentForwardShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
-			TransparentForwardShader.SetVector2f("u_Dimensions", glm::vec2(TransparentPass.GetWidth(), TransparentPass.GetHeight()));
+				TransparentForwardShader.Use();
+				TransparentPass.Bind();
+				glClearBufferfv(GL_COLOR, 0, glm::value_ptr(glm::vec4(0.0f)));
+				glClearBufferfv(GL_COLOR, 1, glm::value_ptr(glm::vec4(1.0f)));
 
-			SetCommonUniforms<GLClasses::Shader>(TransparentForwardShader, UniformBuffer);
+				TransparentForwardShader.SetMatrix4("u_ViewProjection", TAAMatrix* Camera.GetViewProjection());
+				TransparentForwardShader.SetInteger("u_AlbedoMap", 0);
+				TransparentForwardShader.SetInteger("u_NormalMap", 1);
+				TransparentForwardShader.SetInteger("u_RefractionData", 8);
+				TransparentForwardShader.SetInteger("u_OpaqueLighting", 9);
+				TransparentForwardShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
+				TransparentForwardShader.SetVector2f("u_Dimensions", glm::vec2(TransparentPass.GetWidth(), TransparentPass.GetHeight()));
 
-			glActiveTexture(GL_TEXTURE8);
-			glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
+				SetCommonUniforms<GLClasses::Shader>(TransparentForwardShader, UniformBuffer);
 
-			glActiveTexture(GL_TEXTURE9);
-			glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture());
+				glActiveTexture(GL_TEXTURE8);
+				glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
 
-			RenderEntityList(EntityRenderList, TransparentForwardShader, true);
+				glActiveTexture(GL_TEXTURE9);
+				glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture());
 
-			TransparentPass.Unbind();
+				RenderEntityList(EntityRenderList, TransparentForwardShader, true);
 
-			// OIT Composite 
-			glDisable(GL_CULL_FACE);
-			glDepthFunc(GL_ALWAYS);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				TransparentPass.Unbind();
 
-			LightingPass.Bind();
+				// OIT Composite 
+				glDisable(GL_CULL_FACE);
+				glDepthFunc(GL_ALWAYS);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-			OITCompositeShader.Use();
+				LightingPass.Bind();
 
-			OITCompositeShader.SetInteger("u_Blend", 0);
-			OITCompositeShader.SetInteger("u_Revealage", 1);
-			OITCompositeShader.SetInteger("u_OpaqueDepth", 2);
-			OITCompositeShader.SetInteger("u_TransparentDepth", 3);
+				OITCompositeShader.Use();
 
-			SetCommonUniforms<GLClasses::Shader>(OITCompositeShader, UniformBuffer);
+				OITCompositeShader.SetInteger("u_Blend", 0);
+				OITCompositeShader.SetInteger("u_Revealage", 1);
+				OITCompositeShader.SetInteger("u_OpaqueDepth", 2);
+				OITCompositeShader.SetInteger("u_TransparentDepth", 3);
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, TransparentPass.GetTexture(0));
+				SetCommonUniforms<GLClasses::Shader>(OITCompositeShader, UniformBuffer);
 
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, TransparentPass.GetTexture(1));
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, TransparentPass.GetTexture(0));
 
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, TransparentPass.GetTexture(1));
 
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
-			ScreenQuadVAO.Bind();
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			ScreenQuadVAO.Unbind();
+				glActiveTexture(GL_TEXTURE3);
+				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
 
-			LightingPass.Unbind();
+				ScreenQuadVAO.Bind();
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				ScreenQuadVAO.Unbind();
+
+				LightingPass.Unbind();
+			}
+
+
+			else {
+
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_DEPTH_TEST);
+				glDepthMask(GL_FALSE);
+
+				// Copy lighting data
+				BasicBlitShader.Use();
+				TempFramebuffer.Bind();
+
+				BasicBlitShader.SetInteger("u_Input", 0);
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture(0));
+
+				ScreenQuadVAO.Bind();
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				ScreenQuadVAO.Unbind();
+
+				TempFramebuffer.Unbind();
+
+				// Shade glass on top of opaque geometry
+				GlassDeferredShader.Use();
+				LightingPass.Bind();
+
+				GlassDeferredShader.SetInteger("u_AlbedoData", 1);
+				GlassDeferredShader.SetInteger("u_NormalData", 2);
+				GlassDeferredShader.SetInteger("u_RefractionData", 3);
+				GlassDeferredShader.SetInteger("u_OpaqueLighting", 4);
+				GlassDeferredShader.SetInteger("u_OpaqueDepth", 5);
+				GlassDeferredShader.SetInteger("u_TransparentDepth", 6);
+
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(1));
+
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(0));
+
+				glActiveTexture(GL_TEXTURE3);
+				glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
+
+				glActiveTexture(GL_TEXTURE4);
+				glBindTexture(GL_TEXTURE_2D, TempFramebuffer.GetTexture());
+
+				glActiveTexture(GL_TEXTURE5);
+				glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+				glActiveTexture(GL_TEXTURE6);
+				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+
+				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShader, UniformBuffer);
+
+				ScreenQuadVAO.Bind();
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				ScreenQuadVAO.Unbind();
+
+				LightingPass.Unbind();
+			}
 		}
 
 		// Composite volumetrics (use post fx composite buffer for perf sake)

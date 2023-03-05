@@ -209,7 +209,7 @@ void main() {
 
 	vec3 RefractedDirection = refract(Incident, Normal, 1.0f / 1.52f);
 
-	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, u_HQ ? 20 : 8, u_HQ ? 12 : 6, u_HQ ? 0.002f : 0.004f);
+	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, u_HQ ? 20 : 8, u_HQ ? 12 : 6, u_HQ ? 0.003f : 0.005f);
 
 	if (Res.xy != clamp(Res.xy, 0.001f, 0.999f)) {
 		
