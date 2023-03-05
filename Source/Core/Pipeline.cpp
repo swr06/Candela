@@ -128,10 +128,10 @@ static float DOFBlurRadius = 10.0f;
 static float DOFScale = 0.01f;
 
 // Chromatic Aberration 
-static float CAScale = 0.04f;
+static float CAScale = 0.02f;
 
 // Lens Flare
-static float LensFlareStrength = 0.4f;
+static float LensFlareStrength = 0.45f;
 
 // Film Grain
 static float GrainStrength = 0.f;
