@@ -14,6 +14,7 @@
 
 # Current Feature List 
 - Model loading, abstracted program/application API
+- Procedural Normal Map Generation (Using sobel operator)
 - Custom SAH BVH Constructor and Ray Intersection API
 - Support for Stack/Stackless BVH traversal
 - Physically based direct lighting (Cook Torrance BRDF)
@@ -31,17 +32,17 @@
 - Environment Map Support 
 - Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping, Procedural Lens Flare etc.)
 - Basic Editor Features + Debug Views
-- Transparent/Refractive Material Support (OIT + Screenspace Refraction + Screenspace caustics)
-
-# Known Issues
-- Volumetrics prone to light leaking
-- Temporal/Spatial artifacts or noise on aggressive movement or disocclusions 
+- Transparent/Refractive Material Support (OIT / Screenspace Refraction / Screenspace caustics)
 
 # Planned
 - Transparent Shadows
 - IES lights
 - LTC
 - Sky rendering
+
+# Known Issues
+- Volumetrics prone to light leaking
+- Temporal/Spatial artifacts (usually in the form of noise or ghosting) on aggressive movement or disocclusions 
 
 # Note
 - Refer `Controls.txt` for engine controls/shortcuts.
@@ -129,4 +130,4 @@
 
 # Supporting
 
-If you like this project and would like to show your support, please consider starring the project. :)
+If you like this project and would like to show your support, please consider starring the project on github. :)
