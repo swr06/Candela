@@ -61,6 +61,7 @@ uniform vec2 u_FocusPoint;
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2DShadow u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
+uniform vec2 u_ShadowBiasMult;
 
 struct ProbeMapPixel {
 	vec2 Packed;
@@ -152,7 +153,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool
 
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
-		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * Biases[Cascade], 1.0f);
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * Biases[Cascade] * u_ShadowBiasMult.x, 1.0f);
 
 		if (abs(ProjectionCoordinates.x) < HashBorder && abs(ProjectionCoordinates.y) < HashBorder && ProjectionCoordinates.z < 1.0f 
 		    && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
@@ -174,7 +175,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool
 		return 1.0f;
 	}
 	
-	float Bias = 0.0001f;
+	float Bias = 0.00005f * u_ShadowBiasMult.y;
 
 	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
 
@@ -183,7 +184,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
-		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x) * iStep + (Hash.xy * TexelSize) * float(d);
+		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x) * iStep + (Hash.xy * TexelSize) * float(d) * 1.2f;
 		
 		if (SampleUV != clamp(SampleUV, 0.000001f, 0.999999f))
 		{ 

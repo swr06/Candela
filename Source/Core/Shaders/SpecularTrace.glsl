@@ -113,7 +113,7 @@ vec3 StochasticReflectionDirection(vec3 Incident, vec3 Normal, float Roughness) 
 
         vec3 Microfacet = Normal;
 
-        for (int i = 0 ; i < 16 ; i++) {
+        for (int i = 0 ; i < 12 ; i++) {
             
             vec3 Sample = SampleGGXVNDF(Normal, Roughness, hash2() * TailControl);
 

@@ -1,3 +1,19 @@
+/*
+The Candela Game Engine 
+Written by : Samuel Rasquinha (samuelrasquinha@gmail.com)
+			 @swr06 on github
+
+Notes :
+
+Pipeline : 
+Pipeline.cpp contains the main pipeline code of the engine.
+Head to "Candela::StartPipeline()" to change the demo scene/textures etc.
+
+General :
+Read controls.txt for controls 
+*/
+
+
 #include "Pipeline.h"
 
 #include "FpsCamera.h"
@@ -67,6 +83,8 @@ static bool OIT = false;
 // Misc 
 static float InternalRenderResolution = 1.0f;
 static float RoughnessMultiplier = 1.0f;
+static bool GenerateHighFrequencyNormals = false;
+static float NormalStrength = 0.4f;
 
 // Perf
 static bool DoFrustumCulling = false;
@@ -74,6 +92,8 @@ static bool DoFaceCulling = true;
 
 // Direct shadow 
 static float ShadowDistanceMultiplier = 1.0f;
+static float ShadowNBiasMultiplier = 1.0f;
+static float ShadowSBiasMultiplier = 1.0f;
 
 // GI
 static bool DoMultiBounce = true;
@@ -169,6 +189,8 @@ std::vector<Candela::Entity*> EntityRenderList;
 GLClasses::Framebuffer GBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false}}, false, true) };
 GLClasses::Framebuffer TransparentGBuffer = GLClasses::Framebuffer(16, 16, { {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false} }, false, true);
 
+// Skymap
+GLClasses::CubeTextureMap Skymap;
 
 // Draws editor grid 
 void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, const glm::vec3& GridBasis, float size) 
@@ -314,33 +336,47 @@ public:
 		}
 
 		if (ImGui::Begin("Options")) {
-			ImGui::Text("Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
-			ImGui::Text("Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
+			ImGui::Text("Camera Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
+			ImGui::Text("Camera Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
 			ImGui::NewLine();
-			ImGui::Text("Number of Meshes Rendered (For the main view) : %d", __MainViewMeshesRendered);
+			ImGui::Text("Number of Meshes Rendered (For the main camera view) : %d", __MainViewMeshesRendered);
 			ImGui::Text("Total Number of Meshes Rendered : %d", __TotalMeshesRendered);
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
 			ImGui::NewLine();
-			ImGui::SliderFloat("Roughness Multiplier", &RoughnessMultiplier, 0.0f, 3.0f);
 			ImGui::NewLine();
-			ImGui::Checkbox("High Quality Texture Filtering", &HQTextureFiltering);
+			ImGui::Text("-- Rendering --");
+			ImGui::NewLine();
+			ImGui::SliderFloat("Internal Render Resolution", &InternalRenderResolution, 0.25f, 2.0f);
+			ImGui::NewLine();
+			ImGui::SliderFloat("Roughness Multiplier", &RoughnessMultiplier, 0.0f, 3.0f);
+			ImGui::Checkbox("High Quality Texture Filtering?", &HQTextureFiltering);
+			ImGui::Checkbox("Generate High Frequency Normals?", &GenerateHighFrequencyNormals);
+
+			if (GenerateHighFrequencyNormals)
+				ImGui::SliderFloat("HF Normal Strength", &NormalStrength, 0.0f, 1.0f);
+
+			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Translucent Rendering?", &RENDER_GLASS_FLAG);
 			ImGui::Checkbox("Use OIT? (if off, uses ssrt refractions)", &OIT);
 			ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
 			ImGui::NewLine();
+			ImGui::NewLine();
 			ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
 			ImGui::Checkbox("Face Culling?", &DoFaceCulling);
 			ImGui::NewLine();
+			ImGui::NewLine();
 			ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 4.0f);
 			ImGui::SliderInt("Shadowmap Resolution", &ShadowmapRes, 256, 4096);
+			ImGui::SliderFloat("Shadow Normal Bias Multiplier", &ShadowNBiasMultiplier, 0.25f, 6.0f);
+			ImGui::SliderFloat("Shadow Sample Bias Multiplier", &ShadowSBiasMultiplier, 0.25f, 8.0f);
 			ImGui::NewLine();
-			ImGui::Checkbox("Checkerboard Lighting? (effectively computes lighting for half the pixels)", &DoCheckering);
 			ImGui::NewLine();
 			ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
 			ImGui::Checkbox("Temporally Filter Irradiance Volume?", &FilterIrradianceVolume);
+			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Do Diffuse Multi Bounce?", &DoMultiBounce);
 
@@ -353,17 +389,12 @@ public:
 			}
 
 			ImGui::NewLine();
+			ImGui::NewLine();
 			ImGui::Checkbox("Rough Specular?", &DoRoughSpecular);
 			ImGui::Checkbox("Full Worldspace RT Specular GI?", &DoFullRTSpecular);
-			ImGui::NewLine();
-			ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
-			ImGui::NewLine();
-			ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
-			ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
-			ImGui::NewLine();
-			ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
-			ImGui::NewLine();
 
+			ImGui::NewLine();
+			ImGui::NewLine();
 			ImGui::Checkbox("Volumetrics?", &DoVolumetrics);
 
 			if (DoVolumetrics) {
@@ -383,16 +414,28 @@ public:
 
 			ImGui::NewLine();
 			ImGui::NewLine();
-			ImGui::Text("Camera/Post Process");
+			ImGui::Checkbox("Checkerboard Lighting? (effectively computes lighting for half the pixels)", &DoCheckering);
 			ImGui::NewLine();
-			ImGui::SliderFloat("Internal Render Resolution", &InternalRenderResolution, 0.25f, 2.0f);
-			ImGui::Checkbox("TAA?", &DoTAA);
-			ImGui::Checkbox("CAS?", &DoCAS);
+			ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
+			ImGui::NewLine();
+			ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
+			ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
+			ImGui::NewLine();
+			ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
+			ImGui::NewLine();
+			ImGui::NewLine();
+			ImGui::NewLine();
+
+			ImGui::Text("-- Post Process --");
+			ImGui::NewLine();
+			ImGui::Checkbox("Temporal Anti Aliasing?", &DoTAA);
+			ImGui::Checkbox("Contrast Adaptive Sharpening?", &DoCAS);
 			ImGui::Checkbox("AMD FSR?", &FSR);
+			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::SliderFloat("Exposure Multiplier", &ExposureMultiplier, 0.01f, 4.0f);
 			ImGui::Checkbox("Bloom?", &DoBloom);
-			ImGui::Checkbox("DOF?", &DoDOF);
+			ImGui::Checkbox("Depth of Field?", &DoDOF);
 			if (DoDOF) {
 				ImGui::SliderFloat("DOF Blur Radius", &DOFBlurRadius, 2.0f, 16.0f);
 				ImGui::SliderFloat("DOF Blur Scale", &DOFScale, 0.001f, 0.05f);
@@ -628,19 +671,110 @@ GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA
 // Entry point 
 void Candela::StartPipeline()
 {
+	//////////////////////////////////////
+	////// -- Demo Program Code -- ///////
+	//////////////////////////////////////
+	 
+	// Matrices to rotate models whose axis basis is different 
 	const glm::mat4 ZOrientMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
 	const glm::mat4 ZOrientMatrixNegative = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, -1.0f, 0.0f, 0.0f), glm::vec4(1.0f));
 
 	using namespace BVH;
 
+	// Create App, initialize 
 	RayTracerApp app;
 	app.Initialize();
 	app.SetCursorLocked(true);
 
+	// Scene setup 
+	Object MainModel;
+	Object Dragon;
+	Object MetalObject;
+	
+	// Load demo models 
+	FileLoader::LoadModelFile(&MetalObject, "Models/ball/scene.gltf");
+	FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
+	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+
+	// - Test models -
+	// uncomment to try them out :)
+	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
+	//FileLoader::LoadModelFile(&MetalObject, "Models/monke/Suzanne.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/mario/scene.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/mc/scene.gltf");
+	
+	// Add objects to intersector
+	Intersector.Initialize();
+
+	// Add the objects to the intersector (you could use a vector or similar to make this generic)
+	Intersector.AddObject(MainModel);
+	Intersector.AddObject(Dragon);
+	Intersector.AddObject(MetalObject);
+
+	Intersector.BufferData(true); // The flag is to tell the intersector to delete the cached cpu data 
+	Intersector.GenerateMeshTextureReferences(); // This function is called to generate the texture references for the BVH
+
+	// Create entities, each entity has a parent object 
+	// Entities can have an arbitrary model matrix, transparency etc.
+
+	// Create the main model 
+	Entity MainModelEntity(&MainModel);
+	MainModelEntity.m_EntityRoughness = 0.65f;
+	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
+	//MainModelEntity.m_Model *= ZOrientMatrix;
+
+	// Create the opaque dragon 
+	Entity DragonEntity(&Dragon); 
+	DragonEntity.m_EmissiveAmount = 15.0f;
+	DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
+	DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
+
+	// Create the glass dragon
+	Entity GlassDragon(&Dragon);
+	GlassDragon.m_EmissiveAmount = 0.0f;
+	GlassDragon.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-4.25f, 0.5f, -0.5f));
+	GlassDragon.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
+	GlassDragon.m_TranslucencyAmount = 0.4f;
+
+	// Create metal ball 
+	Entity MetalObjectEntity(&MetalObject);
+	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
+	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectStartPosition);
+
+	// Add entities to the render list 
+	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity, &GlassDragon };
+
+	// Create the environment map (the environment map is arbitrary) 
+
+	Skymap.CreateCubeTextureMap(
+		{
+		"Res/Skymap/right.bmp",
+		"Res/Skymap/left.bmp",
+		"Res/Skymap/top.bmp",
+		"Res/Skymap/bottom.bmp",
+		"Res/Skymap/front.bmp",
+		"Res/Skymap/back.bmp"
+		}, true
+	);
+
+
+
+	/////////////////////////////////////////
+	/////////////////////////////////////////
+	/////////////////////////////////////////
+	////// -- Internal engine code -- ///////
+	/////////////////////////////////////////
+	/////////////////////////////////////////
+	/////////////////////////////////////////
+
 	// Create VBO and VAO for drawing the screen-sized quad.
 	GLClasses::VertexBuffer ScreenQuadVBO;
 	GLClasses::VertexArray ScreenQuadVAO;
-	GLClasses::CubeTextureMap Skymap;
 
 	// Setup screensized quad for rendering
 	{
@@ -659,67 +793,6 @@ void Candela::StartPipeline()
 		ScreenQuadVBO.VertexAttribPointer(1, 2, GL_FLOAT, 0, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
 		ScreenQuadVAO.Unbind();
 	}
-
-	// Scene setup 
-	Object MainModel;
-	Object Dragon;
-	Object MetalObject;
-	
-	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
-	//FileLoader::LoadModelFile(&MetalObject, "Models/monke/Suzanne.gltf");
-	FileLoader::LoadModelFile(&MetalObject, "Models/ball/scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
-	FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
-	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/mario/scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/mc/scene.gltf");
-	
-	// Handle rt stuff 
-	Intersector.Initialize();
-	Intersector.AddObject(MainModel);
-	Intersector.AddObject(Dragon);
-	Intersector.AddObject(MetalObject);
-	Intersector.BufferData(true);
-	Intersector.GenerateMeshTextureReferences();
-
-	// Create entities 
-	Entity MainModelEntity(&MainModel);
-	MainModelEntity.m_EntityRoughness = 0.65f;
-	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
-	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
-	//MainModelEntity.m_Model *= ZOrientMatrix;
-
-	Entity DragonEntity(&Dragon); 
-	DragonEntity.m_EmissiveAmount = 15.0f;
-	DragonEntity.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-0.7f, 0.5f, -4.5f));
-	DragonEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
-
-	Entity GlassDragon(&Dragon);
-	GlassDragon.m_EmissiveAmount = 0.0f;
-	GlassDragon.m_Model = glm::translate(glm::mat4(1.), glm::vec3(-4.25f, 0.5f, -0.5f));
-	GlassDragon.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.14f));
-	GlassDragon.m_TranslucencyAmount = 0.4f;
-
-	Entity MetalObjectEntity(&MetalObject);
-	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
-	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectStartPosition);
-
-	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity, &GlassDragon };
-
-	// Textures
-	Skymap.CreateCubeTextureMap(
-		{
-		"Res/Skymap/right.bmp",
-		"Res/Skymap/left.bmp",
-		"Res/Skymap/top.bmp",
-		"Res/Skymap/bottom.bmp",
-		"Res/Skymap/front.bmp",
-		"Res/Skymap/back.bmp"
-		}, true
-	);
 
 	GLClasses::Texture BlueNoise;
 	BlueNoise.CreateTexture("Res/blue_noise.png", false, false);
@@ -762,6 +835,7 @@ void Candela::StartPipeline()
 
 	GLClasses::Shader& GlassDeferredShader = ShaderManager::GetShader("GLASS_DEFERRED");
 	GLClasses::Shader& BasicBlitShader = ShaderManager::GetShader("BASIC_BLIT");
+	GLClasses::Shader& GenerateHQN = ShaderManager::GetShader("GEN_HQN");
 
 	// Matrices
 	glm::mat4 PreviousView;
@@ -1057,6 +1131,32 @@ void Candela::StartPipeline()
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
+
+		// Generate High Frequency Normals 
+
+		if (GenerateHighFrequencyNormals) {
+			
+			GBuffer.Bind();
+			GenerateHQN.Use();
+
+			GenerateHQN.SetInteger("u_AlbedoTexture", 0);
+			GenerateHQN.SetInteger("u_LowFrequencyNormals", 1);
+			GenerateHQN.SetFloat("u_Strength", NormalStrength);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+			SetCommonUniforms<GLClasses::Shader>(GenerateHQN, UniformBuffer);
+
+			ScreenQuadVAO.Bind();
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			ScreenQuadVAO.Unbind();
+
+			GBuffer.Unbind();
+		}
 
 		// Refractions
 
@@ -1632,6 +1732,8 @@ void Candela::StartPipeline()
 
 		LightingShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
 
+		LightingShader.SetVector2f("u_ShadowBiasMult", glm::vec2(ShadowNBiasMultiplier,ShadowSBiasMultiplier));
+		
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 
 		for (int i = 0; i < 5; i++) {
@@ -2113,3 +2215,5 @@ void Candela::StartPipeline()
 		GLClasses::DisplayFrameRate(app.GetWindow(), "Candela ");
 	}
 }
+
+// End.

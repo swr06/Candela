@@ -3,7 +3,10 @@
 #include "Include/Utility.glsl"
 
 layout (location = 0) out vec4 o_Albedo;
-layout (location = 1) out vec4 o_HFNormal;
+
+// w component should be left empty 
+// if something is added, account for it in the hf normal generation pass
+layout (location = 1) out vec4 o_HFNormal; 
 layout (location = 2) out vec4 o_PBR;
 layout (location = 3) out vec4 o_LFNormal;
 layout (location = 4) out int o_EntityNumber;

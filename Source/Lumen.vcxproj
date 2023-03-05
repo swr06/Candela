@@ -309,6 +309,7 @@
     <None Include="Core\Shaders\DiffuseTrace.glsl" />
     <None Include="Core\Shaders\DOFVert.glsl" />
     <None Include="Core\Shaders\FXAA311.glsl" />
+    <None Include="Core\Shaders\GenerateHighFreqNormals.glsl" />
     <None Include="Core\Shaders\GlassDeferred.glsl" />
     <None Include="Core\Shaders\GlassPrePassFrag.glsl" />
     <None Include="Core\Shaders\GlassPrePassVert.glsl" />

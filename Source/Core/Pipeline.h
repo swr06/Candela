@@ -10,7 +10,7 @@
 #include "GLClasses/VertexBuffer.h"
 #include "GLClasses/IndexBuffer.h"
 #include "GLClasses/Shader.h"
-
+#include "Utils/Vertex.h"
 #include "CollisionHandler.h"
 
 namespace Candela {

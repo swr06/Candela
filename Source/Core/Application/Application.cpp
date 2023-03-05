@@ -210,7 +210,8 @@ namespace Candela
 		char* vendor = (char*)glGetString(GL_VENDOR);
 		char* version = (char*)glGetString(GL_VERSION);
 
-		std::cout << "-----------  Candela -----------\n";
+		std::cout << "-------------------------  The Candela Engine -------------------------\n";
+		std::cout << "By Samuel Wesley Rasquinha (samuelrasquinha@gmail.com | @swr06 on github)\n\n";
 		std::cout << "\tRENDERER : " << renderer << "\n";
 		std::cout << "\tVENDOR : " << vendor << "\n";
 		std::cout << "\tVERSION : " << version << "\n";

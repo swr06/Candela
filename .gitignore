@@ -353,3 +353,4 @@ x64/
 imgui.ini
 Lumen.exe
 Source/Candela.exe
+Source/assimp-vc142-mt.dll
