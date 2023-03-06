@@ -80,6 +80,7 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 
 	float TotalWeight = 1.0f;
 	float TotalWeightS = 1.0f;
+	float TotalWeightV = 1.0f;
 
 	//SG CenterRSG = RoughnessLobe(Roughness, Normal, Incident);
 
@@ -102,7 +103,8 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 
 			vec2 SampleUV = vec2(SampleCoord) / textureSize(u_Diffuse, 0).xy;
 
-			float SampleDepth = LinearizeDepth(texelFetch(u_Depth, SampleCoordHighRes, 0).x);
+			float SampleDepthNL = texelFetch(u_Depth, SampleCoordHighRes, 0).x;
+			float SampleDepth = LinearizeDepth(SampleDepthNL);
 			vec3 SampleNormal = texelFetch(u_Normals, SampleCoordHighRes, 0).xyz;
 			vec3 SampleNormalHF = texelFetch(u_NormalsHF, SampleCoordHighRes, 0).xyz;
 			vec3 SamplePBR = texelFetch(u_PBR, SampleCoordHighRes, 0).xyz;
@@ -111,21 +113,27 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			float NormalWeight = pow(max(dot(SampleNormal, Normal), 0.0f), 16.0f);
 			float NormalWeightHF = pow(max(dot(SampleNormalHF, NormalHF), 0.0f), 16.0f);
 			float RoughnessWeight = pow(clamp(1.0f-(abs(SamplePBR.x-Roughness)/4.0f), 0.0f, 1.0f), 24.0f);
-			float Weight = clamp(DepthWeight * NormalWeight * KernelWeight * RoughnessWeight, 0.0f, 1.0f);
-			float WeightS = clamp(DepthWeight * NormalWeight * NormalWeightHF * KernelWeight, 0.0f, 1.0f);
+			float Weight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
+			float WeightS = clamp(DepthWeight * NormalWeight * NormalWeightHF * KernelWeight * RoughnessWeight, 0.0f, 1.0f);
+			float WeightV = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
+
+			if (SampleDepthNL > 0.99999f) {
+				WeightV = clamp(KernelWeight, 0.0f, 1.0f);
+			}
 
 			Diffuse += texelFetch(u_Diffuse, SampleCoord, 0) * Weight;
-			//Diffuse += CatmullRom(u_Diffuse, SampleUV) * Weight;
 			Specular += texelFetch(u_Specular, SampleCoord, 0) * WeightS;
-			Volumetrics += texelFetch(u_Volumetrics, SampleCoord, 0) * Weight;
+			Volumetrics += texelFetch(u_Volumetrics, SampleCoord, 0) * WeightV;
+
 			TotalWeight += Weight;
 			TotalWeightS += WeightS;
+			TotalWeightV += WeightV;
 		}
 	}
 
 	Specular /= TotalWeightS;
 	Diffuse /= TotalWeight;
-	Volumetrics /= TotalWeight;
+	Volumetrics /= TotalWeightV;
 }
 
 vec3 SampleIncidentRayDirection(vec2 screenspace)
@@ -151,4 +159,5 @@ void main() {
 	vec3 Incident = SampleIncidentRayDirection(v_TexCoords);
 
     SpatialUpscale(LinearizeDepth(Depth), Normal, NormalHF, PBR.x, Incident, o_Diffuse, o_Specular, o_Volumetrics);
+
 }
