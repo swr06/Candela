@@ -95,6 +95,7 @@ static bool DoFaceCulling = true;
 static float ShadowDistanceMultiplier = 1.0f;
 static float ShadowNBiasMultiplier = 1.0f;
 static float ShadowSBiasMultiplier = 1.0f;
+static int ShadowmapUpdateRate = 1;
 
 // GI
 static bool DoMultiBounce = true;
@@ -371,8 +372,9 @@ public:
 			ImGui::NewLine();
 			ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 4.0f);
 			ImGui::SliderInt("Shadowmap Resolution", &ShadowmapRes, 256, 4096);
-			ImGui::SliderFloat("Shadow Normal Bias Multiplier", &ShadowNBiasMultiplier, 0.25f, 6.0f);
-			ImGui::SliderFloat("Shadow Sample Bias Multiplier", &ShadowSBiasMultiplier, 0.25f, 8.0f);
+			ImGui::SliderInt("Shadowmap Update Rate (Increasing this parameter will result in more responsive shadows at the cost of performance)", &ShadowmapUpdateRate, 1, 5);
+			ImGui::SliderFloat("Shadow Normal Bias Multiplier (To reduce shadow acne/flickering)", &ShadowNBiasMultiplier, 0.25f, 6.0f);
+			ImGui::SliderFloat("Shadow Sample Bias Multiplier (To reduce shadow acne/flickering)", &ShadowSBiasMultiplier, 0.25f, 8.0f);
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
@@ -1050,7 +1052,12 @@ void Candela::StartPipeline()
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
-		ShadowHandler::UpdateDirectShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier);
+
+		for (int i = 0; i < ShadowmapUpdateRate; i++) {
+			ShadowHandler::UpdateDirectShadowMaps((app.GetCurrentFrame() * ShadowmapUpdateRate) + i, Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier);
+
+		}
+
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 		
 		if (DoHSM) {

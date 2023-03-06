@@ -169,10 +169,6 @@ void main() {
 
     o_Color = vec4(Current.xyz, 1.0f);
 
-    if (Depth == 1.0f || !ENABLED) {
-        return;
-    }
-
     float ClosestDepth;
     ivec2 ClosestDepthPixel = GetNearestFragment(Pixel, ClosestDepth);
 

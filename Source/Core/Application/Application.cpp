@@ -321,7 +321,7 @@ namespace Candela
 	*/
 	unsigned int Application::GetWidth()
 	{
-		return m_CurrentWidth < 64 ? 64 : m_CurrentWidth;
+		return m_CurrentWidth < 32 ? 32 : m_CurrentWidth;
 	}
 
 	/*
@@ -329,7 +329,7 @@ namespace Candela
 	*/
 	unsigned int Application::GetHeight()
 	{
-		return m_CurrentHeight < 64 ? 64 : m_CurrentHeight;
+		return m_CurrentHeight < 32 ? 32 : m_CurrentHeight;
 	}
 
 	void Application::SetCursorLocked(bool locked)
