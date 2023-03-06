@@ -17,6 +17,8 @@ uniform float u_GrainStrength;
 
 uniform float u_Time;
 
+uniform float u_RenderScale;
+
 uniform float u_DistortionK;
 uniform bool u_DoDistortion;
 
@@ -123,6 +125,15 @@ void main()
     vec3 OriginalColor = texelFetch(u_Texture, Pixel, 0).xyz;
 
     float SharpeningAmount = 0.425f;
+
+    if (u_RenderScale < 0.8f) {
+        SharpeningAmount += 0.1f;
+    }
+
+    if (u_RenderScale < 0.6f) {
+        SharpeningAmount += 0.2f;
+    }
+
     vec3 Processed = u_Enabled ? ContrastAdaptiveSharpening(u_Texture, Pixel, SharpeningAmount) : OriginalColor;
     //vec3 Processed = u_Enabled ? FSRCAS(u_Texture, Pixel, SharpeningAmount) : OriginalColor;
 

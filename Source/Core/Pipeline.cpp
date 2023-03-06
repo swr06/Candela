@@ -2201,6 +2201,7 @@ void Candela::StartPipeline()
 		CASShader.SetBool("u_DoDistortion", DoDistortion_);
 		CASShader.SetFloat("u_GrainStrength", GrainStrength);
 		CASShader.SetFloat("u_DistortionK", DistortionK);
+		CASShader.SetFloat("u_RenderScale", InternalRenderResolution);
 
 		SetCommonUniforms<GLClasses::Shader>(CASShader, UniformBuffer);
 
