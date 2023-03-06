@@ -34,7 +34,7 @@
 - Basic Editor Features + Debug Views
 - Transparent/Refractive Material Support (OIT / Screenspace Refraction / Screenspace caustics)
 
-# Planned
+# Planned Features
 - Transparent Shadows
 - IES lights
 - LTC
@@ -44,8 +44,9 @@
 - Volumetrics prone to light leaking
 - Temporal/Spatial artifacts (usually in the form of noise or ghosting) on aggressive movement or disocclusions 
 
-# Note
+# Notes
 - Refer `Controls.txt` for engine controls/shortcuts.
+- Refer `Additional Notes.txt` for additional general info.
 
 # Screenshots
 

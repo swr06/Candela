@@ -1,0 +1,4 @@
+Additional Notes :
+You can change the colors (of the sun etc.) by modifying the data in the ColorConstants.h file in the Core/Shaders/Include folder
+
+"UNIFORM NOT FOUND" errors can safely be ignored.
