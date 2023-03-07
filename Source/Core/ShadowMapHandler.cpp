@@ -51,11 +51,34 @@ void Candela::ShadowHandler::GenerateShadowMaps()
 	}
 }
 
-void Candela::ShadowHandler::UpdateDirectShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities, float DistanceMultiplier)
+void Candela::ShadowHandler::UpdateDirectShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities, float DistanceMultiplier, int UpdateRate)
 {
 	ShadowDistanceMult = DistanceMultiplier;
 		
-	int UpdateList[8] = { 0, 1, 2, 0, 1, 0, 3, (rand() % 4) >= 3 ? 1 : 4 };
+	std::array<int, 8> UpdateList;
+
+	UpdateList = { 0, 1, 2, 0, 1, 0, 3, (rand() % 4) >= 3 ? 1 : 4 };
+
+	if (UpdateRate == 1) {
+		UpdateList = { 0, 1, 2, 0, 1, 0, 3, (rand() % 4) >= 3 ? 1 : 4 };
+	}
+
+	if (UpdateRate == 2) {
+		UpdateList = { 0, 1, 2, 3, 1, 2, 3, (rand() % 4) >= 3 ? 1 : 4 };
+	}
+
+	if (UpdateRate == 3) {
+		UpdateList = { 0, 1, 2, 3, 4, 1, 0, 3 };
+	}
+
+	if (UpdateRate == 4) {
+		UpdateList = { 0, 1, 2, 3, 4, 0, 1, 2 };
+	}
+
+	if (UpdateRate == 5) {
+		UpdateList = { 0, 1, 2, 3, 4, 0, 1, 2 };
+	}
+
 	int id = UpdateList[Frame % 8];
 
 	ShadowRenderer::RenderShadowMap(Shadowmaps[id], Origin, Direction, Entities, CascadeDistances[id] * DistanceMultiplier, ProjectionMatrices[id], ViewMatrices[id]);

@@ -15,7 +15,7 @@ namespace Candela {
 
 		void GenerateShadowMaps();
 		
-		void UpdateDirectShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities, float DistanceMultiplier);
+		void UpdateDirectShadowMaps(int Frame, const glm::vec3& Origin, const glm::vec3& Direction, const std::vector<Entity*> Entities, float DistanceMultiplier, int);
 		GLuint GetDirectShadowmap(int n);
 
 		void UpdateSkyShadowMaps(int Frame, const glm::vec3& Origin, const std::vector<Entity*> Entities);

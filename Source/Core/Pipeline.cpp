@@ -388,7 +388,7 @@ public:
 			}
 
 			if (RENDER_GLASS_FLAG) {
-				ImGui::Checkbox("Screenspace Indirect Caustics?", &IndirectSSCaustics);
+				//ImGui::Checkbox("Screenspace Indirect Caustics?", &IndirectSSCaustics);
 			}
 
 			ImGui::NewLine();
@@ -1054,7 +1054,7 @@ void Candela::StartPipeline()
 		glDepthMask(GL_TRUE);
 
 		for (int i = 0; i < ShadowmapUpdateRate; i++) {
-			ShadowHandler::UpdateDirectShadowMaps((app.GetCurrentFrame() * ShadowmapUpdateRate) + i, Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier);
+			ShadowHandler::UpdateDirectShadowMaps((app.GetCurrentFrame() * ShadowmapUpdateRate) + i, Camera.GetPosition(), SunDirection, EntityRenderList, ShadowDistanceMultiplier, ShadowmapUpdateRate);
 
 		}
 

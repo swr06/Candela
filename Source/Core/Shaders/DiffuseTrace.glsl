@@ -1,5 +1,8 @@
 #version 450 core 
 
+// Uncomment this line to enable indirect caustics
+//#define DO_INDIRECT_CAUSTICS
+
 #define PI 3.141592653
 
 #include "TraverseBVH.glsl"
@@ -524,8 +527,7 @@ void main() {
 
 	// Handle glass indirect caustics in screenspace 
 
-	if (false)
-	{
+	#ifdef DO_INDIRECT_CAUSTICS
 		vec3 TintColor = vec3(1.0f);
 		
 		vec4 Glasstrace = vec4(-1.0f);
@@ -539,8 +541,7 @@ void main() {
 		}
 
 		FinalRadiance *= TintColor;
-	}
-
+	#endif
 
 	if (!IsValid(FinalRadiance)) {
 		FinalRadiance = vec3(0.0f);
