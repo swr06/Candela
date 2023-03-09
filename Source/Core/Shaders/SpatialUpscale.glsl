@@ -115,7 +115,7 @@ void SpatialUpscale(float Depth, vec3 Normal, vec3 NormalHF, float Roughness, ve
 			float RoughnessWeight = pow(clamp(1.0f-(abs(SamplePBR.x-Roughness)/4.0f), 0.0f, 1.0f), 24.0f);
 			float Weight = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
 			float WeightS = clamp(DepthWeight * NormalWeight * NormalWeightHF * KernelWeight * RoughnessWeight, 0.0f, 1.0f);
-			float WeightV = clamp(DepthWeight * NormalWeight * KernelWeight, 0.0f, 1.0f);
+			float WeightV = clamp(DepthWeight * KernelWeight, 0.0f, 1.0f);
 
 			if (SampleDepthNL > 0.99999f) {
 				WeightV = clamp(KernelWeight, 0.0f, 1.0f);
