@@ -476,7 +476,8 @@ public:
 				if (!ImGuizmo::IsUsing() && !ImGuizmo::IsOver()) {
 					double mxx, myy;
 					glfwGetCursorPos(this->m_Window, &mxx, &myy);
-					myy = (double)this->GetHeight() - myy;
+					mxx *= InternalRenderResolution;
+					myy = (double)(this->GetHeight() - myy) * InternalRenderResolution;
 
 					float d1, d2;
 
