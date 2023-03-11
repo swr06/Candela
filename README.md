@@ -11,6 +11,11 @@
 <img src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" data-canonical-src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" width="240" height="240" />
   
 </div>
+</br>
+
+Candela is an ***experimental*** engine that prioritizes both performance and visuals. The primary objective of the engine was to serve as a tool for enhancing my knowledge and understanding of light transport, filtering, physically-based rendering, volumetrics, and intersection algorithms. The engine is entirely built from scratch using C++17 and the modern OpenGL programmable pipeline.
+
+</div>
 
 # Current Feature List 
 - Model loading, abstracted program/application API
@@ -42,14 +47,16 @@
 - Sky rendering
 
 # Requirements  
-A GPU with >= 2 GB of vRAM that supports OpenGL 4.5 and the bindless texture OpenGL extension (ARB_bindless_texture)
+- GPU : One with >= 2 GB of vRAM that supports OpenGL 4.5 and the bindless texture OpenGL extension (ARB_bindless_texture).
+- CPU : A decent 64 bit CPU should be fine. 
+- RAM : >= 4 GB should be fine.
 
 # Performance 
-- Runs at around 24 fps on my AMD Vega 8 (desktop) iGPU. 
+Runs at around 24 fps on my AMD Vega 8 (desktop) iGPU. 
 
 # Known Issues
 - Volumetrics prone to light leaking
-- Temporal/Spatial artifacts (usually in the form of noise or ghosting) on aggressive movement or disocclusions 
+- Temporal/Spatial artifacts (usually in the form of noise, ghosting or temporal lag) on aggressive movement or sudden lighting changes
 
 # Notes
 - Refer `Controls.txt` for engine controls/shortcuts.
