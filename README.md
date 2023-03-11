@@ -11,6 +11,9 @@
 <img src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" data-canonical-src="https://github.com/swr06/Candela/blob/MainBranch/Branding/logo.png" width="240" height="240" />
   
 </div>
+Candela is an **experimental** engine which has an emphasis on performance and visuals. This engine was mostly made as a tool to help me learn more about light transport, filtering, physically based rendering, volumetrics and intersection algorithms. This engine was built entirely from scratch using C++17 and the modern OpenGL programmable pipeline.
+
+</div>
 
 # Current Feature List 
 - Model loading, abstracted program/application API
