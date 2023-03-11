@@ -147,6 +147,11 @@ void main() {
 	float Depth = texelFetch(u_DepthTexture, ivec2(Pixel * ScaleMultiplier), 0).x;
     
     vec4 Current;
+
+    if (!ENABLED) {
+        o_Color = texelFetch(u_CurrentColorTexture, ivec2(Pixel * ScaleMultiplier), 0).xyzw;
+        return;
+    }
     
     // 1x 
     if (abs(u_InternalRenderResolution - 1.0f) < 0.001f) {

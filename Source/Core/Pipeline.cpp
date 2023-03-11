@@ -130,6 +130,8 @@ static bool VolumetricsSpatial = true;
 // Post 
 static bool DoTAA = true;
 static bool DoCAS = true;
+static bool DoFXAA = true;
+static float FXAAStrength = 0.15f;
 static bool DoBloom = true;
 static bool FSR = false;
 
@@ -150,7 +152,7 @@ static float DOFBlurRadius = 10.0f;
 static float DOFScale = 0.01f;
 
 // Chromatic Aberration 
-static float CAScale = 0.02f;
+static float CAScale = 0.0f;
 
 // Lens Flare
 static float LensFlareStrength = 0.45f;
@@ -433,7 +435,16 @@ public:
 			ImGui::NewLine();
 			ImGui::Checkbox("Temporal Anti Aliasing?", &DoTAA);
 			ImGui::Checkbox("Contrast Adaptive Sharpening?", &DoCAS);
-			ImGui::Checkbox("AMD FSR?", &FSR);
+
+			if (InternalRenderResolution > 1.01f)
+				ImGui::Checkbox("AMD FSR?", &FSR);
+			 
+			ImGui::NewLine();
+			ImGui::Checkbox("Fast Approximate Anti Aliasing?", &DoFXAA);
+
+			if (DoFXAA)
+				ImGui::SliderFloat("FXAA Strength", &FXAAStrength, 0.001f, 0.999f);
+
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::SliderFloat("Exposure Multiplier", &ExposureMultiplier, 0.01f, 4.0f);
@@ -2088,6 +2099,8 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetInteger("u_Depth", 7);
 		PostFXCombineShader.SetInteger("u_BlueNoise", 8);
 		PostFXCombineShader.SetBool("u_BloomEnabled", DoBloom);
+		PostFXCombineShader.SetBool("u_FXAAEnabled", DoFXAA);
+		PostFXCombineShader.SetFloat("u_FXAAAmt", FXAAStrength);
 		PostFXCombineShader.SetFloat("u_CAScale", CAScale_);
 		PostFXCombineShader.SetFloat("u_PlayerShadow", PlayerShadowSmooth);
 		PostFXCombineShader.SetFloat("u_LensFlareStrength", LensFlareStrength);

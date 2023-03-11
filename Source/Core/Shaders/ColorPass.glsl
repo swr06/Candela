@@ -242,7 +242,7 @@ void main()
 
 	if (Depth > 0.999999f) {
 		
-		vec3 Hash = (vec3(hash2(), hash2().x) * 2.0f - 1.0f) * sqrt(2.0f);
+		vec3 Hash = (vec3(hash2(), hash2().x) * 2.0f - 1.0f);
 		vec3 SkymapSampleDir = rD + Hash / float(textureSize(u_Skymap,0).x);
 		o_Color = pow(texture(u_Skymap, SkymapSampleDir).xyz, vec3(2.07f)) * 2.65f; // Color tweaking, temporary, while the cloud skybox is being used. 
 

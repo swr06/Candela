@@ -25,6 +25,7 @@
 - Hybrid Specular GI (SSR + World Space RT)
 - SVGF + Specialized Specular Denoiser
 - Temporal Anti Aliasing + Upscaling
+- Fast Approximate Anti Aliasing (Based on FXAA 3.11 by Nvidia)
 - Spatial Image Upscaling (Custom CAS + AMD FSR EASU)
 - Volumetrics (Direct + Indirect light contribution)
 - Upscaling (Temporal/Spatial)
@@ -39,6 +40,12 @@
 - IES lights
 - LTC
 - Sky rendering
+
+# Requirements  
+A GPU with >= 2 GB of vRAM that supports OpenGL 4.5 and the bindless texture OpenGL extension (ARB_bindless_texture)
+
+# Performance 
+- Runs at around 24 fps on my AMD Vega 8 (desktop) iGPU. 
 
 # Known Issues
 - Volumetrics prone to light leaking

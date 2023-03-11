@@ -481,6 +481,11 @@ vec4 SoftwareBilinear(sampler2D tex, vec2 uv)
     return ret;
 }
 
+float GetLuminance(in vec3 color) {
+    return dot(color, vec3(0.2722287168, 0.6740817658, 0.0536895174));
+}
+
+
 float LuminanceAccurate(in vec3 color) {
     return dot(color, vec3(0.2722287168, 0.6740817658, 0.0536895174));
 }

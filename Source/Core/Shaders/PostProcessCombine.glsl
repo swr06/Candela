@@ -1,6 +1,7 @@
 #version 330 core
 
 #include "Include/Utility.glsl"
+#include "FXAA311.glsl"
 
 in vec2 v_TexCoords;
 layout(location = 0) out vec4 o_Color;
@@ -8,7 +9,10 @@ layout(location = 0) out vec4 o_Color;
 uniform sampler2D u_MainTexture;
 uniform sampler2D u_Depth;
 
-uniform sampler2D u_BlueNoise;
+uniform sampler2D u_BlueNoise; 
+
+uniform bool u_FXAAEnabled;
+uniform float u_FXAAAmt;
 
 uniform vec2 u_SunScreenPosition;
 
@@ -81,9 +85,11 @@ vec3 ChromaticAberation()
     vec3 Final = vec3(0.0f);
 	float TotalWeight = 0.01f;
 
-    int Samples = 8;
+    int Samples = 7;
 
-	vec3 CenterSample = texture(u_MainTexture, v_TexCoords).xyz;
+	//vec3 FXAA311(sampler2D tex, vec2 texCoord, float scale_, vec3 color)
+	vec3 CenterSampleA = texture(u_MainTexture, v_TexCoords).xyz;
+	vec3 CenterSample = u_FXAAEnabled ? FXAA311(u_MainTexture, v_TexCoords, u_InternalRenderResolution, CenterSampleA, u_FXAAAmt) : CenterSampleA;
     
     for (int i = 1; i <= Samples; i++)
     {
@@ -112,7 +118,7 @@ vec3 ChromaticAberation()
     }
     
 	TotalWeight = 0.9961f; //(1.0 / pow(2.0f, float(i)) i = 1 -> 8 
-	Final.g = texture(u_MainTexture, v_TexCoords).g;
+	Final.g = CenterSample.g;
 	return max(Final,0.0f);
 }
 
@@ -151,7 +157,9 @@ vec3 UpscaleBloom(vec2 TexCoords) {
 void main()
 {
     ivec2 Pixel = ivec2(gl_FragCoord.xy);
-    vec3 Sample = u_CAScale > 0.000001f ? ChromaticAberation() : texelFetch(u_MainTexture, Pixel, 0).xyz;
+	
+    vec3 Sample = u_CAScale > 0.000001f ? ChromaticAberation() : 
+				(u_FXAAEnabled ? FXAA311(u_MainTexture, v_TexCoords, u_InternalRenderResolution, texelFetch(u_MainTexture, Pixel, 0).xyz, u_FXAAAmt) : texelFetch(u_MainTexture, Pixel, 0).xyz);
 	float Depth = texelFetch(u_Depth, ivec2(u_InternalRenderResolution * vec2(Pixel)), 0).x;
 	vec2 Dims = textureSize(u_Depth, 0);
 
