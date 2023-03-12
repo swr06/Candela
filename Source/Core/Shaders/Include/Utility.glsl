@@ -6,6 +6,13 @@
 #define rcp(x) (1.0f/x)
 #define clamp01(x) (saturate(x))
 
+float max_of(vec2 v) { return max(v.x, v.y); }
+float max_of(vec3 v) { return max(v.x, max(v.y, v.z)); }
+float max_of(vec4 v) { return max(v.x, max(v.y, max(v.z, v.w))); }
+float min_of(vec2 v) { return min(v.x, v.y); }
+float min_of(vec3 v) { return min(v.x, min(v.y, v.z)); }
+float min_of(vec4 v) { return min(v.x, min(v.y, min(v.z, v.w))); }
+
 mat4 SaturationMatrix(float saturation)
 {
   vec3 luminance = vec3(0.3086, 0.6094, 0.0820);
@@ -192,6 +199,45 @@ vec3 YCoCg2RGB(in vec3 ycocg)
 float Gaussian(float DistanceSqr)
 {
     return exp(-2.29f * DistanceSqr);
+}
+
+vec4 CatmullRomConfidence(sampler2D sampler, vec2 coord, out float confidence) {
+	vec2 res = textureSize(sampler, 0);
+	vec2 view_pixel_size = 1.0 / res;
+	vec2 sample_pos = coord * res;
+	vec2 tex_pos_1 = floor(sample_pos - 0.5) + 0.5;
+	vec2 f = sample_pos - tex_pos_1;
+	vec2 w0 = f * (-0.5 + f * (1.0 - 0.5 * f));
+	vec2 w1 = 1.0 + f * f * (-2.5 + 1.5 * f);
+	vec2 w2 = f * (0.5 + f * (2.0 - 1.5 * f));
+	vec2 w3 = f * f * (-0.5 + 0.5 * f);
+	vec2 w12 = w1 + w2;
+	vec2 offset12 = w2 / (w1 + w2);
+	vec2 tex_pos_0 = tex_pos_1 - 1.0;
+	vec2 tex_pos_3 = tex_pos_1 + 2.0;
+	vec2 tex_pos_12 = tex_pos_1 + offset12;
+
+	tex_pos_0 *= view_pixel_size;
+	tex_pos_3 *= view_pixel_size;
+	tex_pos_12 *= view_pixel_size;
+
+	vec4 result = vec4(0.0);
+	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_0.y), 0.0) * w0.x * w0.y;
+	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_0.y), 0.0) * w12.x * w0.y;
+	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_0.y), 0.0) * w3.x * w0.y;
+
+	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_12.y), 0.0) * w0.x * w12.y;
+	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_12.y), 0.0) * w12.x * w12.y;
+	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_12.y), 0.0) * w3.x * w12.y;
+
+	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_3.y), 0.0) * w0.x * w3.y;
+	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_3.y), 0.0) * w12.x * w3.y;
+	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_3.y), 0.0) * w3.x * w3.y;
+
+	// Calculate confidence-of-quality factor using UE method (maximum weight)
+	confidence = max_of(vec4(w0.x, w1.x, w2.x, w3.x)) * max_of(vec4(w0.y, w1.y, w2.y, w3.y));
+
+	return result;
 }
 
 vec4 CatmullRom(sampler2D tex, in vec2 uv)

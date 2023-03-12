@@ -101,6 +101,7 @@ static int ShadowmapUpdateRate = 1;
 static bool DoMultiBounce = true;
 static bool DoInfiniteBounceGI = true;
 static bool IndirectSSCaustics = true;
+static bool DO_BL_SAMPLING = true;
 
 // Irradiance volume 
 static bool UpdateIrradianceVolume = true;
@@ -420,6 +421,8 @@ public:
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Checkerboard Lighting? (effectively computes lighting for half the pixels)", &DoCheckering);
+			ImGui::NewLine();
+			ImGui::Checkbox("Use Blue Noise Sampling?", &DO_BL_SAMPLING);
 			ImGui::NewLine();
 			ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
 			ImGui::NewLine();
@@ -811,6 +814,8 @@ void Candela::StartPipeline()
 
 	GLClasses::Texture BlueNoise;
 	BlueNoise.CreateTexture("Res/blue_noise.png", false, false);
+	GLClasses::Texture BlueNoiseHR;
+	BlueNoiseHR.CreateTexture("Res/bluenoise_hr.png", false, false);
 
 	// Create Shaders
 	ShaderManager::CreateShaders();
@@ -1297,6 +1302,7 @@ void Candela::StartPipeline()
 		DiffuseShader.SetInteger("u_DepthTexture", 0);
 		DiffuseShader.SetInteger("u_NormalTexture", 1);
 		DiffuseShader.SetInteger("u_Skymap", 2);
+		DiffuseShader.SetInteger("u_BlueNoise", 3);
 
 		DiffuseShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
 		DiffuseShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
@@ -1310,6 +1316,7 @@ void Candela::StartPipeline()
 		DiffuseShader.SetBool("u_SecondBounce", DoMultiBounce);
 		DiffuseShader.SetBool("u_SecondBounceRT", !DoInfiniteBounceGI);
 		DiffuseShader.SetBool("u_IndirectSSCaustics", IndirectSSCaustics);
+		DiffuseShader.SetBool("DO_BL_SAMPLING", DO_BL_SAMPLING);
 
 		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
 
@@ -1321,6 +1328,9 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, BlueNoiseHR.GetTextureID());
 
 		for (int i = 0; i < 5; i++) {
 
@@ -1376,9 +1386,11 @@ void Candela::StartPipeline()
 		SpecularShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 		SpecularShader.SetInteger("u_SHDataA", 14);
 		SpecularShader.SetInteger("u_SHDataB", 15);
+		SpecularShader.SetInteger("u_BlueNoise", 13);
 		SpecularShader.SetBool("u_Checker", DoCheckering);
 		SpecularShader.SetBool("u_FullRT", DoFullRTSpecular);
 		SpecularShader.SetBool("u_RoughSpec", DoRoughSpecular);
+		SpecularShader.SetBool("DO_BL_SAMPLING", DO_BL_SAMPLING);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1421,6 +1433,9 @@ void Candela::StartPipeline()
 
 		glActiveTexture(GL_TEXTURE12);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, Skymap.GetID());
+		
+		glActiveTexture(GL_TEXTURE13);
+		glBindTexture(GL_TEXTURE_2D, BlueNoiseHR.GetTextureID());
 
 		glActiveTexture(GL_TEXTURE14);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().x);

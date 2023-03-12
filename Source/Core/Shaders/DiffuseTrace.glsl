@@ -29,6 +29,7 @@ uniform sampler2D u_TransparentDepth;
 uniform sampler2D u_TransparentAlbedo;
 uniform sampler2D u_NormalTexture;
 uniform sampler2D u_Albedo;
+uniform sampler2D u_BlueNoise;
 uniform samplerCube u_Skymap;
 
 uniform int u_Frame;
@@ -54,6 +55,7 @@ uniform bool u_SecondBounce;
 uniform bool u_SecondBounceRT;
 
 uniform bool u_IndirectSSCaustics;
+uniform bool DO_BL_SAMPLING;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
@@ -351,6 +353,14 @@ vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 	return vec3(Albedo) * SUN_COLOR_DIFF * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f);
 }
 
+float SeedFunction(float Input) {
+	float Factor = 48.0f;
+	return clamp(floor(Input * Factor) / float(Factor), 0.0f, 4.0f);
+	//return Input;
+	//return (Input * Input) * (3.0 - 2.0 * Input);
+	//return Input * (2.0f - Input);
+}
+
 bool DO_SECOND_BOUNCE = u_SecondBounce;
 bool RT_SECOND_BOUNCE = u_SecondBounceRT;
 bool DO_SCREENTRACE = true;
@@ -384,7 +394,27 @@ void main() {
     }
 
 	vec2 TexCoords = HighResUV;
-	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
+
+	HASH2SEED = u_Time;
+
+	if (DO_BL_SAMPLING) {
+		
+		ivec2 CoordB = WritePixel % 1024;
+		vec3 BlueNoise = texelFetch(u_BlueNoise, CoordB, 0).xyz;
+		float SeedOffset = SeedFunction(BlueNoise.x);
+		HASH2SEED *= 10.0f;
+		HASH2SEED += SeedOffset * 1.0f;
+		hash2();
+	}
+
+	else {
+		HASH2SEED *= (TexCoords.x * TexCoords.y) * 64.0;
+	}
+
+	if (false) {
+		imageStore(o_OutputData, WritePixel, vec4(hash2().xxx, 1));
+		return;
+	}
 
 	const vec3 Player = u_InverseView[3].xyz;
 

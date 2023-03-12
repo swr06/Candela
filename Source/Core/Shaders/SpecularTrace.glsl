@@ -39,6 +39,8 @@ uniform float u_zFar;
 uniform sampler2D u_IndirectDiffuse;
 uniform sampler2D u_MotionVectors;
 
+uniform sampler2D u_BlueNoise;
+
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
@@ -56,6 +58,9 @@ uniform bool u_Checker;
 
 uniform bool u_FullRT;
 uniform bool u_RoughSpec;
+
+uniform bool DO_BL_SAMPLING;
+
 
 float LinearizeDepth(float depth)
 {
@@ -418,6 +423,15 @@ vec3 SampleLighting(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) { // 
 	return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * 1.0f * DiffuseIndirect.xyz); 
 }
 
+float SeedFunction(float Input) {
+	float Factor = 42.0f;
+	return clamp(floor(Input * Factor) / float(Factor), 0.0f, 4.0f);
+	//return Input;
+	//return (Input * Input) * (3.0 - 2.0 * Input);
+	//return Input * (2.0f - Input);
+}
+
+
 int TRACE_MODE = 0; 
 
 void main() {
@@ -460,7 +474,21 @@ void main() {
 	}
 
 	vec2 TexCoords = HighResUV;
-	HASH2SEED = (TexCoords.x * TexCoords.y) * 64.0 * u_Time;
+	HASH2SEED = u_Time;
+
+	if (DO_BL_SAMPLING) {
+		
+		// Holy shit this works so well.
+		ivec2 CoordB = WritePixel % 1024;
+		vec3 BlueNoise = texelFetch(u_BlueNoise, CoordB, 0).xyz;
+		float SeedOffset = SeedFunction(BlueNoise.x);
+		HASH2SEED *= 10.0f;
+		HASH2SEED += SeedOffset * 10.0f;
+	}
+
+	else {
+		HASH2SEED *= (TexCoords.x * TexCoords.y) * 64.0;
+	}
 
 	const vec3 Player = u_InverseView[3].xyz;
 
