@@ -13,7 +13,7 @@
 </div>
 </br>
 
-Candela is an ***experimental*** engine that prioritizes both performance and visuals. The primary objective of the engine was to serve as a tool for enhancing my knowledge and understanding of light transport, filtering, physically-based rendering, volumetrics, and intersection algorithms. The engine is entirely built from scratch using C++17 and the modern OpenGL programmable pipeline.
+Candela is an ***experimental*** engine that prioritizes both performance and visuals. The primary objective of the engine was to serve as a tool for enhancing my knowledge and understanding of light transport, filtering, physically-based rendering, volumetrics and intersection algorithms. The engine is entirely built from scratch using C++17 and the modern OpenGL programmable pipeline.
 
 </div>
 
