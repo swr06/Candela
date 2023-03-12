@@ -478,7 +478,6 @@ void main() {
 
 	if (DO_BL_SAMPLING) {
 		
-		// Holy shit this works so well.
 		ivec2 CoordB = WritePixel % 1024;
 		vec3 BlueNoise = texelFetch(u_BlueNoise, CoordB, 0).xyz;
 		float SeedOffset = SeedFunction(BlueNoise.x);

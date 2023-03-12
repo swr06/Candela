@@ -101,7 +101,7 @@ static int ShadowmapUpdateRate = 1;
 static bool DoMultiBounce = true;
 static bool DoInfiniteBounceGI = true;
 static bool IndirectSSCaustics = true;
-static bool DO_BL_SAMPLING = true;
+static bool DO_BL_SAMPLING = false;
 
 // Irradiance volume 
 static bool UpdateIrradianceVolume = true;
