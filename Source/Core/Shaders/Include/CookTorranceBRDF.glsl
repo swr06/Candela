@@ -78,6 +78,7 @@ vec3 CookTorranceBRDF(vec3 eye, vec3 world_pos, vec3 light_dir, vec3 radiance, v
 	return Combined * shadow;
 }
 
+//
 float g_square(float x) {
 	return x*x;
 }	
