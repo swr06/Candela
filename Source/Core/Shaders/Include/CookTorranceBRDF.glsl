@@ -77,3 +77,34 @@ vec3 CookTorranceBRDF(vec3 eye, vec3 world_pos, vec3 light_dir, vec3 radiance, v
 	// Multiply by visibility and return
 	return Combined * shadow;
 }
+
+float g_square(float x) {
+	return x*x;
+}	
+
+float G_Smith_over_NdotV(float roughness, float NdotV, float NdotL)
+{
+    float alpha = g_square(roughness);
+    float g1 = NdotV * sqrt(g_square(alpha) + (1.0 - g_square(alpha)) * g_square(NdotL));
+    float g2 = NdotL * sqrt(g_square(alpha) + (1.0 - g_square(alpha)) * g_square(NdotV));
+    return 2.0 *  NdotL / (g1 + g2);
+}
+
+float SpecularGGX(vec3 V, vec3 L, vec3 N, float roughness, float NoH_offset)
+{
+    vec3 H = normalize(L - V);
+    float NoL = max(0, dot(N, L));
+    float VoH = max(0, -dot(V, H));
+    float NoV = max(0, -dot(N, V));
+    float NoH = clamp(dot(N, H) + NoH_offset, 0, 1);
+
+    if (NoL > 0)
+    {
+        float G = G_Smith_over_NdotV(roughness, NoV, NoL);
+        float alpha = g_square(max(roughness, 0.02));
+        float D = g_square(alpha) / (acos(-1.0f) * g_square(g_square(NoH) * g_square(alpha) + (1 - g_square(NoH))));
+        return D * G / 4;
+    }
+
+    return 0;
+}
