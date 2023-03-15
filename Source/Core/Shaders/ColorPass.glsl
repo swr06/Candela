@@ -147,6 +147,8 @@ float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool
 
 	Hash.xy = mod(Hash.xy + 1.61803398874f * (u_Frame % 100), 1.0f);
 
+	float mul = 2048.0f / textureSize(u_ShadowTextures[0],0).x;
+
 	vec4 ProjectionCoordinates;
 
 	float HashBorder = 0.95f - Hash.y * 0.03f; 
@@ -184,7 +186,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool
     
 	for (int Sample = 0 ; Sample < SampleCount ; Sample++) {
 
-		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x) * iStep + (Hash.xy * TexelSize) * float(d) * 1.2f;
+		vec2 SampleUV = ProjectionCoordinates.xy + VogelScales[ClosestCascade] * GetVogelDiskSample(Sample, SampleCount, Hash.x) * iStep * mix(mul,1.,0.55f) + (Hash.xy * mix(mul,1.0f,0.8f) * TexelSize) * float(d) * 1.2f;
 		
 		if (SampleUV != clamp(SampleUV, 0.000001f, 0.999999f))
 		{ 
