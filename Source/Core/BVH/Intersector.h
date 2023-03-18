@@ -241,7 +241,6 @@ void Candela::RayIntersector<T>::BufferEntities()
 template<typename T>
 void Candela::RayIntersector<T>::IntersectPrimary(GLuint OutputBuffer, int Width, int Height, FPSCamera& Camera)
 {
-	const std::vector<FileLoader::_TexturePaths>& Paths = FileLoader::GetMeshTexturePaths();
 	
 	TraceShader.Use();
 	
