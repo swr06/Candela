@@ -213,6 +213,9 @@ namespace GLClasses
 
 			char* fcode = stb_include_file((char*)fragment_pth.c_str(), (char*)"", (char*)"Core/Shaders/", error);
 			m_FragmentData = fcode;
+
+			delete[] vcode;
+			delete[] fcode;
 		}
 
 		// Create hashes 

@@ -1,6 +1,5 @@
 #include "TAAJitter.h"
 
-static glm::vec2 HaltonSequenceData[24];
 
 // From inside's talk on temporal anti aliasing
 float HaltonSequence(int Prime, int index) 
@@ -18,6 +17,7 @@ float HaltonSequence(int Prime, int index)
 	return r;
 }
 
+static glm::vec2 HaltonSequenceData[32];
 void Candela::GenerateJitterStuff()
 {
 	for (int i = 0; i < 32; i++) 

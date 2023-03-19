@@ -1,4 +1,5 @@
 #version 440 core 
+#define COMPUTE
 
 #define ROUGH_REFLECTIONS
 

@@ -35,6 +35,7 @@ void Candela::ShaderManager::CreateShaders()
 	AddComputeShader("COPY_VOLUME", "Core/Shaders/CopyVolume.glsl");
 	AddComputeShader("COLLISIONS", "Core/Shaders/Collide.comp");
 	AddShader("GLASS_DEFERRED", "Core/Shaders/FBOVert.glsl", "Core/Shaders/GlassDeferred.glsl");
+	AddShader("GLASS_DEFERRED_ST", "Core/Shaders/FBOVert.glsl", "Core/Shaders/GlassDeferredStochastic.glsl");
 	AddShader("BASIC_BLIT", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BasicBlit.glsl");
 	AddShader("GEN_HQN", "Core/Shaders/FBOVert.glsl", "Core/Shaders/GenerateHighFreqNormals.glsl");
 }

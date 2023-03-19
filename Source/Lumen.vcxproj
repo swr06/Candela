@@ -311,6 +311,7 @@
     <None Include="Core\Shaders\FXAA311.glsl" />
     <None Include="Core\Shaders\GenerateHighFreqNormals.glsl" />
     <None Include="Core\Shaders\GlassDeferred.glsl" />
+    <None Include="Core\Shaders\GlassDeferredStochastic.glsl" />
     <None Include="Core\Shaders\GlassPrePassFrag.glsl" />
     <None Include="Core\Shaders\GlassPrePassVert.glsl" />
     <None Include="Core\Shaders\Include\3DNoise.glsl" />

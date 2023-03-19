@@ -38,10 +38,10 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 - Environment Map Support 
 - Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping, Procedural Lens Flare etc.)
 - Basic Editor Features + Debug Views
-- Transparent/Refractive Material Support (OIT / Screenspace Refraction / Screenspace caustics)
+- Transparent/Refractive Material Support (Weighted Blended OIT, Stochastic OIT, Screenspace Refractions and Screenspace caustics)
 
 # Planned Features
-- Transparent Shadows
+- Fast Transparent Shadows
 - IES lights
 - LTC
 - Sky rendering
@@ -52,7 +52,7 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 - RAM : >= 4 GB should be fine.
 
 # Performance 
-Runs at around 24 fps on my AMD Vega 8 (desktop) iGPU. 
+Runs at around 24 fps on a AMD Vega 11 (desktop) iGPU. 
 
 # Known Issues
 - Volumetrics prone to light leaking
@@ -61,6 +61,9 @@ Runs at around 24 fps on my AMD Vega 8 (desktop) iGPU.
 # Notes
 - Refer `Controls.txt` for engine controls/shortcuts.
 - Refer `Additional Notes.txt` for additional general info.
+
+# Credits 
+See `Credits.txt`.
 
 # Screenshots
 

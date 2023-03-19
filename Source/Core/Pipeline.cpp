@@ -80,6 +80,7 @@ static int ShadowmapRes = 1024;
 static bool RENDER_GLASS_FLAG = true;
 static bool HQ_Refractions = false;
 static bool OIT = false;
+static bool StochasticTransparency = false;
 
 // Misc 
 static float InternalRenderResolution = 1.0f;
@@ -366,7 +367,13 @@ public:
 			ImGui::NewLine();
 			ImGui::Checkbox("Translucent Rendering?", &RENDER_GLASS_FLAG);
 			ImGui::Checkbox("Use OIT? (if off, uses ssrt refractions)", &OIT);
-			ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
+
+			if (OIT)
+				ImGui::Checkbox("Use Stochastic Transparency", &StochasticTransparency);
+
+			if (!OIT)
+				ImGui::Checkbox("HQ Refractions?", &HQ_Refractions);
+
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Frustum Culling?", &DoFrustumCulling);
@@ -854,6 +861,7 @@ void Candela::StartPipeline()
 	GLClasses::Shader& DOFShader = ShaderManager::GetShader("DOF");
 
 	GLClasses::Shader& GlassDeferredShader = ShaderManager::GetShader("GLASS_DEFERRED");
+	GLClasses::Shader& GlassDeferredShaderStochastic = ShaderManager::GetShader("GLASS_DEFERRED_ST");
 	GLClasses::Shader& BasicBlitShader = ShaderManager::GetShader("BASIC_BLIT");
 	GLClasses::Shader& GenerateHQN = ShaderManager::GetShader("GEN_HQN");
 
@@ -1144,6 +1152,9 @@ void Candela::StartPipeline()
 			GBufferTransparentPrepassShader.SetInteger("u_NormalMap", 1);
 			GBufferTransparentPrepassShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 			GBufferTransparentPrepassShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
+			GBufferTransparentPrepassShader.SetBool("u_Stochastic", StochasticTransparency && OIT);
+			
+			SetCommonUniforms<GLClasses::Shader>(GBufferTransparentPrepassShader, UniformBuffer);
 
 			RenderEntityList(EntityRenderList, GBufferTransparentPrepassShader, true);
 
@@ -1185,7 +1196,7 @@ void Candela::StartPipeline()
 
 		// Refractions
 
-		if (RENDER_GLASS) {
+		if (RENDER_GLASS && !OIT) {
 			SSRefractions.Bind();
 			SSRefractionShader.Use();
 
@@ -1875,7 +1886,8 @@ void Candela::StartPipeline()
 		{
 			glDisable(GL_BLEND);
 
-			if (OIT) {
+			if (OIT && !StochasticTransparency) {
+
 				glDisable(GL_DEPTH_TEST);
 				glDisable(GL_CULL_FACE);
 				glDepthMask(GL_FALSE);
@@ -1943,6 +1955,67 @@ void Candela::StartPipeline()
 				ScreenQuadVAO.Unbind();
 
 				LightingPass.Unbind();
+			}
+
+			else if (OIT && StochasticTransparency) {
+
+
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_DEPTH_TEST);
+				glDepthMask(GL_FALSE);
+
+				// Copy lighting data
+				BasicBlitShader.Use();
+				TempFramebuffer.Bind();
+
+				BasicBlitShader.SetInteger("u_Input", 0);
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, LightingPass.GetTexture(0));
+
+				ScreenQuadVAO.Bind();
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				ScreenQuadVAO.Unbind();
+
+				TempFramebuffer.Unbind();
+
+				// Shade glass on top of opaque geometry
+				GlassDeferredShaderStochastic.Use();
+				LightingPass.Bind();
+
+				GlassDeferredShaderStochastic.SetInteger("u_AlbedoData", 1);
+				GlassDeferredShaderStochastic.SetInteger("u_NormalData", 2);
+				GlassDeferredShaderStochastic.SetInteger("u_RefractionData", 3);
+				GlassDeferredShaderStochastic.SetInteger("u_OpaqueLighting", 4);
+				GlassDeferredShaderStochastic.SetInteger("u_OpaqueDepth", 5);
+				GlassDeferredShaderStochastic.SetInteger("u_TransparentDepth", 6);
+
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(1));
+
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(0));
+
+				glActiveTexture(GL_TEXTURE3);
+				glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
+
+				glActiveTexture(GL_TEXTURE4);
+				glBindTexture(GL_TEXTURE_2D, TempFramebuffer.GetTexture());
+
+				glActiveTexture(GL_TEXTURE5);
+				glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+				glActiveTexture(GL_TEXTURE6);
+				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+
+				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShaderStochastic, UniformBuffer);
+
+				ScreenQuadVAO.Bind();
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				ScreenQuadVAO.Unbind();
+
+				LightingPass.Unbind();
+
 			}
 
 

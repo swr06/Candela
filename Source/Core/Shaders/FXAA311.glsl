@@ -16,10 +16,10 @@ vec3 FXAA311(sampler2D tex, vec2 texCoord, float scale_, vec3 color, float FXAAA
 	vec2 view = scale / textureSize(tex, 0).xy;
 	
 	float lumaCenter = FXAAWeight(color);
-	float lumaDown  = FXAAWeight(texture2DLod(tex, texCoord + vec2( 0.0, -1.0) * view, 0.0).rgb);
-	float lumaUp    = FXAAWeight(texture2DLod(tex, texCoord + vec2( 0.0,  1.0) * view, 0.0).rgb);
-	float lumaLeft  = FXAAWeight(texture2DLod(tex, texCoord + vec2(-1.0,  0.0) * view, 0.0).rgb);
-	float lumaRight = FXAAWeight(texture2DLod(tex, texCoord + vec2( 1.0,  0.0) * view, 0.0).rgb);
+	float lumaDown  = FXAAWeight(textureLod(tex, texCoord + vec2( 0.0, -1.0) * view, 0.0).rgb);
+	float lumaUp    = FXAAWeight(textureLod(tex, texCoord + vec2( 0.0,  1.0) * view, 0.0).rgb);
+	float lumaLeft  = FXAAWeight(textureLod(tex, texCoord + vec2(-1.0,  0.0) * view, 0.0).rgb);
+	float lumaRight = FXAAWeight(textureLod(tex, texCoord + vec2( 1.0,  0.0) * view, 0.0).rgb);
 	
 	float lumaMin = min(lumaCenter, min(min(lumaDown, lumaUp), min(lumaLeft, lumaRight)));
 	float lumaMax = max(lumaCenter, max(max(lumaDown, lumaUp), max(lumaLeft, lumaRight)));
@@ -27,10 +27,10 @@ vec3 FXAA311(sampler2D tex, vec2 texCoord, float scale_, vec3 color, float FXAAA
 	float lumaRange = lumaMax - lumaMin;
 	
 	if (lumaRange > max(edgeThresholdMin, lumaMax * edgeThresholdMax)) {
-		float lumaDownLeft  = FXAAWeight(texture2DLod(tex, texCoord + vec2(-1.0, -1.0) * view, 0.0).rgb);
-		float lumaUpRight   = FXAAWeight(texture2DLod(tex, texCoord + vec2( 1.0,  1.0) * view, 0.0).rgb);
-		float lumaUpLeft    = FXAAWeight(texture2DLod(tex, texCoord + vec2(-1.0,  1.0) * view, 0.0).rgb);
-		float lumaDownRight = FXAAWeight(texture2DLod(tex, texCoord + vec2( 1.0, -1.0) * view, 0.0).rgb);
+		float lumaDownLeft  = FXAAWeight(textureLod(tex, texCoord + vec2(-1.0, -1.0) * view, 0.0).rgb);
+		float lumaUpRight   = FXAAWeight(textureLod(tex, texCoord + vec2( 1.0,  1.0) * view, 0.0).rgb);
+		float lumaUpLeft    = FXAAWeight(textureLod(tex, texCoord + vec2(-1.0,  1.0) * view, 0.0).rgb);
+		float lumaDownRight = FXAAWeight(textureLod(tex, texCoord + vec2( 1.0, -1.0) * view, 0.0).rgb);
 		
 		float lumaDownUp    = lumaDown + lumaUp;
 		float lumaLeftRight = lumaLeft + lumaRight;
@@ -80,8 +80,8 @@ vec3 FXAA311(sampler2D tex, vec2 texCoord, float scale_, vec3 color, float FXAAA
 		vec2 uv1 = currentUv - offset;
 		vec2 uv2 = currentUv + offset;
 
-		float lumaEnd1 = FXAAWeight(texture2DLod(tex, uv1, 0.0).rgb);
-		float lumaEnd2 = FXAAWeight(texture2DLod(tex, uv2, 0.0).rgb);
+		float lumaEnd1 = FXAAWeight(textureLod(tex, uv1, 0.0).rgb);
+		float lumaEnd2 = FXAAWeight(textureLod(tex, uv2, 0.0).rgb);
 		lumaEnd1 -= lumaLocalAverage;
 		lumaEnd2 -= lumaLocalAverage;
 		
@@ -99,11 +99,11 @@ vec3 FXAA311(sampler2D tex, vec2 texCoord, float scale_, vec3 color, float FXAAA
 		if (!reachedBoth) {
 			for(int i = 2; i < iterations; i++) {
 				if (!reached1) {
-					lumaEnd1 = FXAAWeight(texture2DLod(tex, uv1, 0.0).rgb);
+					lumaEnd1 = FXAAWeight(textureLod(tex, uv1, 0.0).rgb);
 					lumaEnd1 = lumaEnd1 - lumaLocalAverage;
 				}
 				if (!reached2) {
-					lumaEnd2 = FXAAWeight(texture2DLod(tex, uv2, 0.0).rgb);
+					lumaEnd2 = FXAAWeight(textureLod(tex, uv2, 0.0).rgb);
 					lumaEnd2 = lumaEnd2 - lumaLocalAverage;
 				}
 				
@@ -154,7 +154,7 @@ vec3 FXAA311(sampler2D tex, vec2 texCoord, float scale_, vec3 color, float FXAAA
 			finalUv.x += finalOffset * stepLength;
 		}
 
-		color = texture2DLod(tex, finalUv, 0.0).rgb;
+		color = textureLod(tex, finalUv, 0.0).rgb;
 	}
 
 	return color;

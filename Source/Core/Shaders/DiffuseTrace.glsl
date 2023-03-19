@@ -1,4 +1,5 @@
 #version 450 core 
+#define COMPUTE
 
 // Uncomment this line to enable indirect caustics
 //#define DO_INDIRECT_CAUSTICS

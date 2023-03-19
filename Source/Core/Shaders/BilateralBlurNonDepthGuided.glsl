@@ -24,7 +24,7 @@ float normpdf3(in vec3 v, in float sigma)
 
 void main(void)
 {
-	vec3 c = texture2D(u_Texture, vec2(0.0, 0.0) + (gl_FragCoord.xy / u_SketchSize.xy)).rgb;
+	vec3 c = texture(u_Texture, vec2(0.0, 0.0) + (gl_FragCoord.xy / u_SketchSize.xy)).rgb;
 		
 	//const int kSize = (MSIZE - 1) / 2;
 	const int kSize = 4;
@@ -60,7 +60,7 @@ void main(void)
 	{
 		for (int j = -kSize; j <= kSize; ++j)
 		{
-			cc = texture2D(u_Texture, vec2(0.0, 0.0) + ( gl_FragCoord.xy + vec2(float(i),float(j))) / u_SketchSize.xy).rgb;
+			cc = texture(u_Texture, vec2(0.0, 0.0) + ( gl_FragCoord.xy + vec2(float(i),float(j))) / u_SketchSize.xy).rgb;
 			factor = normpdf3(cc - c, u_BSIGMA) * bZ * kernel[kSize + j] * kernel[kSize + i];
 			Z += factor;
 			final_colour += factor * cc;

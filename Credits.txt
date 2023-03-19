@@ -1,0 +1,3 @@
+Kiroma - Help with debugging platform/vendor specific bugs and issues.
+UglySwedishFish - Assistance with understanding the underlying techniques used
+Lars - Assistance with understanding the underlying techniques used
