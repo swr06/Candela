@@ -222,17 +222,17 @@ vec4 CatmullRomConfidence(sampler2D sampler, vec2 coord, out float confidence) {
 	tex_pos_12 *= view_pixel_size;
 
 	vec4 result = vec4(0.0);
-	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_0.y), 0.0) * w0.x * w0.y;
-	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_0.y), 0.0) * w12.x * w0.y;
-	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_0.y), 0.0) * w3.x * w0.y;
+	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_0.y)) * w0.x * w0.y;
+	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_0.y)) * w12.x * w0.y;
+	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_0.y)) * w3.x * w0.y;
 
-	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_12.y), 0.0) * w0.x * w12.y;
-	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_12.y), 0.0) * w12.x * w12.y;
-	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_12.y), 0.0) * w3.x * w12.y;
+	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_12.y)) * w0.x * w12.y;
+	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_12.y)) * w12.x * w12.y;
+	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_12.y)) * w3.x * w12.y;
 
-	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_3.y), 0.0) * w0.x * w3.y;
-	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_3.y), 0.0) * w12.x * w3.y;
-	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_3.y), 0.0) * w3.x * w3.y;
+	result += texture(sampler, vec2(tex_pos_0.x, tex_pos_3.y)) * w0.x * w3.y;
+	result += texture(sampler, vec2(tex_pos_12.x, tex_pos_3.y)) * w12.x * w3.y;
+	result += texture(sampler, vec2(tex_pos_3.x, tex_pos_3.y)) * w3.x * w3.y;
 
 	// Calculate confidence-of-quality factor using UE method (maximum weight)
 	confidence = max_of(vec4(w0.x, w1.x, w2.x, w3.x)) * max_of(vec4(w0.y, w1.y, w2.y, w3.y));
@@ -264,15 +264,15 @@ vec4 CatmullRom(sampler2D tex, in vec2 uv)
 
     vec4 result = vec4(0.0f);
 
-    result += texture(tex, vec2(texPos0.x, texPos0.y), 0.0f) * w0.x * w0.y;
-    result += texture(tex, vec2(texPos12.x, texPos0.y), 0.0f) * w12.x * w0.y;
-    result += texture(tex, vec2(texPos3.x, texPos0.y), 0.0f) * w3.x * w0.y;
-    result += texture(tex, vec2(texPos0.x, texPos12.y), 0.0f) * w0.x * w12.y;
-    result += texture(tex, vec2(texPos12.x, texPos12.y), 0.0f) * w12.x * w12.y;
-    result += texture(tex, vec2(texPos3.x, texPos12.y), 0.0f) * w3.x * w12.y;
-    result += texture(tex, vec2(texPos0.x, texPos3.y), 0.0f) * w0.x * w3.y;
-    result += texture(tex, vec2(texPos12.x, texPos3.y), 0.0f) * w12.x * w3.y;
-    result += texture(tex, vec2(texPos3.x, texPos3.y), 0.0f) * w3.x * w3.y;
+    result += texture(tex, vec2(texPos0.x, texPos0.y)) * w0.x * w0.y;
+    result += texture(tex, vec2(texPos12.x, texPos0.y)) * w12.x * w0.y;
+    result += texture(tex, vec2(texPos3.x, texPos0.y)) * w3.x * w0.y;
+    result += texture(tex, vec2(texPos0.x, texPos12.y)) * w0.x * w12.y;
+    result += texture(tex, vec2(texPos12.x, texPos12.y)) * w12.x * w12.y;
+    result += texture(tex, vec2(texPos3.x, texPos12.y)) * w3.x * w12.y;
+    result += texture(tex, vec2(texPos0.x, texPos3.y)) * w0.x * w3.y;
+    result += texture(tex, vec2(texPos12.x, texPos3.y)) * w12.x * w3.y;
+    result += texture(tex, vec2(texPos3.x, texPos3.y)) * w3.x * w3.y;
 
     return result;
 }
@@ -525,6 +525,7 @@ vec2 RSI(vec3 origin, vec3 dir, float radius)
 	return intersection;
 }
 
+#ifndef COMPUTE
 vec4 SoftwareBilinear(sampler2D tex, vec2 uv)
 {
     vec2 texSize = textureSize(tex, 0).xy;
@@ -538,6 +539,7 @@ vec4 SoftwareBilinear(sampler2D tex, vec2 uv)
     vec4 ret = mix(mix(tl, tr, f.x), mix(bl, br, f.x), f.y);
     return ret;
 }
+#endif
 
 float GetLuminance(in vec3 color) {
     return dot(color, vec3(0.2722287168, 0.6740817658, 0.0536895174));

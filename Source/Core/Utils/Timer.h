@@ -15,7 +15,7 @@ namespace Blocks
 
 		void Start()
 		{
-			 m_StartTime = std::chrono::high_resolution_clock::now();
+			 m_StartTime = std::chrono::steady_clock::now();
 			 m_TimerStarted = true;
 		}
 
@@ -25,7 +25,7 @@ namespace Blocks
 
 			float total_time;
 
-			m_EndTime = std::chrono::high_resolution_clock::now();
+			m_EndTime = std::chrono::steady_clock::now();
 			total_time = std::chrono::duration_cast<std::chrono::microseconds>(m_EndTime - m_StartTime).count();
 			total_time /= 1000.0f;
 

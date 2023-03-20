@@ -8,6 +8,8 @@
 
 #include <array>
 
+#include <cstring>
+
 #include "Macros.h"
 
 namespace Candela {
