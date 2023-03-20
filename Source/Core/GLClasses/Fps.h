@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glfw/glfw3.h> // For glfwGetTime()
+#include <GLFW/glfw3.h> // For glfwGetTime()
 
 #include <sstream>
 

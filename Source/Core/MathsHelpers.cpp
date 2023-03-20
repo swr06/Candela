@@ -84,7 +84,7 @@ namespace Candela {
             glm::vec3 B = glm::normalize(glm::cross(N, glm::vec3(0.0, 1.0, 1.0)));
             glm::vec3 T = cross(B, N);
 
-            return normalize(r * sin(phi) * B + u.x * N + r * cos(phi) * T);
+            return normalize(r * std::sin(phi) * B + u.x * N + r * std::cos(phi) * T);
         }
 
 

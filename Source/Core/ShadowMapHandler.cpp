@@ -22,6 +22,7 @@ void Candela::ShadowHandler::SetDirectShadowMapRes(int r)
 
 		Resolution = r;
 		Shadowmaps.clear();
+        Shadowmaps.resize(5);
 
 		for (int i = 0; i < 5; i++) {
 			Shadowmaps[i].Create(Resolution, Resolution);

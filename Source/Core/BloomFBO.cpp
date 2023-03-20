@@ -1,4 +1,5 @@
 #include "BloomFBO.h"
+#include <cmath>
 
 namespace Candela
 { 
@@ -14,20 +15,20 @@ namespace Candela
 
 		int w0, h0, w1, h1, w2, h2, w3, h3, w4, h4;
 
-		w0 = floor(w * m_MipScales[0]);
-		h0 = floor(h * m_MipScales[0]);
+		w0 = std::floor(w * m_MipScales[0]);
+		h0 = std::floor(h * m_MipScales[0]);
 
-		w1 = floor(w * m_MipScales[1]);
-		h1 = floor(h * m_MipScales[1]);
+		w1 = std::floor(w * m_MipScales[1]);
+		h1 = std::floor(h * m_MipScales[1]);
 
-		w2 = floor(w * m_MipScales[2]);
-		h2 = floor(h * m_MipScales[2]);
+		w2 = std::floor(w * m_MipScales[2]);
+		h2 = std::floor(h * m_MipScales[2]);
 
-		w3 = floor(w * m_MipScales[3]);
-		h3 = floor(h * m_MipScales[3]);
+		w3 = std::floor(w * m_MipScales[3]);
+		h3 = std::floor(h * m_MipScales[3]);
 
-		w4 = floor(w * m_MipScales[4]);
-		h4 = floor(h * m_MipScales[4]);
+		w4 = std::floor(w * m_MipScales[4]);
+		h4 = std::floor(h * m_MipScales[4]);
 
 		glGenTextures(1, &m_Mips[0]);
 		glBindTexture(GL_TEXTURE_2D, m_Mips[0]);

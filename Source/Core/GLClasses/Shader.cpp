@@ -1,5 +1,5 @@
 #include "Shader.h"
-
+#define STB_INCLUDE_LINE_NONE
 #include "stb_include.h"
 
 
@@ -210,12 +210,11 @@ namespace GLClasses
 			char error[256];
 			char* vcode = stb_include_file((char*)vertex_pth.c_str(), (char*)"", (char*)"Core/Shaders/", error);
 			m_VertexData = vcode;
+            free(vcode);
 
 			char* fcode = stb_include_file((char*)fragment_pth.c_str(), (char*)"", (char*)"Core/Shaders/", error);
 			m_FragmentData = fcode;
-
-			delete[] vcode;
-			delete[] fcode;
+            free(fcode);
 		}
 
 		// Create hashes 
