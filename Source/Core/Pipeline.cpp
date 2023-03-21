@@ -1908,6 +1908,15 @@ void Candela::StartPipeline()
 				TransparentForwardShader.SetInteger("u_OpaqueLighting", 9);
 				TransparentForwardShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 				TransparentForwardShader.SetVector2f("u_Dimensions", glm::vec2(TransparentPass.GetWidth(), TransparentPass.GetHeight()));
+				TransparentForwardShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
+				TransparentForwardShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
+				TransparentForwardShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+
+				TransparentForwardShader.SetInteger("u_RadianceCache", 14);
+
+
+				glActiveTexture(GL_TEXTURE14);
+				glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
 
 				SetCommonUniforms<GLClasses::Shader>(TransparentForwardShader, UniformBuffer);
 
@@ -1990,6 +1999,12 @@ void Candela::StartPipeline()
 				GlassDeferredShaderStochastic.SetInteger("u_OpaqueDepth", 5);
 				GlassDeferredShaderStochastic.SetInteger("u_TransparentDepth", 6);
 
+				GlassDeferredShaderStochastic.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
+				GlassDeferredShaderStochastic.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
+				GlassDeferredShaderStochastic.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+
+				GlassDeferredShaderStochastic.SetInteger("u_RadianceCache", 14);
+
 				glActiveTexture(GL_TEXTURE1);
 				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(1));
 
@@ -2007,6 +2022,15 @@ void Candela::StartPipeline()
 
 				glActiveTexture(GL_TEXTURE6);
 				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+
+				glActiveTexture(GL_TEXTURE12);
+				glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().x);
+
+				glActiveTexture(GL_TEXTURE13);
+				glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
+
+				glActiveTexture(GL_TEXTURE14);
+				glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
 
 				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShaderStochastic, UniformBuffer);
 
