@@ -36,7 +36,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_ProbeDataTextures[0], 0, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, nullptr);
 
 	glGenTextures(1, &_ProbeDataTextures[1]);
 	glBindTexture(GL_TEXTURE_3D, _ProbeDataTextures[1]);
@@ -45,7 +46,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_ProbeDataTextures[1], 0, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, nullptr);
 
 	glGenTextures(1, &_PrevProbeDataTextures[0]);
 	glBindTexture(GL_TEXTURE_3D, _PrevProbeDataTextures[0]);
@@ -54,7 +56,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_PrevProbeDataTextures[0], 0, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, nullptr);
 
 	glGenTextures(1, &_PrevProbeDataTextures[1]);
 	glBindTexture(GL_TEXTURE_3D, _PrevProbeDataTextures[1]);
@@ -63,7 +66,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_PrevProbeDataTextures[1], 0, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, nullptr);
 
 	glGenTextures(1, &_PrevFrameDataTextures[0]);
 	glBindTexture(GL_TEXTURE_3D, _PrevFrameDataTextures[0]);
@@ -72,7 +76,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_PrevFrameDataTextures[0], 0, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, nullptr);
 
 	glGenTextures(1, &_PrevFrameDataTextures[1]);
 	glBindTexture(GL_TEXTURE_3D, _PrevFrameDataTextures[1]);
@@ -81,7 +86,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32UI, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_PrevFrameDataTextures[1], 0, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, nullptr);
 
 	// Raw radiance buffers
 	glGenTextures(1, &_ProbeRawRadianceBuffers[0]);
@@ -91,7 +97,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGB, GL_FLOAT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_ProbeRawRadianceBuffers[0], 0, GL_RGB, GL_FLOAT, nullptr);
 
 	glGenTextures(1, &_ProbeRawRadianceBuffers[1]);
 	glBindTexture(GL_TEXTURE_3D, _ProbeRawRadianceBuffers[1]);
@@ -100,7 +107,8 @@ void Candela::ProbeGI::Initialize()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ, 0, GL_RGB, GL_FLOAT, nullptr);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_R11F_G11F_B10F, ProbeGridX, ProbeGridY, ProbeGridZ);
+	glClearTexImage(_ProbeRawRadianceBuffers[1], 0, GL_RGB, GL_FLOAT, nullptr);
 
 	// Voxel volume
 	//glGenTextures(1, &VoxelVolume);
