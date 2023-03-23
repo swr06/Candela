@@ -239,7 +239,6 @@ namespace Candela
 				aiProcess_CalcTangentSpace |
 				aiProcess_GenUVCoords |
 				aiProcess_FlipUVs |
-				aiProcess_GenNormals | 
 				aiProcess_GenSmoothNormals
 			);
 
