@@ -239,7 +239,7 @@ namespace Candela
 				aiProcess_CalcTangentSpace |
 				aiProcess_GenUVCoords |
 				aiProcess_FlipUVs |
-				aiProcess_GenSmoothNormals
+				aiProcess_GenNormals
 			);
 
 			if (!Scene || Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !Scene->mRootNode)

@@ -715,11 +715,13 @@ void Candela::StartPipeline()
 	Object MainModel;
 	Object Dragon;
 	Object MetalObject;
+	Object Sphere;
 	
 	// Load demo models 
 	FileLoader::LoadModelFile(&MetalObject, "Models/ball/scene.gltf");
 	FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
 	FileLoader::LoadModelFile(&Dragon, "Models/dragon/dragon.obj");
+	FileLoader::LoadModelFile(&Sphere, "Models/sphere/scene.gltf");
 
 	// - Test models -
 	// uncomment to try them out :)
@@ -739,6 +741,7 @@ void Candela::StartPipeline()
 	Intersector.AddObject(MainModel);
 	Intersector.AddObject(Dragon);
 	Intersector.AddObject(MetalObject);
+	Intersector.AddObject(Sphere);
 
 	Intersector.BufferData(true); // The flag is to tell the intersector to delete the cached cpu data 
 	Intersector.GenerateMeshTextureReferences(); // This function is called to generate the texture references for the BVH
@@ -771,8 +774,13 @@ void Candela::StartPipeline()
 	glm::vec3 MetalObjectStartPosition = glm::vec3(-1.0f, 1.25f, -2.0f);
 	MetalObjectEntity.m_Model = glm::translate(glm::mat4(1.0f), MetalObjectStartPosition);
 
+	// Create sphere 
+	Entity SphereEntity(&Sphere);
+	SphereEntity.m_Model = glm::translate(glm::mat4(1.0f), glm::vec3(-14.0f, 6.25f, -0.1f));
+
+
 	// Add entities to the render list 
-	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity, &GlassDragon };
+	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity, &GlassDragon, &SphereEntity };
 
 	// Create the environment map (the environment map is arbitrary) 
 
