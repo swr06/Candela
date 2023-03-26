@@ -20,6 +20,33 @@ layout (location = 0) out vec3 o_Color;
 
 layout(rgba16f, binding = 0) uniform image2D o_NormalLFe;
 
+
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+    mat4 u_ViewProjection;
+    mat4 u_Projection;
+    mat4 u_View;
+    mat4 u_InverseProjection;
+    mat4 u_InverseView;
+    mat4 u_PrevProjection;
+    mat4 u_PrevView;
+    mat4 u_PrevInverseProjection;
+    mat4 u_PrevInverseView;
+    mat4 u_InversePrevProjection;
+    mat4 u_InversePrevView;
+
+    vec4 u_Time;
+    vec4 u_ViewerPosition;
+    vec4 u_Incident;
+    vec4 u_SunDirection;
+    vec4 u_LightDirection;
+    vec4 u_zNear;
+    vec4 u_zFar;
+
+    int u_Frame;
+    int u_CurrentFrame;
+};
+
 in vec2 v_TexCoords;
 
 uniform sampler2D u_AlbedoTexture;
@@ -37,26 +64,14 @@ uniform sampler2D u_Volumetrics;
 
 uniform sampler2D u_DebugTexture;
 
-uniform vec3 u_ViewerPosition;
-uniform vec3 u_LightDirection;
-uniform mat4 u_InverseView;
-uniform mat4 u_InverseProjection;
-uniform mat4 u_Projection;
-uniform mat4 u_View;
-uniform vec2 u_Dims;
-
-uniform int u_Frame;
-
 uniform int u_DebugMode;
 
 uniform bool u_DoVolumetrics;
 
-uniform float u_Time;
-
-uniform float u_zNear;
-uniform float u_zFar;
-
 uniform vec2 u_FocusPoint;
+uniform vec2 u_Dims;
+
+uniform vec3 u_Player;
 
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2DShadow u_ShadowTextures[5]; // <- the shadowmaps themselves 
@@ -83,7 +98,7 @@ layout (std430, binding = 1) buffer EyeAdaptation_SSBO {
 
 float LinearizeDepth(float depth)
 {
-	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
+	return (2.0 * u_zNear.x) / (u_zFar.x + u_zNear.x - depth * (u_zFar.x - u_zNear.x));
 }
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -227,13 +242,13 @@ void main()
 
 	float SurfaceDistance = 1000000.0f;
 
-	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time;
+	HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * u_Time.x;
 
 	ivec2 Pixel = ivec2(gl_FragCoord.xy);
 
 	if (Pixel.x == 8 && Pixel.y == 8) {
 		o_FocusDepth = LinearizeDepth(texture(u_DepthTexture, u_FocusPoint).x);
-		PlayerShadow = FilterShadows(u_ViewerPosition + vec3(0.0f, 1.0f, 0.0f) * 0.01f, vec3(0.0f, 1.0f, 0.0f), 18, 1.035f, false);
+		PlayerShadow = FilterShadows(u_ViewerPosition.xyz + vec3(0.0f, 1.0f, 0.0f) * 0.01f, vec3(0.0f, 1.0f, 0.0f), 18, 1.035f, false);
 	}
 
 	//vec4 Volumetrics = texelFetch(u_Volumetrics, Pixel / 2, 0);
@@ -249,7 +264,7 @@ void main()
 		o_Color = pow(texture(u_Skymap, SkymapSampleDir).xyz, vec3(2.07f)) * 2.65f; // Color tweaking, temporary, while the cloud skybox is being used. 
 
 		// Sun Disc 
-		if (dot(rD, -u_LightDirection) > 0.99985f) {
+		if (dot(rD, -u_LightDirection.xyz) > 0.99985f) {
 			imageStore(o_NormalLFe, Pixel, vec4(vec3(0.0f), 256.0f));
 			o_Color = SUN_COLOR_LIGHTING; 
 		}
@@ -268,7 +283,7 @@ void main()
 	vec3 Albedo = texelFetch(u_AlbedoTexture, Pixel, 0).xyz;
 	vec3 PBR = texelFetch(u_PBRTexture, Pixel, 0).xyz;
 
-	vec3 Incident = (u_ViewerPosition - WorldPosition);
+	vec3 Incident = (u_ViewerPosition.xyz - WorldPosition);
 	SurfaceDistance = length(Incident);
 	Incident /= SurfaceDistance;
 
@@ -307,7 +322,7 @@ void main()
 
 	float Shadows = FilterShadows(WorldPosition, Normal, 8, 1.0f, true);
 
-	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), Shadows) ;
+	vec3 Direct = CookTorranceBRDF(u_ViewerPosition.xyz, WorldPosition, u_LightDirection.xyz, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), Shadows) ;
 	
 	vec3 EmissiveColor = Albedo * NormalLF.w;
 
@@ -342,5 +357,11 @@ void main()
 	}
 
 	//o_Color = texture(u_DebugTexture, v_TexCoords).xyz; // / max(texture(u_DebugTexture, v_TexCoords).w, 0.0001f);
+
+	o_Color = vec3(0.,1.,0.);
+	if (distance(u_Player, u_ViewerPosition.xyz) < 0.001f) {
+		o_Color = vec3(1.,0.,0.);
+	}
+
 	o_Color = max(o_Color, 0.0f);
 }

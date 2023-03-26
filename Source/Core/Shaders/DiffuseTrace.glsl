@@ -16,14 +16,34 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba16f, binding = 0) uniform image2D o_OutputData;
 
-uniform mat4 u_Projection;
-uniform mat4 u_View;
-uniform mat4 u_InverseProjection;
-uniform mat4 u_InverseView;
-uniform mat4 u_ViewProjection;
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
+
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
 
 uniform vec2 u_Dims;
-uniform vec3 u_SunDirection;
 
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_TransparentDepth;
@@ -32,9 +52,6 @@ uniform sampler2D u_NormalTexture;
 uniform sampler2D u_Albedo;
 uniform sampler2D u_BlueNoise;
 uniform samplerCube u_Skymap;
-
-uniform int u_Frame;
-uniform float u_Time;
 
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
@@ -46,9 +63,6 @@ uniform vec3 u_ProbeBoxOrigin;
 
 uniform usampler3D u_SHDataA;
 uniform usampler3D u_SHDataB;
-
-uniform float u_zNear;
-uniform float u_zFar;
 
 uniform bool u_Checker;
 

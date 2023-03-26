@@ -7,6 +7,33 @@ layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out vec4 o_Specular;
 layout (location = 2) out vec4 o_Volumetrics;
 
+layout (std430, binding = 12) buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
+
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
+
 in vec2 v_TexCoords;
 
 uniform sampler2D u_Depth;
@@ -23,19 +50,6 @@ uniform sampler2D u_CurrentFrameVolumetrics;
 uniform sampler2D u_PreviousFrameVolumetrics;
 
 uniform sampler2D u_MotionVectors;
-
-uniform mat4 u_InverseView;
-uniform mat4 u_InverseProjection;
-uniform mat4 u_Projection;
-uniform mat4 u_View;
-uniform mat4 u_PrevProjection;
-uniform mat4 u_PrevView;
-uniform mat4 u_PrevInverseProjection;
-uniform mat4 u_PrevInverseView;
-
-uniform int u_Frame;
-uniform float u_zNear;
-uniform float u_zFar;
 
 uniform vec2 u_Dimensions;
 

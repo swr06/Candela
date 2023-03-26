@@ -5,6 +5,33 @@
 layout (location = 0) out vec4 o_Data;
 layout (location = 1) out vec4 o_Albedo;
 
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
+
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
+
 uniform sampler2D u_AlbedoMap;
 uniform sampler2D u_NormalMap;
 
@@ -12,15 +39,10 @@ uniform float u_GlassFactor;
 
 uniform bool u_Stochastic;
 
-uniform int u_Frame;
-
-uniform vec3 u_ViewerPosition;
-
 uniform int u_EntityNumber;
 uniform vec2 u_Dimensions;
 
 uniform bool u_UsesNormalMap;
-uniform float u_Time;
 
 in vec2 v_TexCoords;
 in vec3 v_FragPosition;

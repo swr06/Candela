@@ -1,4 +1,4 @@
-#version 330 core 
+#version 430 core 
 
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
@@ -10,16 +10,34 @@ layout (location = 2) out vec2 o_Moments;
 layout (location = 3) out vec4 o_Specular;
 layout (location = 4) out vec4 o_Volumetrics;
 
-in vec2 v_TexCoords;
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
 
-uniform mat4 u_InverseView;
-uniform mat4 u_InverseProjection;
-uniform mat4 u_Projection;
-uniform mat4 u_View;
-uniform mat4 u_PrevProjection;
-uniform mat4 u_PrevView;
-uniform mat4 u_PrevInverseProjection;
-uniform mat4 u_PrevInverseView;
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
+
+in vec2 v_TexCoords;
 
 uniform sampler2D u_DiffuseCurrent;
 uniform sampler2D u_DiffuseHistory;
@@ -43,10 +61,6 @@ uniform sampler2D u_MomentsHistory;
 
 uniform sampler2D u_PBR;
 
-uniform float u_zNear;
-uniform float u_zFar;
-
-uniform vec3 u_ViewerPosition;
 
 uniform bool u_DoVolumetrics;
 

@@ -1,10 +1,38 @@
-#version 330 core 
+#version 430 core 
 
 #include "Include/Utility.glsl"
 #include "Include/SpatialUtility.glsl"
 
 layout (location = 0) out vec4 o_Diffuse;
 layout (location = 1) out float o_Variance;
+
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
+
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
+
 
 uniform sampler2D u_Depth;
 uniform sampler2D u_Normals;
@@ -13,9 +41,6 @@ uniform sampler2D u_Diffuse;
 uniform sampler2D u_FrameCounters;
 
 uniform sampler2D u_TemporalMoments;
-
-uniform float u_zNear;
-uniform float u_zFar;
 
 uniform bool u_Enabled;
 

@@ -11,6 +11,33 @@ layout (location = 2) out vec4 o_PBR;
 layout (location = 3) out vec4 o_LFNormal;
 layout (location = 4) out int o_EntityNumber;
 
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
+
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
+
 uniform sampler2D u_AlbedoMap;
 uniform sampler2D u_NormalMap;
 uniform sampler2D u_MetalnessMap;
@@ -33,8 +60,6 @@ uniform float u_EmissivityAmount;
 
 uniform float u_GlassFactor;
 uniform float u_RoughnessMultiplier;
-
-uniform vec3 u_ViewerPosition;
 
 uniform int u_EntityNumber;
 uniform vec2 u_Dimensions;

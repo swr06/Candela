@@ -11,6 +11,34 @@ layout (location = 1) out float o_Variance;
 layout (location = 2) out vec4 o_Specular;
 layout (location = 3) out vec4 o_Volumetrics;
 
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
+
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
+
+
 in vec2 v_TexCoords;
 
 uniform sampler2D u_Depth;
@@ -26,20 +54,9 @@ uniform bool u_FilterVolumetrics;
 
 uniform sampler2D u_Variance; // <- Diffuse variance 
 
-uniform mat4 u_Projection;
-uniform mat4 u_View;
-uniform mat4 u_InverseView;
-uniform mat4 u_InverseProjection;
-
-uniform float u_zNear;
-uniform float u_zFar;
-
-uniform vec3 u_ViewerPosition;
-
 uniform int u_StepSize;
 uniform float u_SqrtStepSize;
 uniform sampler2D u_FrameCounters;
-uniform float u_Time;
 
 uniform int u_Pass;
 

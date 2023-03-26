@@ -633,28 +633,53 @@ void UnbindEverything() {
 	glUseProgram(0);
 }
 
+// Common uniforms 
+static GLuint CommonUniformSSBO = 0;
+
 template <typename T>
-void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
-	shader.SetFloat("u_Time", glfwGetTime());
-	shader.SetInteger("u_Frame", uniforms.Frame);
-	shader.SetInteger("u_CurrentFrame", uniforms.Frame);
-	shader.SetMatrix4("u_ViewProjection", Camera.GetViewProjection());
-	shader.SetMatrix4("u_Projection", uniforms.Projection);
-	shader.SetMatrix4("u_View", uniforms.View);
-	shader.SetMatrix4("u_InverseProjection", uniforms.InvProjection);
-	shader.SetMatrix4("u_InverseView", uniforms.InvView);
-	shader.SetMatrix4("u_PrevProjection", uniforms.PrevProj);
-	shader.SetMatrix4("u_PrevView", uniforms.PrevView);
-	shader.SetMatrix4("u_PrevInverseProjection", uniforms.InvPrevProj);
-	shader.SetMatrix4("u_PrevInverseView", uniforms.InvPrevView);
-	shader.SetMatrix4("u_InversePrevProjection", uniforms.InvPrevProj);
-	shader.SetMatrix4("u_InversePrevView", uniforms.InvPrevView);
-	shader.SetVector3f("u_ViewerPosition", glm::vec3(uniforms.InvView[3]));
-	shader.SetVector3f("u_Incident", glm::vec3(uniforms.InvView[3]));
-	shader.SetVector3f("u_SunDirection", uniforms.SunDirection);
-	shader.SetVector3f("u_LightDirection", uniforms.SunDirection);
-	shader.SetFloat("u_zNear", Camera.GetNearPlane());
-	shader.SetFloat("u_zFar", Camera.GetFarPlane());
+void SetCommonUniforms(T& shader, int Index) {
+	shader.Use();
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, CommonUniformSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, Index, CommonUniformSSBO);
+}
+
+void BufferCommonUniformSSBO(CommonUniforms& uniforms) {
+	CommonUniformData UploadData;
+	UploadData.u_Time = glm::vec4(glfwGetTime());
+	UploadData.u_Frame = uniforms.Frame;
+	UploadData.u_CurrentFrame = uniforms.Frame;
+
+	UploadData.u_ViewProjection = Camera.GetViewProjection();
+	UploadData.u_Projection = uniforms.Projection;
+	UploadData.u_View = uniforms.View;
+	UploadData.u_InverseProjection = uniforms.InvProjection;
+	UploadData.u_InverseView = uniforms.InvView;
+	UploadData.u_PrevProjection = uniforms.PrevProj;
+	UploadData.u_PrevView = uniforms.PrevView;
+	UploadData.u_PrevInverseProjection = uniforms.InvPrevProj;
+	UploadData.u_PrevInverseView = uniforms.InvPrevView;
+	UploadData.u_InversePrevProjection = uniforms.InvPrevProj;
+	UploadData.u_InversePrevView = uniforms.InvPrevView;
+
+	UploadData.u_ViewerPosition = glm::vec4(glm::vec3(uniforms.InvView[3]), 1.0f);
+	UploadData.u_Incident = glm::vec4(glm::vec3(uniforms.InvView[3]), 1.0f);
+	UploadData.u_SunDirection = glm::vec4(uniforms.SunDirection, 1.0f);
+	UploadData.u_LightDirection = glm::vec4(uniforms.SunDirection, 1.0f);
+
+	UploadData.u_zNear = glm::vec4(Camera.GetNearPlane());
+	UploadData.u_zFar = glm::vec4(Camera.GetFarPlane());
+
+	// Upload 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, CommonUniformSSBO);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(CommonUniformData), &UploadData);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void CreateCommonUniformSSBO() {
+	glGenBuffers(1, &CommonUniformSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, CommonUniformSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(CommonUniformData), 0, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 // Deferred
@@ -926,7 +951,8 @@ void Candela::StartPipeline()
 	BloomFBO BloomBufferB(16, 16);
 	BloomRenderer::Initialize();
 
-	
+	// Common UBO
+	CreateCommonUniformSSBO();
 
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
@@ -1079,7 +1105,9 @@ void Candela::StartPipeline()
 		InverseProjection = glm::inverse(Camera.GetProjectionMatrix());
 		InverseView = glm::inverse(Camera.GetViewMatrix());
 
+		// Common uniforms
 		CommonUniforms UniformBuffer = { View, Projection, InverseView, InverseProjection, PreviousProjection, PreviousView, glm::inverse(PreviousProjection), glm::inverse(PreviousView), (int)app.GetCurrentFrame(), SunDirection};
+		BufferCommonUniformSSBO(UniformBuffer);
 
 		// Render shadow maps
 		glEnable(GL_DEPTH_TEST);
@@ -1139,6 +1167,8 @@ void Candela::StartPipeline()
 		GBufferShader.SetFloat("u_ScaleLODBias", floor(log2(InternalRenderResolution)));
 		GBufferShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 
+		SetCommonUniforms<GLClasses::Shader>(GBufferShader, 12);
+
 		RenderEntityList(EntityRenderList, GBufferShader, false);
 
 		if (!RENDER_GLASS) {
@@ -1162,7 +1192,7 @@ void Candela::StartPipeline()
 			GBufferTransparentPrepassShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 			GBufferTransparentPrepassShader.SetBool("u_Stochastic", StochasticTransparency && OIT);
 			
-			SetCommonUniforms<GLClasses::Shader>(GBufferTransparentPrepassShader, UniformBuffer);
+			SetCommonUniforms<GLClasses::Shader>(GBufferTransparentPrepassShader, 12);
 
 			RenderEntityList(EntityRenderList, GBufferTransparentPrepassShader, true);
 
@@ -1193,7 +1223,7 @@ void Candela::StartPipeline()
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
 
-			SetCommonUniforms<GLClasses::Shader>(GenerateHQN, UniformBuffer);
+			SetCommonUniforms<GLClasses::Shader>(GenerateHQN, 12);
 
 			ScreenQuadVAO.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1222,7 +1252,7 @@ void Candela::StartPipeline()
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
-			SetCommonUniforms<GLClasses::Shader>(SSRefractionShader, UniformBuffer);
+			SetCommonUniforms<GLClasses::Shader>(SSRefractionShader, 12);
 
 			ScreenQuadVAO.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1240,7 +1270,7 @@ void Candela::StartPipeline()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
-		SetCommonUniforms<GLClasses::Shader>(MotionVectorShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(MotionVectorShader, 12);
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1272,7 +1302,7 @@ void Candela::StartPipeline()
 			VolumetricsShader.SetFloat("u_IStrength", VolumetricsIndirectStrength);
 			VolumetricsShader.SetBool("u_Checker", DoCheckering);
 
-			SetCommonUniforms<GLClasses::Shader>(VolumetricsShader, UniformBuffer);
+			SetCommonUniforms<GLClasses::Shader>(VolumetricsShader, 12);
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1337,7 +1367,7 @@ void Candela::StartPipeline()
 		DiffuseShader.SetBool("u_IndirectSSCaustics", IndirectSSCaustics);
 		DiffuseShader.SetBool("DO_BL_SAMPLING", DO_BL_SAMPLING);
 
-		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::ComputeShader>(DiffuseShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1462,7 +1492,7 @@ void Candela::StartPipeline()
 		glActiveTexture(GL_TEXTURE15);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().y);
 
-		SetCommonUniforms<GLClasses::ComputeShader>(SpecularShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::ComputeShader>(SpecularShader, 12);
 
 		Intersector.BindEverything(SpecularShader, true);
 		glBindImageTexture(0, SpecularTrace.GetTexture(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -1488,7 +1518,7 @@ void Candela::StartPipeline()
 		CheckerReconstructShader.SetBool("u_Enabled", DoCheckering);
 		CheckerReconstructShader.SetVector2f("u_Dimensions", glm::vec2(CheckerboardUpscaled.GetWidth(), CheckerboardUpscaled.GetHeight()));
 
-		SetCommonUniforms<GLClasses::Shader>(CheckerReconstructShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(CheckerReconstructShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1552,7 +1582,7 @@ void Candela::StartPipeline()
 		TemporalFilterShader.SetBool("u_Enabled", DoTemporal);
 		TemporalFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
 
-		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1630,7 +1660,7 @@ void Candela::StartPipeline()
 			glActiveTexture(GL_TEXTURE4);
 			glBindTexture(GL_TEXTURE_2D, IndirectTemporal.GetTexture(2));
 
-			SetCommonUniforms<GLClasses::Shader>(SpatialVarianceShader, UniformBuffer);
+			SetCommonUniforms<GLClasses::Shader>(SpatialVarianceShader, 12);
 
 			ScreenQuadVAO.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1675,7 +1705,7 @@ void Candela::StartPipeline()
 				SpatialFilterShader.SetFloat("u_PhiLMult", 1.0f/glm::max(SVGFStrictness,0.01f));
 				SpatialFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
 
-				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
+				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, 12);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1726,7 +1756,7 @@ void Candela::StartPipeline()
 		SpatialUpscaleShader.SetInteger("u_NormalsHF", 6);
 		SpatialUpscaleShader.SetBool("u_Enabled", DoSpatialUpscaling);
 
-		SetCommonUniforms<GLClasses::Shader>(SpatialUpscaleShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(SpatialUpscaleShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -1775,6 +1805,7 @@ void Candela::StartPipeline()
 		LightingShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
 		LightingShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
 		LightingShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+		LightingShader.SetVector3f("u_Player", Camera.GetPosition());
 
 		LightingShader.SetInteger("u_SHDataA", 15);
 		LightingShader.SetInteger("u_SHDataB", 16);
@@ -1788,7 +1819,7 @@ void Candela::StartPipeline()
 
 		LightingShader.SetVector2f("u_ShadowBiasMult", glm::vec2(ShadowNBiasMultiplier,ShadowSBiasMultiplier));
 		
-		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(LightingShader, 12);
 
 		for (int i = 0; i < 5; i++) {
 
@@ -1926,7 +1957,7 @@ void Candela::StartPipeline()
 				glActiveTexture(GL_TEXTURE14);
 				glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
 
-				SetCommonUniforms<GLClasses::Shader>(TransparentForwardShader, UniformBuffer);
+				SetCommonUniforms<GLClasses::Shader>(TransparentForwardShader, 12);
 
 				glActiveTexture(GL_TEXTURE8);
 				glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
@@ -1953,7 +1984,7 @@ void Candela::StartPipeline()
 				OITCompositeShader.SetInteger("u_OpaqueDepth", 2);
 				OITCompositeShader.SetInteger("u_TransparentDepth", 3);
 
-				SetCommonUniforms<GLClasses::Shader>(OITCompositeShader, UniformBuffer);
+				SetCommonUniforms<GLClasses::Shader>(OITCompositeShader, 12);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, TransparentPass.GetTexture(0));
@@ -2040,7 +2071,7 @@ void Candela::StartPipeline()
 				glActiveTexture(GL_TEXTURE14);
 				glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeColorTexture());
 
-				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShaderStochastic, UniformBuffer);
+				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShaderStochastic, 12);
 
 				ScreenQuadVAO.Bind();
 				glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -2101,7 +2132,7 @@ void Candela::StartPipeline()
 				glActiveTexture(GL_TEXTURE6);
 				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
 
-				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShader, UniformBuffer);
+				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShader, 12);
 
 				ScreenQuadVAO.Bind();
 				glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -2157,7 +2188,7 @@ void Candela::StartPipeline()
 		TAAShader.SetFloat("u_InternalRenderResolution", InternalRenderResolution);
 		TAAShader.SetVector2f("u_CurrentJitter", GetTAAJitter(app.GetCurrentFrame()));
 
-		SetCommonUniforms<GLClasses::Shader>(TAAShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(TAAShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, VolComposited.GetTexture());
@@ -2227,7 +2258,7 @@ void Candela::StartPipeline()
 		PostFXCombineShader.SetVector2f("u_SunScreenPosition", SunScreenspaceCoord);
 		PostFXCombineShader.SetFloat("u_InternalRenderResolution", InternalRenderResolution);
 
-		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(PostFXCombineShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, TAA.GetTexture(0));
@@ -2281,7 +2312,7 @@ void Candela::StartPipeline()
 			DOFShader.SetFloat("u_BlurRadius", DOFBlurRadius);
 			DOFShader.SetFloat("u_DOFScale", DOFScale);
 
-			SetCommonUniforms<GLClasses::Shader>(DOFShader, UniformBuffer);
+			SetCommonUniforms<GLClasses::Shader>(DOFShader, 12);
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
@@ -2310,7 +2341,7 @@ void Candela::StartPipeline()
 		CompositeShader.SetFloat("u_DOFScale", DOFScale);
 		CompositeShader.SetFloat("u_Exposure", ExposureMultiplier);
 
-		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(CompositeShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
@@ -2337,7 +2368,7 @@ void Candela::StartPipeline()
 		CASShader.SetFloat("u_DistortionK", DistortionK);
 		CASShader.SetFloat("u_RenderScale", InternalRenderResolution);
 
-		SetCommonUniforms<GLClasses::Shader>(CASShader, UniformBuffer);
+		SetCommonUniforms<GLClasses::Shader>(CASShader, 12);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Composited.GetTexture(0));

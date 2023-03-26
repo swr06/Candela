@@ -1,4 +1,4 @@
-#version 400 core 
+#version 430 core 
 #define PI 3.14159265359 
 
 #include "Include/Utility.glsl"
@@ -9,23 +9,42 @@
 
 layout (location = 0) out vec4 o_Volumetrics; // w -> Transmittance 
 
+layout (std430, binding = 12) restrict buffer CommonUniformData 
+{
+	float u_Time;
+	int u_Frame;
+	int u_CurrentFrame;
+
+	mat4 u_ViewProjection;
+	mat4 u_Projection;
+	mat4 u_View;
+	mat4 u_InverseProjection;
+	mat4 u_InverseView;
+	mat4 u_PrevProjection;
+	mat4 u_PrevView;
+	mat4 u_PrevInverseProjection;
+	mat4 u_PrevInverseView;
+	mat4 u_InversePrevProjection;
+	mat4 u_InversePrevView;
+
+	vec3 u_ViewerPosition;
+	vec3 u_Incident;
+	vec3 u_SunDirection;
+	vec3 u_LightDirection;
+
+	float u_zNear;
+	float u_zFar;
+};
+
+
 in vec2 v_TexCoords;
 
-uniform mat4 u_InverseView;
-uniform mat4 u_InverseProjection;
-uniform mat4 u_Projection;
-uniform mat4 u_View;
-
 uniform vec2 u_Dims;
-uniform vec3 u_SunDirection;
 
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_TransparentDepth;
 uniform sampler2D u_NormalTexture;
 uniform samplerCube u_Skymap;
-
-uniform int u_Frame;
-uniform float u_Time;
 
 uniform int u_Steps;
 uniform float u_Strength;
