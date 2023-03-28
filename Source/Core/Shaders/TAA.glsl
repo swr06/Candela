@@ -32,6 +32,9 @@ uniform mat4 u_PrevInverseView;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform float u_TAAStrengthMultiplier;
+uniform float u_TAAClipBias;
+
 uniform float u_InternalRenderResolution;
 
 uniform bool u_Enabled;
@@ -203,12 +206,12 @@ void main() {
         Current.xyz = Tonemap(Current.xyz);
         History.xyz = Tonemap(History.xyz);
 
-        float Bias = MotionLength > 0.00008f ? 0.0f : 0.003f;
+        float Bias = MotionLength > 0.00008f ? (0.0f + u_TAAClipBias * 0.3333f) : (0.003f + u_TAAClipBias);
 
         History.xyz = ClipToAABB(History.xyz, Min.xyz - Bias, Max.xyz + Bias);
 
         //float BlendFactor = clamp(exp(-length(MotionVector * FullDimensions) * 0.5f) + 0.5f, 0.0f, 1.0f);
-        float BlendFactor = exp(-length((MotionVector * Dimensions))) * 0.9f + 0.7f;
+        float BlendFactor = clamp((exp(-length((MotionVector * Dimensions))) * 0.9f + 0.7f) * u_TAAStrengthMultiplier, 0.001f, 0.999f);
 
         float FrameBlend = 1.0f - clamp(1.0f / Frames, 0.0f, 1.0f);
 

@@ -12,6 +12,11 @@ Head to "Candela::StartPipeline()" to change the demo scene/textures etc.
 General :
 Read controls.txt for controls 
 "UNIFORM NOT FOUND" errors can safely be ignored.
+
+
+
+
+PLEASE DO NOT CLAIM MY WORK AS YOUR OWN. 
 */
 
 
@@ -56,6 +61,8 @@ Read controls.txt for controls
 #include "PhysicsIntegrator.h"
 
 #include "../Dependencies/imguizmo/ImGuizmo.h"
+
+#include <implot.h>
 
 // Externs.
 int __TotalMeshesRendered = 0;
@@ -131,6 +138,9 @@ static bool VolumetricsSpatial = true;
 
 // Post 
 static bool DoTAA = true;
+static float TAAStrengthMultiplier = 1.0f;
+static float TAAClipBias = 0.0f;
+
 static bool DoCAS = true;
 static bool DoFXAA = true;
 static float FXAAStrength = 0.15f;
@@ -188,6 +198,10 @@ static ImGuizmo::MODE Mode = ImGuizmo::MODE::LOCAL;
 static bool UseSnap = true;
 static glm::vec3 SnapSize = glm::vec3(0.5f);
 
+// Frame time plotter
+static float* GraphX;
+static float* GraphY;
+
 // Render list 
 std::vector<Candela::Entity*> EntityRenderList;
 
@@ -211,6 +225,9 @@ void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, c
 static double RoundToNearest(double n, double x) {
 	return round(n / x) * x;
 }
+
+static void ClearAllBuffers();
+bool WindowResizedThisFrame = false;
 
 class RayTracerApp : public Candela::Application
 {
@@ -281,6 +298,7 @@ public:
 				}
 				ImGui::NewLine();
 				ImGui::Text("Current Operation : %s", OperationLabels[EditOperation].c_str());
+				ImGui::Text("Note : Use keys F6 - F9 to change operation (T/R/S/Universal)");
 
 				Mode = space ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD;
 
@@ -339,6 +357,18 @@ public:
 					}
 				}
 			}
+
+			// Draw frametime graph 
+			ImGui::Begin("Frametime Graph");
+			ImGui::NewLine();
+			ImGui::Text("Frame Delta is : %f ms", DeltaTime * 1000.0f);
+			ImGui::NewLine();
+			if (ImPlot::BeginPlot("Frametime Plot (dt-time graph)")) {
+				ImPlot::SetupAxisLimits(ImAxis_X1, this->GetTime() - 12.0, this->GetTime() + 1.0f, ImGuiCond_Always);
+				ImPlot::PlotLine("Frametime Plot", GraphX, GraphY, 1024);
+				ImPlot::EndPlot();
+			}
+			ImGui::End();
 		}
 
 		if (ImGui::Begin("Options")) {
@@ -444,11 +474,18 @@ public:
 			ImGui::Text("-- Post Process --");
 			ImGui::NewLine();
 			ImGui::Checkbox("Temporal Anti Aliasing?", &DoTAA);
-			ImGui::Checkbox("Contrast Adaptive Sharpening?", &DoCAS);
+			
+			if (DoTAA) {
+				ImGui::SliderFloat("TAA Strength Multiplier", &TAAStrengthMultiplier, 0.0f, 2.0f);
+				ImGui::SliderFloat("TAA Clip Bias (Higher values = More ghosting and less flickering)", &TAAClipBias, 0.0f, 0.15f);
+			}
 
-			if (InternalRenderResolution > 1.01f)
+			if (InternalRenderResolution < 1.01f && DoTAA)
 				ImGui::Checkbox("AMD FSR?", &FSR);
-			 
+
+			ImGui::NewLine();
+
+			ImGui::Checkbox("Contrast Adaptive Sharpening?", &DoCAS);
 			ImGui::NewLine();
 			ImGui::Checkbox("Fast Approximate Anti Aliasing?", &DoFXAA);
 
@@ -552,7 +589,8 @@ public:
 
 		if (e.type == Candela::EventTypes::WindowResize)
 		{
-			Camera.SetAspect((float)e.wx / (float)e.wy);
+			Camera.SetAspect((float)glm::max(e.wx, 1) / (float)glm::max(e.wy, 1));
+			WindowResizedThisFrame = true && this->GetCurrentFrame() > 4;
 		}
 
 		if (e.type == Candela::EventTypes::KeyPress && e.key == GLFW_KEY_ESCAPE) {
@@ -693,6 +731,32 @@ GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RG
 // Antialiasing 
 GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
 
+static void ClearAllBuffers() {
+	std::vector <GLClasses::Framebuffer*> Framebuffers {
+		&LightingPass, &TempFramebuffer,
+		&TransparentPass, &Composited,
+		&VolComposited, &PFXComposited,
+		&DOF, &VolumetricsCheckerboardBuffers[0],
+		&VolumetricsCheckerboardBuffers[1], &MotionVectors,
+		&DiffuseCheckerboardBuffers[0], &DiffuseCheckerboardBuffers[1],
+		&SpecularCheckerboardBuffers[0], &SpecularCheckerboardBuffers[1],
+		&SSRefractions, &CheckerboardUpscaled,
+		&TemporalBuffersIndirect[0], &TemporalBuffersIndirect[1],
+		&SpatialVariance, &SpatialUpscaled,
+		&SpatialBuffers[0], &SpatialBuffers[1],
+		&TAABuffers[0], &TAABuffers[1]
+	};
+
+	for (auto& e : Framebuffers) {
+		if (e != nullptr) {
+			if (e->GetFramebuffer() != 0) {
+				e->Bind();
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			}
+		}
+	}
+}
+
 // Entry point 
 void Candela::StartPipeline()
 {
@@ -706,10 +770,17 @@ void Candela::StartPipeline()
 
 	using namespace BVH;
 
+	GraphX = new float[1024];
+	GraphY = new float[1024];
+
+	memset(GraphX, 0, 1024 * sizeof(float));
+	memset(GraphY, 0, 1024 * sizeof(float));
+
 	// Create App, initialize 
 	RayTracerApp app;
 	app.Initialize();
 	app.SetCursorLocked(true);
+	ImPlot::CreateContext();
 
 	// Scene setup 
 	Object MainModel;
@@ -926,13 +997,20 @@ void Candela::StartPipeline()
 	BloomFBO BloomBufferB(16, 16);
 	BloomRenderer::Initialize();
 
-	
-
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
+		// Window is minimized.
+		if (glfwGetWindowAttrib(app.GetWindow(), GLFW_ICONIFIED)) {
+			app.OnUpdate();
+			ClearAllBuffers();
+			app.FinishFrame();
+			GLClasses::DisplayFrameRate(app.GetWindow(), "Candela ");
+			continue;
+		}
+
 		// Prepare 
 
 		int DebugMode = EditMode ? SelectedDebugView : -1;
@@ -2155,6 +2233,8 @@ void Candela::StartPipeline()
 		TAAShader.SetBool("u_Enabled", DoTAA);
 		TAAShader.SetBool("u_FSRU", FSR);
 		TAAShader.SetFloat("u_InternalRenderResolution", InternalRenderResolution);
+		TAAShader.SetFloat("u_TAAStrengthMultiplier", TAAStrengthMultiplier);
+		TAAShader.SetFloat("u_TAAClipBias", TAAClipBias);
 		TAAShader.SetVector2f("u_CurrentJitter", GetTAAJitter(app.GetCurrentFrame()));
 
 		SetCommonUniforms<GLClasses::Shader>(TAAShader, UniformBuffer);
@@ -2354,6 +2434,17 @@ void Candela::StartPipeline()
 		CurrentTime = glfwGetTime();
 		DeltaTime = CurrentTime - Frametime;
 		Frametime = glfwGetTime();
+
+		if (app.GetCurrentFrame() > 4) {
+			int GraphIdx = app.GetCurrentFrame() % 1024;
+			GraphX[GraphIdx] = glfwGetTime();
+			GraphY[GraphIdx] = DeltaTime;
+		}
+
+		if (app.GetCurrentFrame() > 4 && WindowResizedThisFrame) {
+			WindowResizedThisFrame = false;
+			ClearAllBuffers();
+		}
 
 		GLClasses::DisplayFrameRate(app.GetWindow(), "Candela ");
 	}

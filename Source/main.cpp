@@ -11,6 +11,11 @@ Head to "Candela::StartPipeline()" to change the demo scene/textures etc.
 General :
 Read controls.txt for controls
 "UNIFORM NOT FOUND" errors can safely be ignored.
+
+
+
+
+PLEASE DO NOT CLAIM MY WORK AS YOUR OWN.
 */
 
 #include "Core/Pipeline.h"

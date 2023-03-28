@@ -65,6 +65,8 @@ float LinearizeDepth(float depth)
 	return (2.0 * u_zNear) / (u_zFar + u_zNear - depth * (u_zFar - u_zNear));
 }
 
+// Model specular lobes using spherical gaussians
+// Based on the work by the UE team.
 SG RoughnessLobe(float Roughness, vec3 Normal, vec3 Incident) {
 	
 	Roughness = max(Roughness, 0.001f);
@@ -175,6 +177,34 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
+// Denoising in tonemap space gives slightly better results 
+// Mostly because it acts as a smart "clamp" filter and avoids colors from having insanely high values 
+// Isn't physically based of course, but neither is denoising in general so w/e.
+// It's fine as long as it gives plausible results 
+#define DENOISE_SPECULAR_IN_REINHARD_SPACE
+
+#ifdef DENOISE_SPECULAR_IN_REINHARD_SPACE
+
+	vec3 Tonemap(vec3 x) {
+		return Reinhard(x);
+	}
+
+	vec3 InverseTonemap(vec3 x) {
+		return InverseReinhard(x);
+	}
+	
+#else 
+	
+	vec3 Tonemap(vec3 x) {
+		return x;
+	}
+
+	vec3 InverseTonemap(vec3 x) {
+		return x;
+	}
+#endif
+
+// Based on atours wavelet filtering 
 const float WaveletKernel[3] = float[3]( 1.0f, 2.0f / 3.0f, 1.0f / 6.0f );
 const int Kernel = 1;
 
@@ -225,7 +255,7 @@ void main() {
 	vec3 Incident = normalize(u_ViewerPosition - WorldPosition);
 
 	float F = CenterSTraversal / max((CenterSTraversal + PrimaryTransversal), 0.0000001f);
-	float Radius = clamp(pow(mix(1.0f * CenterRoughness, 1.0f, F), pow((1.0f-CenterRoughness),1.0/1.4f)*5.0f), 0.0f, 1.0f);
+	float Radius = clamp(pow(mix(1.0f * CenterRoughness, 1.0f, F), pow((1.0f-CenterRoughness),1.0/1.4f)*8.0f), 0.0f, 1.0f);
 
 	float CenterAO = Diffuse.w;
 	float CenterDiffuseLuma = Luminance(Diffuse.xyz);
@@ -246,6 +276,8 @@ void main() {
 	float PhiL = PhiLMult * PhiLFrameFactor * sqrt(max(0.0f, 0.00000001f + VarianceGaussian));
 
 	float PhiS = sqrt(u_StepSize);
+	
+	Specular.xyz = Tonemap(Specular.xyz);
 
 	for (int x = -Kernel ; x <= Kernel ; x++) 
 	{
@@ -318,7 +350,7 @@ void main() {
 			float AOWeight = clamp(DepthWeight * NormalWeight * KernelWeight * AOWeightDetail, 0.0f, 1.0f);
 			float SpecularWeight = ShouldSampleSpecular ? clamp(KernelWeight * DepthWeight * min(SpecLobeWeight, NormalWeight * 5.0f), 0.0f, 1.0f) : 0.0f;
 
-			Specular += SampleSpecular * SpecularWeight;
+			Specular += vec4(Tonemap(SampleSpecular.xyz), SampleSpecular.w) * SpecularWeight;
 			TotalSpecularWeight += SpecularWeight;
 
 			Diffuse.xyz += SampleDiffuse.xyz * DiffuseWeight;
@@ -345,7 +377,10 @@ void main() {
 
 	Specular /= TotalSpecularWeight;
 	Specular.w = CenterSpec.w; 
+	
+	Specular.xyz = InverseTonemap(Specular.xyz);
 
+	// Output 
 	o_Diffuse = Diffuse;
 	o_Variance = Variance;
 

@@ -117,7 +117,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_INCLUDE_LINE_NONE; _DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\assimp\include;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\glad\include;$(SolutionDir)Dependencies\imgui;$(SolutionDir)Dependencies</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\implot;$(SolutionDir)Dependencies\assimp\include;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\glad\include;$(SolutionDir)Dependencies\imgui;$(SolutionDir)Dependencies\crc;$(SolutionDir)Dependencies</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -136,7 +136,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_INCLUDE_LINE_NONE; NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\assimp\include;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\glad\include;$(SolutionDir)Dependencies\imgui;$(SolutionDir)Dependencies\crc;$(SolutionDir)Dependencies</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\implot;$(SolutionDir)Dependencies\assimp\include;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\glad\include;$(SolutionDir)Dependencies\imgui;$(SolutionDir)Dependencies\crc;$(SolutionDir)Dependencies</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -220,6 +220,8 @@
     <ClInclude Include="Dependencies\imgui\imstb_rectpack.h" />
     <ClInclude Include="Dependencies\imgui\imstb_textedit.h" />
     <ClInclude Include="Dependencies\imgui\imstb_truetype.h" />
+    <ClInclude Include="Dependencies\implot\implot.h" />
+    <ClInclude Include="Dependencies\implot\implot_internal.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Application\Application.cpp" />
@@ -283,6 +285,8 @@
     <ClCompile Include="Dependencies\imgui\imgui_impl_glfw.cpp" />
     <ClCompile Include="Dependencies\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="Dependencies\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Dependencies\implot\implot.cpp" />
+    <ClCompile Include="Dependencies\implot\implot_items.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>

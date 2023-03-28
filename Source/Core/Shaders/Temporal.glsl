@@ -249,7 +249,7 @@ void main() {
 
 		vec3 Incident = normalize(u_ViewerPosition - WorldPosition.xyz);
 		vec3 ReflectedPosition = (WorldPosition.xyz) - Incident * Transversal;
-		vec3 ReprojectedReflection = Reprojection(ReflectedPosition).xyz;
+		vec3 ReprojectedReflection = PBR.x > 0.96f ? Reprojection(WorldPosition).xyz : Reprojection(ReflectedPosition).xyz;
 		float SpecMotionLength = length(ReprojectedReflection.xy-v_TexCoords);
 
 		if (IsInScreenspaceBiased(ReprojectedReflection.xy)) {
@@ -268,7 +268,7 @@ void main() {
 			SpecularFrames = min((texture(u_Utility,ReprojectedReflection.xy).y * 255.0f), 28.0f) + 1.0f;
 			float SpecBlendFactor = 1.0f - (1.0f / SpecularFrames);
 
-			//if (TransversalError < mix(4.0f, 16.0f, clamp(PBR.x*1.5f,0.,1.)))
+			//if ((TransversalError < mix(4.0f, 16.0f, clamp(PBR.x*1.5f,0.,1.))) || PBR.x < 0.95)
 			{
 				o_Specular.xyz = InverseReinhard(mix(Reinhard(CurrentSpecular.xyz), Reinhard(HistorySpecular.xyz), SpecBlendFactor));
 				o_Specular.w = mix(MeanSpec.w, HistorySpecular.w, SpecBlendFactor);

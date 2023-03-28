@@ -82,6 +82,9 @@
     <Filter Include="Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include\Library">
       <UniqueIdentifier>{03343941-0065-4581-aa15-b212ea141982}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Dependencies\implot">
+      <UniqueIdentifier>{5b931a48-d55d-4456-a355-2358dd12a8e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\imgui\imconfig.h">
@@ -288,6 +291,12 @@
     <ClInclude Include="Core\Shaders\Include\ColorConstants.h">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include\Const</Filter>
     </ClInclude>
+    <ClInclude Include="Dependencies\implot\implot.h">
+      <Filter>Source Files\Dependencies\implot</Filter>
+    </ClInclude>
+    <ClInclude Include="Dependencies\implot\implot_internal.h">
+      <Filter>Source Files\Dependencies\implot</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -457,6 +466,12 @@
     </ClCompile>
     <ClCompile Include="Core\Entity.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\implot\implot.cpp">
+      <Filter>Source Files\Dependencies\implot</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\implot\implot_items.cpp">
+      <Filter>Source Files\Dependencies\implot</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

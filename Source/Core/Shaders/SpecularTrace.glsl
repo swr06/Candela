@@ -403,7 +403,7 @@ vec3 SampleLighting(in vec2 TexCoords, in vec3 WorldPosition, in vec3 Normal, in
 	if (L < 0.0325f) {
 
 		vec4 DiffuseIndirect = texture(u_IndirectDiffuse, TexCoords + MotionVector).xyzw;
-		return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * 0.9f * DiffuseIndirect.xyz * DiffuseIndirect.w * DiffuseIndirect.w); 
+		return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * DiffuseIndirect.xyz * DiffuseIndirect.w * DiffuseIndirect.w); 
 	
 	}
 
@@ -421,7 +421,7 @@ vec3 SampleLighting(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) { // 
 
 	vec3 DiffuseIndirect = SampleProbes(WorldPosition,Normal);
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * 1.0f * DiffuseIndirect.xyz); 
+	return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * 2.0f * DiffuseIndirect.xyz); 
 }
 
 float SeedFunction(float Input) {
@@ -470,11 +470,18 @@ void main() {
 
 	PBR.x *= float(u_RoughSpec);
 
+	vec2 TexCoords = clamp(HighResUV, 0.0f, 1.0f);
+
+	if (PBR.x > 0.96f) {
+		vec4 SpecularHemisphere = vec4(max(texture(u_IndirectDiffuse, clamp(TexCoords, 0.01f, 0.99f)).xyz, 0.0f), 1.0f);
+		imageStore(o_OutputData, WritePixel, vec4(SpecularHemisphere));
+		return;
+	}
+
 	if (PBR.y > 0.04f || u_FullRT) {
 		TRACE_MODE = 1;
 	}
 
-	vec2 TexCoords = HighResUV;
 	HASH2SEED = u_Time;
 
 	if (DO_BL_SAMPLING) {
@@ -512,9 +519,9 @@ void main() {
 		//	mix(0.0045f, 0.0075f, clamp(PBR.x * PBR.x * 1.25f, 0.0f, 1.0f))); // <- Error threshold
 
 		vec4 Screentrace = ScreenspaceRaytrace(RayOrigin, RayDirection, 
-			int(mix(32.0f, 18.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Step count 
+			PBR.x < 0.04f ? 32 : int(mix(20.0f, 8.0f, float(clamp(PBR.x*1.4f,0.0f,1.0f)))), // <- Step count 
 			int(mix(8.0f, 6.0f, float(clamp(PBR.x*1.1f,0.0f,1.0f)))), // <- Binary refine step count
-		    mix(0.0011f, 0.0045f, PBR.x * PBR.x) ); // <- Error threshold
+		    mix(0.0011f, 0.005f, PBR.x * PBR.x) ); // <- Error threshold
 
 		if (IsInScreenspace(Screentrace.xy) && Screentrace.z > 0.0f) {
 			    
