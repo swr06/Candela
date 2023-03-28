@@ -37,6 +37,8 @@ uniform sampler2D u_Volumetrics;
 
 uniform sampler2D u_DebugTexture;
 
+uniform samplerCube u_ProbePlayer;
+
 uniform vec3 u_ViewerPosition;
 uniform vec3 u_LightDirection;
 uniform mat4 u_InverseView;

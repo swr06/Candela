@@ -38,6 +38,7 @@ void Candela::ShaderManager::CreateShaders()
 	AddShader("GLASS_DEFERRED_ST", "Core/Shaders/FBOVert.glsl", "Core/Shaders/GlassDeferredStochastic.glsl");
 	AddShader("BASIC_BLIT", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BasicBlit.glsl");
 	AddShader("GEN_HQN", "Core/Shaders/FBOVert.glsl", "Core/Shaders/GenerateHighFreqNormals.glsl");
+	AddShader("PROBE", "Core/Shaders/ProbeForwardVert.glsl", "Core/Shaders/ProbeForwardFrag.glsl");
 }
 
 void Candela::ShaderManager::AddShader(const std::string& name, const std::string& vert, const std::string& frag, const std::string& geo)

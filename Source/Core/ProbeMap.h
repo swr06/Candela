@@ -91,6 +91,8 @@ namespace Candela
 		GLuint m_DepthCubemap = 0;
 		GLuint NormalPBRPackedCubemap = 0; 
 
+		glm::vec3 CapturePoints[6];
+
 	private :
 		GLuint m_Resolution;
 

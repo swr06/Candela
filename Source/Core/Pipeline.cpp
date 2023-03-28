@@ -180,6 +180,9 @@ static float DistortionK = 0.0f;
 // (Experiment)
 const bool DoHSM = false;
 
+// Player Probe
+bool RENDER_PLAYER_PROBE = false;
+
 // Timings
 float CurrentTime = glfwGetTime();
 float Frametime = 0.0f;
@@ -672,6 +675,51 @@ void UnbindEverything() {
 	glUseProgram(0);
 }
 
+
+void RenderProbe(Candela::ProbeMap& probe, int face, glm::vec3 center, std::vector<Candela::Entity*> EntityList, GLClasses::Shader& shader) {
+
+	if (face >= 6) {
+		throw "What.";
+	}
+
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+
+	probe.CapturePoints[face] = center;
+
+	const glm::mat4 projection_matrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 800.0f);
+	const glm::mat4 inverse_projection = glm::inverse(projection_matrix);
+
+	std::array<glm::mat4, 6> view_matrices =
+	{
+		glm::lookAt(center, center + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(center, center + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(center, center + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+		glm::lookAt(center, center + glm::vec3(0.0f,-1.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+		glm::lookAt(center, center + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(center, center + glm::vec3(0.0f, 0.0f,-1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+	};
+
+	probe.BindFace(face, false);
+	shader.Use();   
+	glClearColor(0., 0., 0., 0.);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	shader.SetVector3f("u_CapturePosition", center);
+	shader.SetMatrix4("u_ViewProjection", projection_matrix * view_matrices[face]);
+	shader.SetInteger("u_AlbedoMap", 0);
+	shader.SetInteger("u_NormalMap", 1);
+	shader.SetInteger("u_RoughnessMap", 2);
+	shader.SetInteger("u_MetalnessMap", 3);
+	shader.SetInteger("u_MetalnessRoughnessMap", 5);
+	RenderEntityList(EntityList, shader, false);
+
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+
+	//glDisable(GL_CULL_FACE);
+}
+
+
 template <typename T>
 void SetCommonUniforms(T& shader, CommonUniforms& uniforms) {
 	shader.SetFloat("u_Time", glfwGetTime());
@@ -944,6 +992,7 @@ void Candela::StartPipeline()
 	GLClasses::Shader& GlassDeferredShaderStochastic = ShaderManager::GetShader("GLASS_DEFERRED_ST");
 	GLClasses::Shader& BasicBlitShader = ShaderManager::GetShader("BASIC_BLIT");
 	GLClasses::Shader& GenerateHQN = ShaderManager::GetShader("GEN_HQN");
+	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE");
 
 	// Matrices
 	glm::mat4 PreviousView;
@@ -1000,6 +1049,10 @@ void Candela::StartPipeline()
 
 	// Misc 
 	GLClasses::Framebuffer* FinalDenoiseBufferPtr = &SpatialBuffers[0];
+
+	// Probe
+	ProbeMap PlayerProbe(96);
+
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -1172,9 +1225,14 @@ void Candela::StartPipeline()
 
 		ShadowHandler::CalculateClipPlanes(Camera.GetProjectionMatrix());
 		
+		// Hemispherical SM
 		if (DoHSM) {
 			ShadowHandler::UpdateSkyShadowMaps(app.GetCurrentFrame(), Camera.GetPosition(), EntityRenderList);
 		}
+
+		// Render player probe
+		if (RENDER_PLAYER_PROBE)
+			RenderProbe(PlayerProbe, app.GetCurrentFrame() % 6, Camera.GetPosition(), EntityRenderList, ProbeForwardShader);
 
 		// Update probes
 		if (UpdateIrradianceVolume) {
@@ -1860,6 +1918,7 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_Volumetrics", 17);
 		LightingShader.SetInteger("u_NormalLFTexture", 18);
 		LightingShader.SetInteger("u_DebugTexture", 19);
+		LightingShader.SetInteger("u_ProbePlayer", 20);
 		LightingShader.SetInteger("u_DebugMode", DebugMode);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 
@@ -1937,6 +1996,17 @@ void Candela::StartPipeline()
 		
 		glActiveTexture(GL_TEXTURE19);
 		glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
+
+		if (RENDER_PLAYER_PROBE) {
+			glActiveTexture(GL_TEXTURE20);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, PlayerProbe.m_CubemapTexture);
+
+			glActiveTexture(GL_TEXTURE21);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, PlayerProbe.m_DepthCubemap);
+
+			glActiveTexture(GL_TEXTURE22);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, PlayerProbe.NormalPBRPackedCubemap);
+		}
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, DOFSSBO);
