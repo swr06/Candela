@@ -480,8 +480,9 @@ public:
 				ImGui::SliderFloat("TAA Clip Bias (Higher values = More ghosting and less flickering)", &TAAClipBias, 0.0f, 0.15f);
 			}
 
-			if (InternalRenderResolution < 1.01f && DoTAA)
+			if (InternalRenderResolution < 0.99f && DoTAA) {
 				ImGui::Checkbox("AMD FSR?", &FSR);
+			}
 
 			ImGui::NewLine();
 
