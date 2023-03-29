@@ -53,6 +53,8 @@ uniform bool u_DoVolumetrics;
 uniform bool u_Enabled;
 uniform bool u_RoughSpec;
 
+uniform bool u_ClipDiffuse;
+
 // GBuffer
 float LinearizeDepth(float depth)
 {
@@ -190,6 +192,8 @@ void main() {
 		vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
 		GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff, false);
 
+		//vec4 Variance = sqrt(abs(MomentsDiff - MeanDiff * MeanDiff));
+
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
 		float ReprojectedDepth = texture(u_PreviousDepth, Reprojected.xy).x;
 		vec3 ReprojectedNormals = normalize(texture(u_PreviousNormals, Reprojected.xy).xyz);
@@ -215,9 +219,17 @@ void main() {
 
 			vec4 History = texture(u_DiffuseHistory, Reprojected.xy);
 
-			//History.xyz = clamp(History.xyz, MinDiff.xyz - 0.05f, MaxDiff.xyz + 0.05f);
-			o_Diffuse.xyz = mix(CurrentDiffuse.xyz, History.xyz, BlendFactor);
+			//float ClipStrength = 0.5f;
+			//History.xyz = (ClipToAABB(History.xyz, MeanDiff.xyz - Variance.xyz * ClipStrength, MeanDiff.xyz + Variance.xyz * ClipStrength));
 
+			if (u_ClipDiffuse) {
+				float Bias = 0.06f;
+				History.xyz = ClipToAABB(History.xyz, MinDiff.xyz - Bias, MaxDiff.xyz + Bias);
+			}
+
+			//o_Diffuse.xyz = InverseReinhard(mix(Reinhard(CurrentDiffuse.xyz), Reinhard(History.xyz), BlendFactor));
+			o_Diffuse.xyz = mix(CurrentDiffuse.xyz, History.xyz, BlendFactor);
+				
 			vec2 HistoryMoments = texture(u_MomentsHistory, Reprojected.xy).xy;
 			o_Moments = mix(DiffuseMoments, HistoryMoments, BlendFactor);
 

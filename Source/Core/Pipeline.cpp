@@ -122,7 +122,10 @@ static bool DoFullRTSpecular = false;
 // Filtering 
 static bool HQTextureFiltering = false;
 static bool DoCheckering = true;
+
 static bool DoTemporal = true;
+static bool ClipDiffuse = false;
+
 static bool DoSpatial = true;
 static float SVGFStrictness = 0.2f;
 static bool DoSpatialUpscaling = true;
@@ -470,6 +473,10 @@ public:
 			ImGui::Checkbox("Use Blue Noise Sampling?", &DO_BL_SAMPLING);
 			ImGui::NewLine();
 			ImGui::Checkbox("Temporal Filtering?", &DoTemporal);
+
+			if (DoTemporal)
+				ImGui::Checkbox("Enable Temporal Clipping? (Reduces temporal lag substantially but increases noise slightly)", &ClipDiffuse);
+
 			ImGui::NewLine();
 			ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
 			ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
@@ -1702,6 +1709,7 @@ void Candela::StartPipeline()
 		TemporalFilterShader.SetBool("u_DoVolumetrics", DoVolumetrics && VolumetricsTemporal);
 		TemporalFilterShader.SetBool("u_Enabled", DoTemporal);
 		TemporalFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
+		TemporalFilterShader.SetBool("u_ClipDiffuse", ClipDiffuse);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
