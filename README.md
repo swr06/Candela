@@ -23,7 +23,8 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 - Custom SAH BVH Constructor and Ray Intersection API
 - Support for Stack/Stackless BVH traversal
 - Physically based direct lighting (Cook Torrance BRDF)
-- Cascaded Shadow Mapping + PCF
+- Cascaded Shadow Mapping + PCF Filtering 
+- Screenspace shadowing 
 - Indirect Diffuse GI
 - Infinite bounce GI using irradiance probes
 - Hemispherical Shadow Maps for a sky shadowing approximation

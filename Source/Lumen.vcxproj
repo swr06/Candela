@@ -324,6 +324,7 @@
     <None Include="Core\Shaders\Include\Library\FSR.glsl" />
     <None Include="Core\Shaders\Include\Physics.glsl" />
     <None Include="Core\Shaders\Include\ProbeDebug.glsl" />
+    <None Include="Core\Shaders\Include\RaytraceProbe.glsl" />
     <None Include="Core\Shaders\Include\SampleSkyVisibilityHemisSM.glsl" />
     <None Include="Core\Shaders\Include\SphereGridSDF.glsl" />
     <None Include="Core\Shaders\IntegrateDFG.glsl" />

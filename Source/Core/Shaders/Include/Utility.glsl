@@ -6,6 +6,15 @@
 #define rcp(x) (1.0f/x)
 #define clamp01(x) (saturate(x))
 
+struct GBufferData {
+   vec3 Position;
+   vec3 Normal;
+   vec3 Albedo;
+   bool ValidMask;
+   float SkyAmount;
+   float Depth;
+};
+
 float max_of(vec2 v) { return max(v.x, v.y); }
 float max_of(vec3 v) { return max(v.x, max(v.y, v.z)); }
 float max_of(vec4 v) { return max(v.x, max(v.y, max(v.z, v.w))); }

@@ -44,8 +44,11 @@ uniform vec3 u_LightDirection;
 uniform mat4 u_InverseView;
 uniform mat4 u_InverseProjection;
 uniform mat4 u_Projection;
+uniform mat4 u_ViewProjection;
 uniform mat4 u_View;
 uniform vec2 u_Dims;
+
+uniform bool u_DoSSShadow;
 
 uniform int u_Frame;
 
@@ -98,6 +101,14 @@ vec3 WorldPosFromDepth(float depth, vec2 txc)
     return WorldPos.xyz;
 }
 
+vec3 ProjectToClipSpace(vec3 WorldPos) 
+{
+	vec4 ProjectedPosition = u_ViewProjection * vec4(WorldPos, 1.0f);
+	ProjectedPosition.xyz /= ProjectedPosition.w;
+	return ProjectedPosition.xyz;
+}
+
+
 vec2 GetVogelDiskSample(int sampleIndex, int sampleCount, float phi) 
 {
     const float goldenAngle = 2.399963f;
@@ -107,6 +118,79 @@ vec2 GetVogelDiskSample(int sampleIndex, int sampleCount, float phi)
 	sincos.x = sin(theta);
     sincos.y = cos(theta);
     return sincos.xy * r;
+}
+
+
+float ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, float Hash, const int Steps, const int BinarySteps, const float ThresholdMultiplier, float Distance) {
+
+    float TraceDistance = Distance;
+    float StepSize = TraceDistance / Steps;
+    vec3 RayPosition = Origin + Direction * StepSize * Hash * 0.66f;
+    float FinalDepth = 0.0f;
+
+	float DepthSample, DepthLinear;
+
+	vec3 ProjectedRayScreenspace;
+
+    for (int Step = 0 ; Step < Steps ; Step++) {
+
+        RayPosition += StepSize * Direction;
+        ProjectedRayScreenspace = ProjectToClipSpace(RayPosition); 
+		
+		if(abs(ProjectedRayScreenspace.x) > 1.0f || abs(ProjectedRayScreenspace.y) > 1.0f || abs(ProjectedRayScreenspace.z) > 1.0f) 
+		{
+			return 1.0f;
+		}
+		
+		ProjectedRayScreenspace.xyz = ProjectedRayScreenspace.xyz * 0.5f + 0.5f; 
+
+		// Depth texture uses nearest filtering
+		DepthSample = texture(u_DepthTexture, ProjectedRayScreenspace.xy).x;
+        DepthLinear = LinearizeDepth(DepthSample); 
+		FinalDepth = LinearizeDepth(ProjectedRayScreenspace.z); 
+		float Error = abs(DepthLinear - FinalDepth);
+
+        if (Error < StepSize * ThresholdMultiplier * float(BinarySteps) && ProjectedRayScreenspace.z > DepthSample) 
+		{
+			vec3 BinaryStepVector = StepSize * Direction;
+
+			for (int BinaryStep = 0 ; BinaryStep < BinarySteps ; BinaryStep++) 
+			{
+			    BinaryStepVector *= 0.5f;
+			    ProjectedRayScreenspace = ProjectToClipSpace(RayPosition); 
+			    ProjectedRayScreenspace = ProjectedRayScreenspace * 0.5f + 0.5f;
+
+                FinalDepth = texture(u_DepthTexture, ProjectedRayScreenspace.xy).x;
+
+			    if (FinalDepth < ProjectedRayScreenspace.z) 
+                {
+			    	RayPosition -= BinaryStepVector;
+			    }
+
+			    else
+                {
+			    	RayPosition += BinaryStepVector;
+			    }
+
+			}
+
+			Error = abs(LinearizeDepth(FinalDepth) - LinearizeDepth(ProjectedRayScreenspace.z));
+
+			if (Error < StepSize * ThresholdMultiplier) {
+				float Transversal = distance(RayPosition, Origin) / TraceDistance;
+				return 0.0f;
+			}
+
+			break;
+        }
+
+        if (ProjectedRayScreenspace.z > DepthSample) {  
+			break;
+        }
+
+    }
+
+	return 1.0f;
 }
 
 float SampleShadowMap(vec3 SampleUV, int Map) {
@@ -157,7 +241,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool
 
 	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	
-		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * Biases[Cascade] * u_ShadowBiasMult.x, 1.0f);
+		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * Biases[Cascade] * u_ShadowBiasMult.x * 2.5f, 1.0f);
 
 		if (abs(ProjectionCoordinates.x) < HashBorder && abs(ProjectionCoordinates.y) < HashBorder && ProjectionCoordinates.z < 1.0f 
 		    && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
@@ -179,7 +263,7 @@ float FilterShadows(vec3 WorldPosition, vec3 N, int Samples, float ExpStep, bool
 		return 1.0f;
 	}
 	
-	float Bias = 0.00005f * u_ShadowBiasMult.y;
+	float Bias = 0.000005f * u_ShadowBiasMult.y;
 
 	vec2 TexelSize = 1.0f / textureSize(u_ShadowTextures[ClosestCascade], 0).xy;
 
@@ -219,6 +303,11 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
+float SmoothMin(float a, float b, float k) {
+    float h = clamp(0.5 + 0.5*(a-b)/k, 0.0, 1.0);
+    return mix(a, b, h) - k*h*(1.0-h);
+}
+
 const vec3 SunColor = SUN_COLOR_LIGHTING;
 
 void main() 
@@ -226,6 +315,7 @@ void main()
 
 	vec3 rO = u_InverseView[3].xyz;
 	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
+	float BayerHash = fract(fract(mod(float(u_Frame), 256.0f) * (1.0 / 1.61803398)) + bayer32(gl_FragCoord.st));
 
 	float SurfaceDistance = 1000000.0f;
 
@@ -307,7 +397,13 @@ void main()
 
 	#endif
 
-	float Shadows = FilterShadows(WorldPosition, Normal, 8, 1.0f, true);
+	float FilteredShadows = FilterShadows(WorldPosition, Normal, 8, 1.0f, true);
+	float Shadows = FilteredShadows;
+	
+	if (u_DoSSShadow) {
+		float ScreenspaceShadow = ScreenspaceRaytrace(WorldPosition + Normal * 0.035f, -u_LightDirection, BayerHash, 17, 8, 0.0038f, 1.6);
+		Shadows = min(Shadows, ScreenspaceShadow);
+	}
 
 	vec3 Direct = CookTorranceBRDF(u_ViewerPosition, WorldPosition, u_LightDirection, SunColor, Albedo, Normal, vec2(PBR.x, PBR.y), Shadows) ;
 	
@@ -315,7 +411,7 @@ void main()
 
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect + EmissiveColor;
 
-	o_Color = Combined;
+	o_Color = Combined.xyz;
 
 	if (u_DebugMode == 0) {
 		DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);

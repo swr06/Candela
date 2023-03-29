@@ -136,6 +136,9 @@ static int VolumetricsSteps = 24;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
+// Screenspace shadow
+static bool DoScreenspaceShadow = false;
+
 // Post 
 static bool DoTAA = true;
 static float TAAStrengthMultiplier = 1.0f;
@@ -418,6 +421,8 @@ public:
 			ImGui::SliderInt("Shadowmap Update Rate (Increasing this parameter will result in more responsive shadows at the cost of performance)", &ShadowmapUpdateRate, 1, 5);
 			ImGui::SliderFloat("Shadow Normal Bias Multiplier (To reduce shadow acne/flickering)", &ShadowNBiasMultiplier, 0.25f, 6.0f);
 			ImGui::SliderFloat("Shadow Sample Bias Multiplier (To reduce shadow acne/flickering)", &ShadowSBiasMultiplier, 0.25f, 8.0f);
+			ImGui::NewLine();
+			ImGui::Checkbox("Do Screenspace Shadows? (More detailed small scale shadows.)", &DoScreenspaceShadow);
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Update Irradiance Volume?", &UpdateIrradianceVolume);
@@ -1231,8 +1236,17 @@ void Candela::StartPipeline()
 		}
 
 		// Render player probe
-		if (RENDER_PLAYER_PROBE)
-			RenderProbe(PlayerProbe, app.GetCurrentFrame() % 6, Camera.GetPosition(), EntityRenderList, ProbeForwardShader);
+		if (RENDER_PLAYER_PROBE) {
+			bool dynamic = true;
+			if (dynamic) {
+				for (int i = 0; i < 6 ; i++)
+					RenderProbe(PlayerProbe, i, Camera.GetPosition(), EntityRenderList, ProbeForwardShader);
+			}
+			
+			else {
+				RenderProbe(PlayerProbe, app.GetCurrentFrame() % 6, Camera.GetPosition(), EntityRenderList, ProbeForwardShader);
+			}
+		}
 
 		// Update probes
 		if (UpdateIrradianceVolume) {
@@ -1919,12 +1933,21 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_NormalLFTexture", 18);
 		LightingShader.SetInteger("u_DebugTexture", 19);
 		LightingShader.SetInteger("u_ProbePlayer", 20);
+		LightingShader.SetInteger("u_ProbePlayerDepth", 21);
 		LightingShader.SetInteger("u_DebugMode", DebugMode);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
+		LightingShader.SetBool("u_DoSSShadow", DoScreenspaceShadow);
 
 		LightingShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
 
 		LightingShader.SetVector2f("u_ShadowBiasMult", glm::vec2(ShadowNBiasMultiplier,ShadowSBiasMultiplier));
+
+
+		for (int i = 0; i < 6; i++) {
+			std::string name = "u_ProbeCapturePoints[" + std::to_string(i) + "]";
+			LightingShader.SetVector3f(name.c_str(), PlayerProbe.CapturePoints[i]);
+		}
+
 		
 		SetCommonUniforms<GLClasses::Shader>(LightingShader, UniformBuffer);
 
