@@ -153,6 +153,18 @@ See `Credits.txt`.
 
 </br>
 
+</br>
+
+![s16](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/16.png)
+
+</br>
+
+</br>
+
+![s17](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/17.png)
+
+</br>
+
 # Supporting
 
 If you like this project and would like to show your support, please consider starring the project on github. :)
