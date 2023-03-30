@@ -56,8 +56,8 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 Runs at around 24 fps on a AMD Vega 11 (desktop) iGPU. 
 
 # Known Issues
-- Volumetrics prone to light leaking
-- Temporal/Spatial artifacts (usually in the form of noise, ghosting or temporal lag) on aggressive movement or sudden lighting changes
+- Volumetrics and infinite bounce GI prone to light leaking.
+- Temporal/Spatial artifacts (usually in the form of noise, ghosting or temporal lag) on aggressive movement or sudden lighting changes.
 
 # Notes
 - Refer `Controls.txt` for engine controls/shortcuts.
