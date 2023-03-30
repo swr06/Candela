@@ -857,6 +857,7 @@ void Candela::StartPipeline()
 
 	// - Test models -
 	// uncomment to try them out :)
+	//FileLoader::LoadModelFile(&MainModel, "Models/architecture/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	//FileLoader::LoadModelFile(&MetalObject, "Models/monke/Suzanne.gltf");

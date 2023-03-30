@@ -189,9 +189,7 @@ void main() {
 	// Diffuse 
 	if (IsInScreenspaceBiased(Reprojected)) 
 	{
-		vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
-		GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff, false);
-
+		
 		//vec4 Variance = sqrt(abs(MomentsDiff - MeanDiff * MeanDiff));
 
 		ivec2 ReprojectedPixel = ivec2(Reprojected.xy * vec2(Dimensions));
@@ -223,7 +221,10 @@ void main() {
 			//History.xyz = (ClipToAABB(History.xyz, MeanDiff.xyz - Variance.xyz * ClipStrength, MeanDiff.xyz + Variance.xyz * ClipStrength));
 
 			if (u_ClipDiffuse) {
-				float Bias = 0.06f;
+				vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
+				GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff, false);
+
+				float Bias = 0.05f;
 				History.xyz = ClipToAABB(History.xyz, MinDiff.xyz - Bias, MaxDiff.xyz + Bias);
 			}
 
