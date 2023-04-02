@@ -78,9 +78,7 @@ vec3 ApproximateRefract(vec3 ViewSpacePosition, vec3 ViewSpacePositionUnderwater
 	return HitCoordinate;
 }
 
-vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps, const float ThresholdMultiplier) {
-
-    float TraceDistance = 48.0f;
+vec4 ScreenspaceRaytrace(const vec3 Origin, const vec3 Direction, const int Steps, const int BinarySteps, const float ThresholdMultiplier, float TraceDistance) {
 
     float StepSize = TraceDistance / Steps;
 
@@ -200,7 +198,7 @@ void main() {
 
 	float Transversal = (OpaqueDepth > 0.9999999999f || OpaqueDepth == 1.0f) ? 1000.0f : distance(WorldPosition, WorldPositionOpaque);
 
-	Transversal = clamp(Transversal, 0.0f, 32.0f);
+	Transversal = clamp(Transversal, 0.0f, 64.0f);
 
 	vec3 Normal = normalize(texelFetch(u_Normals, HighResPixel, 0).xyz);
 
@@ -209,7 +207,9 @@ void main() {
 
 	vec3 RefractedDirection = refract(Incident, Normal, 1.0f / 1.52f);
 
-	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, u_HQ ? 20 : 8, u_HQ ? 12 : 6, u_HQ ? 0.003f : 0.005f);
+	float ApproximateTraceDistance = min(Transversal * 1.33333f, 48.0f); //mix(min(Transversal, 48.0f), 48.0f, 0.5f);
+
+	vec4 Res = ScreenspaceRaytrace(WorldPosition, RefractedDirection, u_HQ ? 20 : 8, u_HQ ? 12 : 6, u_HQ ? 0.003f : 0.005f, ApproximateTraceDistance);
 
 	if (Res.xy != clamp(Res.xy, 0.001f, 0.999f)) {
 		
