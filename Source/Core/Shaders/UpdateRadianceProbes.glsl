@@ -236,6 +236,65 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 	return vec3(0.0f);
 }
 
+
+vec3 SampleProbes(vec3 WorldPosition, vec3 N, out vec3 Min, out vec3 Max) {
+
+	WorldPosition += N * 0.45f;
+
+	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
+	SamplePoint = SamplePoint * 0.5 + 0.5; 
+
+	vec3 MinB = vec3(-1000.0f);
+	vec3 MaxB = vec3(1000.0f);
+
+	if (SamplePoint == clamp(SamplePoint, 0.0f, 1.0f)) {
+		
+		MinB *= -1.0f;
+		MaxB *= -1.0f;
+
+		vec3 VolumeCoords = SamplePoint * (u_Resolution);
+		
+		vec3 MinSampleBox = floor(VolumeCoords);
+		vec3 MaxSampleBox = ceil(VolumeCoords);
+
+		float Alpha = 0.0f;
+		float Trilinear[8] = Trilinear(MinSampleBox, MaxSampleBox, VolumeCoords);
+		ivec3 TexelCoordinates[8];
+		SH sh[8];
+
+		TexelCoordinates[0] = ivec3(vec3(MinSampleBox.x, MinSampleBox.y, MinSampleBox.z)); 
+		TexelCoordinates[1] = ivec3(vec3(MinSampleBox.x, MaxSampleBox.y, MinSampleBox.z));
+		TexelCoordinates[2] = ivec3(vec3(MaxSampleBox.x, MaxSampleBox.y, MinSampleBox.z)); 
+		TexelCoordinates[3] = ivec3(vec3(MaxSampleBox.x, MinSampleBox.y, MinSampleBox.z));
+		TexelCoordinates[4] = ivec3(vec3(MinSampleBox.x, MinSampleBox.y, MaxSampleBox.z));
+		TexelCoordinates[5] = ivec3(vec3(MinSampleBox.x, MaxSampleBox.y, MaxSampleBox.z));
+		TexelCoordinates[6] = ivec3(vec3(MaxSampleBox.x, MaxSampleBox.y, MaxSampleBox.z)); 
+		TexelCoordinates[7] = ivec3(vec3(MaxSampleBox.x, MinSampleBox.y, MaxSampleBox.z));
+
+		for (int i = 0 ; i < 8 ; i++) {
+			sh[i] = GetSH(TexelCoordinates[i]);
+			vec3 Radiosity = SampleSH(sh[i]);
+			MinB = min(MinB, Radiosity);
+			MaxB = max(MaxB, Radiosity);
+			float ProbeVisibility = GetVisibility(TexelCoordinates[i], WorldPosition, N);
+			Alpha += Trilinear[i] * (1.0f - ProbeVisibility);
+			Trilinear[i] *= ProbeVisibility;
+		}
+
+		float WeightSum = 1.0f - Alpha;
+		SH FinalSH = GenerateEmptySH();
+
+		for (int i = 0 ; i < 8 ; i++) {
+			ScaleSH(sh[i], vec3(Trilinear[i] / max(WeightSum, 0.000001f)));
+			FinalSH = AddSH(FinalSH, sh[i]);
+		}
+
+		return max(SampleSH(FinalSH, N), 0.0f);
+	}
+
+	return vec3(0.0f);
+}
+
 vec4 Reproject(vec3 WorldPosition) {
 
 	vec3 SamplePoint = (WorldPosition - u_PreviousOrigin) / u_Size; 
@@ -302,6 +361,7 @@ vec3 LambertBRDF(vec3 Hash)
     return vec3(x, y, z);
 }
 
+// Take luminance of radiance as probability distribution
 vec3 ImportanceSample(int PixelStartOffset) {
 
 	bool ShouldImportanceSample = false;
@@ -414,8 +474,10 @@ void main() {
 	float Depth = TUVW.x < 0.0f ? 256.0f : TUVW.x;
 	float DepthSqr = Depth * Depth;
 
+	// Write sh -> 
 	SH FinalSH = EncodeSH(FinalRadiance, DiffuseDirection);
 
+	// Succcessful reprojection
 	int AccumulatedFrames = 0;
 
 	if (Reprojected.w > 0.01f)

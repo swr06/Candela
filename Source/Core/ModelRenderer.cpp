@@ -72,16 +72,17 @@ void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& f
 		}
 
 		shader.SetBool("u_UsesGLTFPBR", false);
-		shader.SetBool("u_UsesAlbedoTexture", mesh->m_AlbedoMap.GetID() > 0);
-		shader.SetBool("u_UsesRoughnessMap", mesh->m_RoughnessMap.GetID() > 0);
-		shader.SetBool("u_UsesMetalnessMap", mesh->m_MetalnessMap.GetID() > 0);
-		shader.SetBool("u_UsesNormalMap", mesh->m_NormalMap.GetID() > 0);
-		shader.SetVector3f("u_EmissiveColor", mesh->m_EmissivityColor);
+		shader.SetBool("u_UsesAlbedoTexture", mesh->m_AlbedoMap.GetID() > 0 && entity.m_UseAlbedoMap);
+		shader.SetBool("u_UsesRoughnessMap", mesh->m_RoughnessMap.GetID() > 0 && entity.m_UsePBRMap);
+		shader.SetBool("u_UsesMetalnessMap", mesh->m_MetalnessMap.GetID() > 0 && entity.m_UsePBRMap);
+		shader.SetBool("u_UsesNormalMap", mesh->m_NormalMap.GetID() > 0 && entity.m_UsePBRMap);
+		shader.SetVector3f("u_EmissiveColor", mesh->m_EmissivityColor); 
 		shader.SetFloat("u_EmissivityAmount", entity.m_EmissiveAmount);
 		shader.SetVector3f("u_ModelColor", mesh->m_Color);
 		shader.SetFloat("u_ModelEmission", entity.m_EmissiveAmount);
 		shader.SetFloat("u_EntityRoughness", entity.m_EntityRoughness);
 		shader.SetFloat("u_EntityMetalness", entity.m_EntityMetalness);
+		shader.SetFloat("m_EntityRoughnessMultiplier", entity.m_EntityRoughnessMultiplier);
 		shader.SetFloat("u_Transparency", entity.m_TranslucencyAmount);
 		shader.SetFloat("u_GlassFactor", entity.m_TranslucencyAmount);
 		shader.SetInteger("u_EntityNumber", entity_num);

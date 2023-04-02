@@ -29,6 +29,7 @@ uniform vec3 u_ModelColor;
 
 uniform float u_EntityRoughness;
 uniform float u_EntityMetalness;
+uniform float m_EntityRoughnessMultiplier;
 uniform float u_EmissivityAmount;
 
 uniform float u_GlassFactor;
@@ -59,7 +60,7 @@ void main()
 	const bool Whiteworld = false;
 	const bool GenerateNormals = false;
 
-	vec3 Incident = normalize(v_FragPosition - u_ViewerPosition);
+	vec3 Incident = normalize(v_FragPosition - u_ViewerPosition); 
 
 	vec2 AlbedoTexSize = textureSize(u_AlbedoMap, 0);
 	o_Albedo.xyz = Whiteworld ? vec3(1.0f) : (u_UsesAlbedoTexture ? (u_CatmullRom ? CatmullRom(u_AlbedoMap, v_TexCoords, LODBias).xyz : texture(u_AlbedoMap, v_TexCoords, LODBias).xyz) : u_ModelColor);
@@ -99,7 +100,7 @@ void main()
 	}
 
 	o_PBR.x *= pow(1.0f - u_GlassFactor, 4.0f);
-	o_PBR.x = clamp(o_PBR.x * u_RoughnessMultiplier, 0.00000001f, 1.0f);
+	o_PBR.x = clamp(o_PBR.x * u_RoughnessMultiplier * m_EntityRoughnessMultiplier, 0.00000001f, 1.0f);
 
 	o_PBR.w = u_ModelEmission;
 

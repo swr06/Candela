@@ -6,6 +6,10 @@ layout (location = 0) out vec4 o_Data;
 layout (location = 1) out vec4 o_Albedo;
 
 uniform sampler2D u_AlbedoMap;
+
+uniform bool u_UsesAlbedoTexture;
+uniform vec3 u_ModelColor;
+
 uniform sampler2D u_NormalMap;
 
 uniform float u_GlassFactor;
@@ -73,5 +77,5 @@ void main()
 	}
 	
 	o_Data = vec4(HQN.xyz, float(u_EntityNumber + 2));
-	o_Albedo = vec4(texture(u_AlbedoMap, v_TexCoords).xyz, u_GlassFactor);
+	o_Albedo = vec4(u_UsesAlbedoTexture ? texture(u_AlbedoMap, v_TexCoords).xyz : u_ModelColor, u_GlassFactor);
 }

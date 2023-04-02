@@ -365,6 +365,30 @@ public:
 
 					}
 				}
+
+				// Entity window 
+				ImGui::Begin("Entity Settings");
+				ImGui::NewLine();
+
+				std::string filename = SelectedEntity->m_Object->Path;
+				size_t Idx = filename.find_last_of("\\/");
+				if (std::string::npos != Idx)
+				{ 
+					filename.erase(0, Idx + 1);
+				}
+
+
+				ImGui::Text("Entity has parent object with model : %s", filename.c_str());
+				ImGui::Text("Entity Position : %f %f %f", SelectedEntity->m_Model[3].x, SelectedEntity->m_Model[3].y, SelectedEntity->m_Model[3].z);
+				ImGui::SliderFloat("Emissivity", &SelectedEntity->m_EmissiveAmount, 0.0f, 32.0f);
+				ImGui::SliderFloat("Entity Roughness Multiplier", &SelectedEntity->m_EntityRoughnessMultiplier, 0.0f, 8.0f);
+				ImGui::SliderFloat("Entity Roughness", &SelectedEntity->m_EntityRoughness, 0.0f, 8.0f);
+				ImGui::SliderFloat("Entity Metalness", &SelectedEntity->m_EntityMetalness, 0.0f, 1.0f);
+				ImGui::SliderFloat("Translucency Amount", &SelectedEntity->m_TranslucencyAmount, 0.0f, 1.0f);
+				ImGui::NewLine();
+				ImGui::Checkbox("Use Albedo map?", &SelectedEntity->m_UseAlbedoMap);
+				ImGui::Checkbox("Use PBR/Normal map?", &SelectedEntity->m_UsePBRMap);
+				ImGui::End();
 			}
 
 			// Draw frametime graph 
@@ -663,7 +687,7 @@ public:
 				glfwGetCursorPos(this->m_Window, &mxx, &myy);
 				myy = (double)this->GetHeight() - myy;
 				DOFFocusPoint = glm::vec2((float)mxx, (float)myy);
-			}
+			} 
 		}
 	}
 

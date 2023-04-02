@@ -1,0 +1,11 @@
+Model Information:
+* title:	Lucy
+* source:	https://sketchfab.com/3d-models/lucy-532f4db9bcb14fed97c6c26da917e155
+* author:	uptown (https://sketchfab.com/uptown)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Lucy" (https://sketchfab.com/3d-models/lucy-532f4db9bcb14fed97c6c26da917e155) by uptown (https://sketchfab.com/uptown) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

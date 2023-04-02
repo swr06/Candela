@@ -33,6 +33,7 @@ namespace Candela
 		float m_EmissiveAmount = 0.0f;
 		float m_EntityRoughness = 0.75f;
 		float m_EntityMetalness = 0.0f;
+		float m_EntityRoughnessMultiplier = 1.0f;
 
 		// 1.0 -> Completely translucent
 		// 0.0 -> Opaque
@@ -41,5 +42,7 @@ namespace Candela
 		Physics::PhysicsObject m_PhysicsObject;
 
 		bool m_IsPhysicsObject = false;
+		bool m_UseAlbedoMap = true;
+		bool m_UsePBRMap = true;
 	};
 }
