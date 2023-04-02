@@ -354,7 +354,7 @@ namespace GLClasses
 			if (loc == -1)
 			{
 				std::stringstream s;
-				std::cout << "\nERROR! : UNIFORM NOT FOUND IN COMPUTE SHADER !    |    UNIFORM : " << uniform_name << "  \n\n";
+				//std::cout << "\nERROR! : UNIFORM NOT FOUND IN COMPUTE SHADER !    |    UNIFORM : " << uniform_name << "  \n\n";
 				s << "\nERROR! : UNIFORM NOT FOUND IN COMPUTE SHADER !    |    UNIFORM : " << uniform_name << "  \n\n";
 
 				Candela::Logger::LogToFile(s.str());

@@ -297,6 +297,9 @@
     <ClInclude Include="Dependencies\implot\implot_internal.h">
       <Filter>Source Files\Dependencies\implot</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Tonemap.h">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -472,6 +475,9 @@
     </ClCompile>
     <ClCompile Include="Dependencies\implot\implot_items.cpp">
       <Filter>Source Files\Dependencies\implot</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Tonemap.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -716,6 +722,9 @@
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
     <None Include="Core\Shaders\Include\RaytraceProbe.glsl">
+      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
+    </None>
+    <None Include="Core\Shaders\Include\BRDF.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders\Include</Filter>
     </None>
   </ItemGroup>

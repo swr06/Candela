@@ -1,0 +1,1 @@
+If any asset used in this project belongs to you and you want it removed, please message me and I will sort it out.

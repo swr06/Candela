@@ -39,6 +39,7 @@ uniform sampler2D u_DebugTexture;
 
 uniform samplerCube u_ProbePlayer;
 
+uniform float u_RTAOStrength;
 uniform vec3 u_ViewerPosition;
 uniform vec3 u_LightDirection;
 uniform mat4 u_InverseView;
@@ -389,7 +390,7 @@ void main()
 
 		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
 		
-		float AO = clamp(pow(GI.w, 1.4f) + 0.0f, 0.0f, 1.0f);
+		float AO = clamp(pow(GI.w, 1.4f * u_RTAOStrength) + 0.0f, 0.0f, 1.0f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * IndirectStrength.x * AO;
 
 		const mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);

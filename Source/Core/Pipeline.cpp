@@ -38,6 +38,8 @@ PLEASE DO NOT CLAIM MY WORK AS YOUR OWN.
 #include "ProbeGI.h"
 #include "Utils/Timer.h"
 
+#include "Tonemap.h"
+
 #include "ProbeMap.h"
 
 #include <string>
@@ -110,6 +112,7 @@ static bool DoMultiBounce = true;
 static bool DoInfiniteBounceGI = true;
 static bool IndirectSSCaustics = true;
 static bool DO_BL_SAMPLING = false;
+static float RTAOStrength = 1.0f;
 
 // Irradiance volume 
 static bool UpdateIrradianceVolume = true;
@@ -143,6 +146,8 @@ static bool VolumetricsSpatial = true;
 static bool DoScreenspaceShadow = false;
 
 // Post 
+static int SelectedTonemap = 0;
+
 static bool DoTAA = true;
 static float TAAStrengthMultiplier = 1.0f;
 static float TAAClipBias = 0.0f;
@@ -466,6 +471,8 @@ public:
 				//ImGui::Checkbox("Screenspace Indirect Caustics?", &IndirectSSCaustics);
 			}
 
+			ImGui::SliderFloat("Ray Traced Ambient Occlusion Strength", &RTAOStrength, 0.0f, 4.0f);
+
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Rough Specular?", &DoRoughSpecular);
@@ -534,7 +541,31 @@ public:
 
 			ImGui::NewLine();
 			ImGui::NewLine();
-			ImGui::SliderFloat("Exposure Multiplier", &ExposureMultiplier, 0.01f, 4.0f);
+			
+			// Tonemap types 
+			const char* PostProcessTonemaps[] = { "ACES", "TonyMcMapFace", "ACES Filmic/Cinematic", "Lottes", "Hejl Burgess", "RomBinDaHouse", "Uncharted 2", "None"};
+			static const char* CurrentTonemapLabel = PostProcessTonemaps[0];
+
+			if (ImGui::BeginCombo("Tonemappers", CurrentTonemapLabel))
+			{
+				for (int n = 0; n < IM_ARRAYSIZE(PostProcessTonemaps); n++)
+				{
+					bool is_selected = (CurrentTonemapLabel == PostProcessTonemaps[n]);
+					if (ImGui::Selectable(PostProcessTonemaps[n], is_selected))
+					{
+						SelectedTonemap = n;
+						CurrentTonemapLabel = PostProcessTonemaps[n];
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+
+			
+			ImGui::SliderFloat("Camera Exposure Multiplier", &ExposureMultiplier, 0.001f, 8.0f);
+			ImGui::NewLine();
 			ImGui::Checkbox("Bloom?", &DoBloom);
 			ImGui::Checkbox("Depth of Field?", &DoDOF);
 			if (DoDOF) {
@@ -1089,6 +1120,10 @@ void Candela::StartPipeline()
 
 	// Probe
 	ProbeMap PlayerProbe(96);
+
+	// Initialize tonymcmapface tonemapper 
+	GLuint TonemapLUT = 0;
+	Tonemapper::Initialize("Res/tonymmf.dds", TonemapLUT);
 
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
@@ -1975,6 +2010,8 @@ void Candela::StartPipeline()
 
 		LightingShader.SetVector2f("u_ShadowBiasMult", glm::vec2(ShadowNBiasMultiplier,ShadowSBiasMultiplier));
 
+		LightingShader.SetFloat("u_RTAOStrength", RTAOStrength);
+
 
 		for (int i = 0; i < 6; i++) {
 			std::string name = "u_ProbeCapturePoints[" + std::to_string(i) + "]";
@@ -2510,6 +2547,8 @@ void Candela::StartPipeline()
 		CompositeShader.Use();
 		CompositeShader.SetInteger("u_MainTexture", 0);
 		CompositeShader.SetInteger("u_DOF", 1);
+		CompositeShader.SetInteger("u_TonyMcMapFaceLUT", 2);
+		CompositeShader.SetInteger("u_SelectedTonemap", SelectedTonemap);
 		CompositeShader.SetBool("u_DOFEnabled", DoDOF_);
 		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
 		CompositeShader.SetBool("u_PerformanceDOF", PerformanceDOF);
@@ -2523,7 +2562,10 @@ void Candela::StartPipeline()
 		glBindTexture(GL_TEXTURE_2D, PFXComposited.GetTexture(0));
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, DOF.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, DOF.GetTexture());	
+		
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_3D, TonemapLUT);
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -2573,7 +2615,7 @@ void Candela::StartPipeline()
 			ClearAllBuffers();
 		}
 
-		GLClasses::DisplayFrameRate(app.GetWindow(), "Candela ");
+		GLClasses::DisplayFrameRate(app.GetWindow(), EditMode ? "Candela | Edit Mode | " : "Candela | ");
 	}
 }
 

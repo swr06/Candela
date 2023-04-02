@@ -198,6 +198,7 @@
     <ClInclude Include="Core\SkyShadowMap.h" />
     <ClInclude Include="Core\TAAJitter.h" />
     <ClInclude Include="Core\Threadpool.h" />
+    <ClInclude Include="Core\Tonemap.h" />
     <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\Utils\Random.h" />
     <ClInclude Include="Core\Utils\Timer.h" />
@@ -267,6 +268,7 @@
     <ClCompile Include="Core\SkyShadowMap.cpp" />
     <ClCompile Include="Core\TAAJitter.cpp" />
     <ClCompile Include="Core\Threadpool.cpp" />
+    <ClCompile Include="Core\Tonemap.cpp" />
     <ClCompile Include="Dependencies\glad\src\glad.c" />
     <ClCompile Include="Dependencies\imguizmo\GraphEditor.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -319,6 +321,7 @@
     <None Include="Core\Shaders\GlassPrePassFrag.glsl" />
     <None Include="Core\Shaders\GlassPrePassVert.glsl" />
     <None Include="Core\Shaders\Include\3DNoise.glsl" />
+    <None Include="Core\Shaders\Include\BRDF.glsl" />
     <None Include="Core\Shaders\Include\DDA.glsl" />
     <None Include="Core\Shaders\Include\DiffuseSH.glsl" />
     <None Include="Core\Shaders\Include\Library\FSR.glsl" />
