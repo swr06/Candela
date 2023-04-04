@@ -128,9 +128,11 @@ static bool DoCheckering = true;
 
 static bool DoTemporal = true;
 static bool ClipDiffuse = false;
+static float ClipStrength = 0.04f;
 
 static bool DoSpatial = true;
 static float SVGFStrictness = 0.2f;
+static bool DoSVGF = true;
 static bool DoSpatialUpscaling = true;
 
 // Volumetrics 
@@ -507,10 +509,14 @@ public:
 
 			if (DoTemporal)
 				ImGui::Checkbox("Enable Temporal Clipping? (Reduces temporal lag substantially but increases noise slightly)", &ClipDiffuse);
+			if (ClipDiffuse)
+				ImGui::SliderFloat("Clip Strength", &ClipStrength, 0.005f, 0.08f);
 
 			ImGui::NewLine();
 			ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
-			ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
+			ImGui::Checkbox("Use Variance Guided Filter?", &DoSVGF);
+			if (DoSVGF)
+				ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
 			ImGui::NewLine();
 			ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
 			ImGui::NewLine();
@@ -1770,6 +1776,7 @@ void Candela::StartPipeline()
 		TemporalFilterShader.SetBool("u_Enabled", DoTemporal);
 		TemporalFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
 		TemporalFilterShader.SetBool("u_ClipDiffuse", ClipDiffuse);
+		TemporalFilterShader.SetFloat("u_ClipStrength", 0.082f - ClipStrength);
 
 		SetCommonUniforms<GLClasses::Shader>(TemporalFilterShader, UniformBuffer);
 
@@ -1893,6 +1900,7 @@ void Candela::StartPipeline()
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SpatialFilterShader.SetFloat("u_PhiLMult", 1.0f/glm::max(SVGFStrictness,0.01f));
 				SpatialFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
+				SpatialFilterShader.SetBool("u_DoSVGF", DoSVGF);
 
 				SetCommonUniforms<GLClasses::Shader>(SpatialFilterShader, UniformBuffer);
 

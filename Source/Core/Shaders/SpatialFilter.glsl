@@ -44,6 +44,7 @@ uniform float u_Time;
 uniform int u_Pass;
 
 uniform bool u_Enabled;
+uniform bool u_DoSVGF;
 
 uniform float u_PhiLMult;
 uniform bool u_RoughSpec;
@@ -261,7 +262,7 @@ void main() {
 	float CenterDiffuseLuma = Luminance(Diffuse.xyz);
 	float CenterSpecularLuma = Luminance(Specular.xyz);
 
-	float VarianceGaussian = GaussianVariance(Pixel);
+	float VarianceGaussian = u_DoSVGF ? GaussianVariance(Pixel) : 100000.0f;
 	 
 	float TotalDiffuseWeight = 1.0f;
 	float TotalSpecularWeight = 1.0f;
@@ -332,8 +333,8 @@ void main() {
 			float AOError = abs(CenterAO - SampleDiffuse.w);
 
 			// Diffuse Weights
-			float LumaWeight = pow(clamp(exp(-LumaError / (1.0f * PhiL + 0.0000001f)), 0.0f, 1.0f), 1.0f);
-			float AOWeightDetail = pow(clamp(exp(-AOError / 0.125f), 0.0f, 1.0f), 1.0f);
+			float LumaWeight = u_DoSVGF ? pow(clamp(exp(-LumaError / (1.0f * PhiL + 0.0000001f)), 0.0f, 1.0f), 1.0f) : 1.0f;
+			float AOWeightDetail = u_DoSVGF ? pow(clamp(exp(-AOError / 0.125f), 0.0f, 1.0f), 1.0f) : 1.0f;
 
 			// Specular Weights 
 			//float SpecLumaWeight = u_RoughSpec ? pow((SpecLumaError)/(1.0f+SpecLumaError), pow((SpecularRadius)*0.1f, 1.0f/5.)) : 0.0f;

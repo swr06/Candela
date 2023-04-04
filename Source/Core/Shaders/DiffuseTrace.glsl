@@ -474,7 +474,7 @@ void main() {
 						 (GetDirect((RayOrigin + RayDirection * TUVW.x), iNormal, Albedo.xyz) + Albedo.xyz * Albedo.w);
 	}
 
-	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 1.5f, 0.0f, 1.0f), 1.0f) : 1.0f;
+	float AO = TUVW.x > 0.0f ? pow(clamp(TUVW.x / 2.4f, 0.0f, 1.0f), 1.23f) : 1.0f;
 
 	// Handle multibounce lighting 
 	if (DO_SECOND_BOUNCE) {

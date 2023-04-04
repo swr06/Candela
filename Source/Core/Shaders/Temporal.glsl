@@ -55,6 +55,8 @@ uniform bool u_RoughSpec;
 
 uniform bool u_ClipDiffuse;
 
+uniform float u_ClipStrength;
+
 // GBuffer
 float LinearizeDepth(float depth)
 {
@@ -224,7 +226,7 @@ void main() {
 				vec4 MinDiff, MaxDiff, MeanDiff, MomentsDiff;
 				GatherStatistics(u_DiffuseCurrent, Pixel, CurrentDiffuse, MinDiff, MaxDiff, MeanDiff, MomentsDiff, false);
 
-				float Bias = 0.05f;
+				float Bias = u_ClipStrength;
 				History.xyz = ClipToAABB(History.xyz, MinDiff.xyz - Bias, MaxDiff.xyz + Bias);
 			}
 
