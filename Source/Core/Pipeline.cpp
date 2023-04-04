@@ -20,6 +20,9 @@ PLEASE DO NOT CLAIM MY WORK AS YOUR OWN.
 */
 
 
+#define STRINGIFY(x) (#x)
+
+
 #include "Pipeline.h"
 
 #include "FpsCamera.h"
@@ -214,6 +217,12 @@ static ImGuizmo::MODE Mode = ImGuizmo::MODE::LOCAL;
 static bool UseSnap = true;
 static glm::vec3 SnapSize = glm::vec3(0.5f);
 
+// FBO debug 
+static bool FBODebugMode = false;
+static int FBODebugID = -1;
+GLClasses::Framebuffer* DebugFBO = nullptr;
+static int FBODebugAttachment = 0;
+
 // Frame time plotter
 static float* GraphX;
 static float* GraphY;
@@ -241,6 +250,8 @@ void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, c
 static double RoundToNearest(double n, double x) {
 	return round(n / x) * x;
 }
+
+void HandleFBODebug();
 
 static void ClearAllBuffers();
 bool WindowResizedThisFrame = false;
@@ -278,26 +289,47 @@ public:
 
 			if (ImGui::Begin("Debug/Edit Mode")) {
 
-				// Drop down box
-				const char* DebugLabelItems[] = { "Default", "Probe Debug", "Indirect Diffuse", "Ambient Occlusion", "Indirect Specular", "Direct Shadows", "Volumetrics", "Probe GI", "Albedo", "Normals", "Roughness", "Metalness", "Emissivity" };
-				static const char* CurrentDebugLabel = DebugLabelItems[0];
+				if (!FBODebugMode) {
+					// Drop down box
+					const char* DebugLabelItems[] = { "Default", "Probe Debug", "Indirect Diffuse", "Ambient Occlusion", "Indirect Specular", "Direct Shadows", "Volumetrics", "Probe GI", "Albedo", "Normals", "Roughness", "Metalness", "Emissivity" };
+					static const char* CurrentDebugLabel = DebugLabelItems[0];
 
-				if (ImGui::BeginCombo("##combo", CurrentDebugLabel))
-				{
-					for (int n = 0; n < IM_ARRAYSIZE(DebugLabelItems); n++)
+					if (ImGui::BeginCombo("##combo", CurrentDebugLabel))
 					{
-						bool is_selected = (CurrentDebugLabel == DebugLabelItems[n]); 
-						if (ImGui::Selectable(DebugLabelItems[n], is_selected))
+						for (int n = 0; n < IM_ARRAYSIZE(DebugLabelItems); n++)
 						{
-							SelectedDebugView = n - 1;
-							CurrentDebugLabel = DebugLabelItems[n];
-							if (is_selected)
-								ImGui::SetItemDefaultFocus();  
+							bool is_selected = (CurrentDebugLabel == DebugLabelItems[n]);
+							if (ImGui::Selectable(DebugLabelItems[n], is_selected))
+							{
+								SelectedDebugView = n - 1;
+								CurrentDebugLabel = DebugLabelItems[n];
+								if (is_selected)
+									ImGui::SetItemDefaultFocus();
+							}
 						}
+						ImGui::EndCombo();
 					}
-					ImGui::EndCombo();
+
+					ImGui::NewLine();
+					ImGui::NewLine();
 				}
 
+				ImGui::NewLine();
+				ImGui::Checkbox("MANUAL FBO debug mode", &FBODebugMode);
+
+				if (FBODebugMode) {
+					ImGui::InputInt("ID", &FBODebugID);
+					HandleFBODebug();
+					if (DebugFBO) {
+						ImGui::Text("Current Attachment : %d", FBODebugAttachment);
+						ImGui::Text("Dimensions : %d x %d", DebugFBO->GetWidth(), DebugFBO->GetHeight());
+						ImGui::Text("No of Attachments : %d", DebugFBO->m_TextureAttachments.size());
+						ImGui::Text("FBO GL ID : %d", DebugFBO->GetFramebuffer());
+					}
+
+				}
+
+				ImGui::NewLine();
 				ImGui::NewLine();
 				ImGui::NewLine();
 
@@ -325,77 +357,79 @@ public:
 
 			// Draw editor
 
-			ImGuizmo::BeginFrame();
+			if (!FBODebugMode) {
+				ImGuizmo::BeginFrame();
 
-			ImGuizmo::SetOrthographic(false);
-			ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
-			
-			if (ShouldDrawGrid) {
-				DrawGrid(Camera.GetViewMatrix(), Camera.GetProjectionMatrix(), glm::vec3(0.0f, 1.0f, 0.0f), 75.0f);
-			}
+				ImGuizmo::SetOrthographic(false);
+				ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
 
-			if (SelectedEntity) {
-
-				const ImGuizmo::OPERATION Ops[4] = {ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::OPERATION::ROTATE, ImGuizmo::OPERATION::SCALE, ImGuizmo::OPERATION::UNIVERSAL};
-
-				glm::mat4 ModelMatrix = glm::mat4(1.0f);
-
-				glm::vec3 Offset;
-
-				{
-					glm::vec3 tMin = SelectedEntity->m_Object->Min;
-					glm::vec3 tMax = SelectedEntity->m_Object->Max;
-
-					tMin = glm::vec3(ModelMatrix * glm::vec4(tMin, 1.0f));
-					tMax = glm::vec3(ModelMatrix * glm::vec4(tMax, 1.0f));
-
-					Offset = (tMin + tMax) * 0.5f;
+				if (ShouldDrawGrid) {
+					DrawGrid(Camera.GetViewMatrix(), Camera.GetProjectionMatrix(), glm::vec3(0.0f, 1.0f, 0.0f), 75.0f);
 				}
 
-				ModelMatrix = glm::translate(SelectedEntity->m_Model, Offset);
+				if (SelectedEntity) {
 
-				ImGuizmo::Manipulate(glm::value_ptr(Camera.GetViewMatrix()), glm::value_ptr(Camera.GetProjectionMatrix()),
-									 Ops[glm::clamp(EditOperation, 0, 3)], Mode, glm::value_ptr(ModelMatrix), nullptr , UseSnap ? glm::value_ptr(SnapSize) : nullptr);
+					const ImGuizmo::OPERATION Ops[4] = { ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::OPERATION::ROTATE, ImGuizmo::OPERATION::SCALE, ImGuizmo::OPERATION::UNIVERSAL };
 
-				SelectedEntity->m_Model = glm::translate(ModelMatrix, -Offset);
+					glm::mat4 ModelMatrix = glm::mat4(1.0f);
 
-				bool Hovered = ImGuizmo::IsOver();
-				bool Using = ImGuizmo::IsUsing();
+					glm::vec3 Offset;
 
-				if (Hovered || Using) {
-					glm::vec3 P, S, R;
-					ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(SelectedEntity->m_Model), glm::value_ptr(P), glm::value_ptr(R), glm::value_ptr(S));
-				
-					if (SelectedEntity->m_IsPhysicsObject) {
+					{
+						glm::vec3 tMin = SelectedEntity->m_Object->Min;
+						glm::vec3 tMax = SelectedEntity->m_Object->Max;
 
-						//SelectedEntity->m_PhysicsObject.Position = P;
+						tMin = glm::vec3(ModelMatrix * glm::vec4(tMin, 1.0f));
+						tMax = glm::vec3(ModelMatrix * glm::vec4(tMax, 1.0f));
 
+						Offset = (tMin + tMax) * 0.5f;
 					}
+
+					ModelMatrix = glm::translate(SelectedEntity->m_Model, Offset);
+
+					ImGuizmo::Manipulate(glm::value_ptr(Camera.GetViewMatrix()), glm::value_ptr(Camera.GetProjectionMatrix()),
+						Ops[glm::clamp(EditOperation, 0, 3)], Mode, glm::value_ptr(ModelMatrix), nullptr, UseSnap ? glm::value_ptr(SnapSize) : nullptr);
+
+					SelectedEntity->m_Model = glm::translate(ModelMatrix, -Offset);
+
+					bool Hovered = ImGuizmo::IsOver();
+					bool Using = ImGuizmo::IsUsing();
+
+					if (Hovered || Using) {
+						glm::vec3 P, S, R;
+						ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(SelectedEntity->m_Model), glm::value_ptr(P), glm::value_ptr(R), glm::value_ptr(S));
+
+						if (SelectedEntity->m_IsPhysicsObject) {
+
+							//SelectedEntity->m_PhysicsObject.Position = P;
+
+						}
+					}
+
+					// Entity window 
+					ImGui::Begin("Entity Settings");
+					ImGui::NewLine();
+
+					std::string filename = SelectedEntity->m_Object->Path;
+					size_t Idx = filename.find_last_of("\\/");
+					if (std::string::npos != Idx)
+					{
+						filename.erase(0, Idx + 1);
+					}
+
+
+					ImGui::Text("Entity has parent object with model : %s", filename.c_str());
+					ImGui::Text("Entity Position : %f %f %f", SelectedEntity->m_Model[3].x, SelectedEntity->m_Model[3].y, SelectedEntity->m_Model[3].z);
+					ImGui::SliderFloat("Emissivity", &SelectedEntity->m_EmissiveAmount, 0.0f, 32.0f);
+					ImGui::SliderFloat("Entity Roughness Multiplier", &SelectedEntity->m_EntityRoughnessMultiplier, 0.0f, 8.0f);
+					ImGui::SliderFloat("Entity Roughness", &SelectedEntity->m_EntityRoughness, 0.0f, 8.0f);
+					ImGui::SliderFloat("Entity Metalness", &SelectedEntity->m_EntityMetalness, 0.0f, 1.0f);
+					ImGui::SliderFloat("Translucency Amount", &SelectedEntity->m_TranslucencyAmount, 0.0f, 1.0f);
+					ImGui::NewLine();
+					ImGui::Checkbox("Use Albedo map?", &SelectedEntity->m_UseAlbedoMap);
+					ImGui::Checkbox("Use PBR/Normal map?", &SelectedEntity->m_UsePBRMap);
+					ImGui::End();
 				}
-
-				// Entity window 
-				ImGui::Begin("Entity Settings");
-				ImGui::NewLine();
-
-				std::string filename = SelectedEntity->m_Object->Path;
-				size_t Idx = filename.find_last_of("\\/");
-				if (std::string::npos != Idx)
-				{ 
-					filename.erase(0, Idx + 1);
-				}
-
-
-				ImGui::Text("Entity has parent object with model : %s", filename.c_str());
-				ImGui::Text("Entity Position : %f %f %f", SelectedEntity->m_Model[3].x, SelectedEntity->m_Model[3].y, SelectedEntity->m_Model[3].z);
-				ImGui::SliderFloat("Emissivity", &SelectedEntity->m_EmissiveAmount, 0.0f, 32.0f);
-				ImGui::SliderFloat("Entity Roughness Multiplier", &SelectedEntity->m_EntityRoughnessMultiplier, 0.0f, 8.0f);
-				ImGui::SliderFloat("Entity Roughness", &SelectedEntity->m_EntityRoughness, 0.0f, 8.0f);
-				ImGui::SliderFloat("Entity Metalness", &SelectedEntity->m_EntityMetalness, 0.0f, 1.0f);
-				ImGui::SliderFloat("Translucency Amount", &SelectedEntity->m_TranslucencyAmount, 0.0f, 1.0f);
-				ImGui::NewLine();
-				ImGui::Checkbox("Use Albedo map?", &SelectedEntity->m_UseAlbedoMap);
-				ImGui::Checkbox("Use PBR/Normal map?", &SelectedEntity->m_UsePBRMap);
-				ImGui::End();
 			}
 
 			// Draw frametime graph 
@@ -853,8 +887,7 @@ GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RG
 // Antialiasing 
 GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
 
-static void ClearAllBuffers() {
-	std::vector <GLClasses::Framebuffer*> Framebuffers {
+static std::vector <GLClasses::Framebuffer*> FramebufferList {
 		&LightingPass, &TempFramebuffer,
 		&TransparentPass, &Composited,
 		&VolComposited, &PFXComposited,
@@ -869,12 +902,32 @@ static void ClearAllBuffers() {
 		&TAABuffers[0], &TAABuffers[1]
 	};
 
-	for (auto& e : Framebuffers) {
+static void ClearAllBuffers() {
+
+	for (auto& e : FramebufferList) {
 		if (e != nullptr) {
 			if (e->GetFramebuffer() != 0) {
 				e->Bind();
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			}
+		}
+	}
+}
+
+static void HandleFBODebug() {
+	if (!FBODebugMode) {
+		return;
+	}
+
+	int x = 0;
+
+	for (int i = 0; i < FramebufferList.size(); i++) {
+		for (int j = 0; j < FramebufferList[i]->m_TextureAttachments.size(); j++) {
+			if (x == FBODebugID) {
+				DebugFBO = FramebufferList[i];
+				FBODebugAttachment = j;
+			}
+			x++;
 		}
 	}
 }
@@ -2013,7 +2066,6 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_DebugMode", DebugMode);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 		LightingShader.SetBool("u_DoSSShadow", DoScreenspaceShadow);
-
 		LightingShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
 
 		LightingShader.SetVector2f("u_ShadowBiasMult", glm::vec2(ShadowNBiasMultiplier,ShadowSBiasMultiplier));
@@ -2095,8 +2147,10 @@ void Candela::StartPipeline()
 		glActiveTexture(GL_TEXTURE18);
 		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
 		
-		glActiveTexture(GL_TEXTURE19);
-		glBindTexture(GL_TEXTURE_2D, SSRefractions.GetTexture());
+		if (DebugFBO) {
+			glActiveTexture(GL_TEXTURE19);
+			glBindTexture(GL_TEXTURE_2D, DebugFBO->GetTexture(FBODebugAttachment));
+		}
 
 		if (RENDER_PLAYER_PROBE) {
 			glActiveTexture(GL_TEXTURE20);
@@ -2556,6 +2610,7 @@ void Candela::StartPipeline()
 		CompositeShader.SetInteger("u_MainTexture", 0);
 		CompositeShader.SetInteger("u_DOF", 1);
 		CompositeShader.SetInteger("u_TonyMcMapFaceLUT", 2);
+		CompositeShader.SetInteger("u_DebugTexture", 8);
 		CompositeShader.SetInteger("u_SelectedTonemap", SelectedTonemap);
 		CompositeShader.SetBool("u_DOFEnabled", DoDOF_);
 		CompositeShader.SetFloat("u_FocusDepth", FocusDepthSmooth);
@@ -2563,6 +2618,8 @@ void Candela::StartPipeline()
 		CompositeShader.SetFloat("u_GrainStrength", GrainStrength);
 		CompositeShader.SetFloat("u_DOFScale", DOFScale);
 		CompositeShader.SetFloat("u_Exposure", ExposureMultiplier);
+
+
 
 		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);
 
@@ -2574,6 +2631,7 @@ void Candela::StartPipeline()
 		
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_3D, TonemapLUT);
+
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -2594,10 +2652,19 @@ void Candela::StartPipeline()
 		CASShader.SetFloat("u_DistortionK", DistortionK);
 		CASShader.SetFloat("u_RenderScale", InternalRenderResolution);
 
+		CASShader.SetBool("u_DebugFBOMode", EditMode && FBODebugMode);
+		CASShader.SetBool("u_DebugTexValid", EditMode && FBODebugMode && FBODebugAttachment > -1 && DebugFBO);
+		CASShader.SetInteger("u_DebugTexture", 8);
+
 		SetCommonUniforms<GLClasses::Shader>(CASShader, UniformBuffer);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Composited.GetTexture(0));
+
+		if (DebugFBO) {
+			glActiveTexture(GL_TEXTURE8);
+			glBindTexture(GL_TEXTURE_2D, DebugFBO->GetTexture(FBODebugAttachment));
+		}
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

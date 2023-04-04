@@ -314,8 +314,8 @@ const vec3 SunColor = SUN_COLOR_LIGHTING;
 void main() 
 {	
 
-	vec3 rO = u_InverseView[3].xyz;
-	vec3 rD = normalize(SampleIncidentRayDirection(v_TexCoords));
+	vec3 RayOrigin = u_InverseView[3].xyz;
+	vec3 RayDirection = normalize(SampleIncidentRayDirection(v_TexCoords));
 	float BayerHash = fract(fract(mod(float(u_Frame), 256.0f) * (1.0 / 1.61803398)) + bayer32(gl_FragCoord.st));
 
 	float SurfaceDistance = 1000000.0f;
@@ -333,23 +333,23 @@ void main()
 
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
 
-	float LinearDepth = LinearizeDepth(Depth);
+	float LineaRayDirectionepth = LinearizeDepth(Depth);
 
 	if (Depth > 0.999999f) {
 		
 		vec3 Hash = (vec3(hash2(), hash2().x) * 2.0f - 1.0f);
-		vec3 SkymapSampleDir = rD + Hash / float(textureSize(u_Skymap,0).x);
+		vec3 SkymapSampleDir = RayDirection + Hash / float(textureSize(u_Skymap,0).x);
 		o_Color = pow(texture(u_Skymap, SkymapSampleDir).xyz, vec3(2.07f)) * 2.65f; // Color tweaking, temporary, while the cloud skybox is being used. 
 
 		// Sun Disc 
-		if (dot(rD, -u_LightDirection) > 0.99985f) {
+		if (dot(RayDirection, -u_LightDirection) > 0.99985f) {
 			imageStore(o_NormalLFe, Pixel, vec4(vec3(0.0f), 256.0f));
 			o_Color = SUN_COLOR_LIGHTING; 
 		}
 
 		// Draw probe spheres 
 		if (u_DebugMode == 0) {
-			DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
+			DrawProbeSphereGrid(RayOrigin, RayDirection, SurfaceDistance, o_Color);
 		}
 		o_Color = u_DebugMode == 5 ? vec3(0.0f) : o_Color;
 		return;
@@ -365,7 +365,7 @@ void main()
 	SurfaceDistance = length(Incident);
 	Incident /= SurfaceDistance;
 
-	vec3 F0 = mix(vec3(0.04f), Albedo, PBR.y);
+	vec3 F0 = mix(vec3(0.04f), Albedo, PBR.y); // Fresnel  
 
 	vec3 SpecularIndirect = vec3(0.0f);
 	vec3 DiffuseIndirect = vec3(0.0f);
@@ -377,7 +377,7 @@ void main()
 		vec4 GI = texelFetch(u_IndirectDiffuse, Pixel, 0).xyzw; 
 		vec4 SpecGI = texelFetch(u_IndirectSpecular, Pixel, 0).xyzw; 
 
-		vec3 FresnelTerm = FresnelSchlickRoughness(max(dot(Incident, Normal.xyz), 0.000001f), vec3(F0), PBR.x); 
+		vec3 FresnelTerm = FresnelSchlickRoughness(max(dot(Incident, Normal.xyz), 0.000001f), vec3(F0), PBR.x); // <- Not perfect accurate of course but it works and it looks decent  
 		FresnelTerm = clamp(FresnelTerm, 0.0f, 1.0f);
 
 		vec3 kS = FresnelTerm;
@@ -415,7 +415,7 @@ void main()
 	o_Color = Combined.xyz;
 
 	if (u_DebugMode == 0) {
-		DrawProbeSphereGrid(rO, rD, SurfaceDistance, o_Color);
+		DrawProbeSphereGrid(RayOrigin, RayDirection, SurfaceDistance, o_Color);
 	} else if (u_DebugMode == 1) {
 		o_Color = GI.xyz;
 	} else if (u_DebugMode == 2) {

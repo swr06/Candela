@@ -22,6 +22,12 @@ uniform float u_RenderScale;
 uniform float u_DistortionK;
 uniform bool u_DoDistortion;
 
+uniform sampler2D u_DebugTexture;
+
+uniform bool u_DebugFBOMode;
+uniform bool u_DebugTexValid;
+
+
 // Hash
 float HASH2SEED = 0.0f;
 vec2 hash2() 
@@ -144,6 +150,24 @@ void main()
 
     FilmGrain(o_Color);
 	BasicColorDither(o_Color);
+
+
+    // FBO Debugger  -- 
+    if (u_DebugFBOMode) {
+        o_Color = vec3(hash2(), hash2().x);
+        if (u_DebugTexValid) {
+              
+              o_Color = vec3(0.);
+              bool InTex = clamp(vec2(gl_FragCoord.xy), vec2(0), vec2(textureSize(u_DebugTexture,0).xy)) == vec2(gl_FragCoord.xy);
+
+	          if (InTex) {
+                    o_Color = texelFetch(u_DebugTexture, ivec2(gl_FragCoord.xy), 0).xyz;
+
+                    o_Color = 1.0f - exp(-o_Color);
+              }
+        }
+    }
+
 
     o_Color = clamp(o_Color, 0.0f, 1.0f);
 }

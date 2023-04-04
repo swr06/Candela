@@ -112,11 +112,11 @@ namespace GLClasses
 
 		// Creates the framebuffer with the appropriate settings
 		void CreateFramebuffer();
+		std::vector<GLuint> m_TextureAttachments; // The actual texture attachment
 
 	private :
 
 		GLuint m_FBO; // The Framebuffer object
-		std::vector<GLuint> m_TextureAttachments; // The actual texture attachment
 		GLuint m_DepthBuffer;
 		int m_FBWidth;
 		int m_FBHeight;
