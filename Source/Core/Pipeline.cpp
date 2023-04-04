@@ -2653,7 +2653,7 @@ void Candela::StartPipeline()
 		CASShader.SetFloat("u_RenderScale", InternalRenderResolution);
 
 		CASShader.SetBool("u_DebugFBOMode", EditMode && FBODebugMode);
-		CASShader.SetBool("u_DebugTexValid", EditMode && FBODebugMode && FBODebugAttachment > -1 && DebugFBO);
+		CASShader.SetBool("u_DebugTexValid", EditMode && FBODebugMode && FBODebugAttachment > -1 && DebugFBO && FBODebugID >= 0);
 		CASShader.SetInteger("u_DebugTexture", 8);
 
 		SetCommonUniforms<GLClasses::Shader>(CASShader, UniformBuffer);

@@ -115,12 +115,20 @@ void BasicColorDither(inout vec3 color)
     color += Lestyn.rgb / 255.0f;
 }
 
+float CheckerPattern(in vec2 uv)  
+{
+  uv = 0.5f - fract(uv);
+  return 0.5f + 0.5f * sign(uv.x * uv.y);
+}
+
 void main() 
 {
     vec2 TexCoord = v_TexCoords;
 
     vec3 Distorted = Distort(v_TexCoords, clamp(u_DistortionK, -1.0f, 1.0f));
     TexCoord = Distorted.xy;
+
+    float Aspect = float(textureSize(u_Texture, 0).x) / float(textureSize(u_Texture, 0).y);
 
     //ivec2 Pixel = ivec2(gl_FragCoord.xy); 
     ivec2 Pixel = ivec2(TexCoord * textureSize(u_Texture, 0).xy);
@@ -157,7 +165,7 @@ void main()
         o_Color = vec3(hash2(), hash2().x);
         if (u_DebugTexValid) {
               
-              o_Color = vec3(0.);
+              o_Color = CheckerPattern(v_TexCoords.xy * 100.0f * vec2(Aspect, 1.0f)).xxx;
               bool InTex = clamp(vec2(gl_FragCoord.xy), vec2(0), vec2(textureSize(u_DebugTexture,0).xy)) == vec2(gl_FragCoord.xy);
 
 	          if (InTex) {

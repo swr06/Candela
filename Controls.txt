@@ -8,3 +8,13 @@ F2 -> Recompile changed shaders
 F3 -> Recompile all shaders 
 F5 -> Toggle Edit/Debug Mode
 ESC -> Quit
+
+Notes : 
+- There will be additional helpful tips and shortcuts given in the imgui windows. 
+
+
+- When in edit/debug mode, click on an entity and then unlock the mouse to Translate, Rotate or Scale (change using function keys F6 -> F9)
+- When you click an entity in edit/debug mode, you will also get a new window where you can change various parameters (ex. roughness multiplier or emissivity)
+- The FBO Manual debug mode (in edit/debug mode) is used when you want to check the raw pixel values entered. (Do note that I use the simple transform 1-e^(-x) before outputting.
+- The frame graph (in edit/debug mode) is interactable and dynamic  
+
