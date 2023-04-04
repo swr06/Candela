@@ -25,8 +25,9 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 - Physically based direct lighting (Cook Torrance BRDF)
 - Cascaded Shadow Mapping + PCF Filtering 
 - Screenspace shadowing 
-- Indirect Diffuse GI
+- Diffuse GI
 - Infinite bounce GI using irradiance probes
+- Ray traced Ambient Occlusion (RTAO)
 - Hemispherical Shadow Maps for a sky shadowing approximation
 - Hybrid Specular GI (SSR + World Space RT)
 - SVGF + Specialized Specular Denoiser
