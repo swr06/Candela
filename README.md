@@ -17,6 +17,10 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 
 </div>
 
+# Project Status 
+Since I have to primarily focus on school, development on the engine will be slow. However, I have no intentions of abandoning it as of yet. 
+Do note that I also work on other projects and shaders (although private for now.) 
+
 # Current Feature List 
 - Model loading, abstracted program/application API
 - Procedural Normal Map Generation (Using sobel operator)
@@ -25,7 +29,8 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 - Physically based direct lighting (Cook Torrance BRDF)
 - Cascaded Shadow Mapping + PCF Filtering 
 - Screenspace shadowing 
-- Diffuse GI
+- Ray traced Diffuse Global illumination 
+- Screenspace global illumination
 - Infinite bounce GI using irradiance probes
 - Ray traced Ambient Occlusion (RTAO)
 - Hemispherical Shadow Maps for a sky shadowing approximation
@@ -37,16 +42,27 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 - Volumetrics (Direct + Indirect light contribution)
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
-- Environment Map Support 
+- HDR Environment Map Support 
 - Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping, Procedural Lens Flare etc.)
 - Basic Editor Features + Debug Views
 - Transparent/Refractive Material Support (Weighted Blended OIT, Stochastic OIT, Screenspace Refractions and Screenspace caustics)
 
 # Planned Features
+- Realistic sky rendering (Volumetric atmosphere and clouds) 
+- Antileak algorithm for the probe system
+- ReStir GI
 - Fast Transparent Shadows
 - IES lights
-- LTC
-- Sky rendering
+- LTC for area lighting 
+- RSM 
+- Bent Normals 
+- GTAO
+- Particle system with screenspace lighting 
+- Voxelization and VXCT 
+- Screenspace cone tracing 
+- Constant time parallax mapping
+- Raytraced Acoustics (WIP) 
+
 
 # Requirements  
 - GPU : One with >= 2 GB of vRAM that supports OpenGL 4.5 and the bindless texture OpenGL extension (ARB_bindless_texture).
@@ -60,9 +76,15 @@ Runs at around 24 fps on a AMD Vega 11 (desktop) iGPU.
 - Volumetrics and infinite bounce GI prone to light leaking.
 - Temporal/Spatial artifacts (usually in the form of noise, ghosting or temporal lag) on aggressive movement or sudden lighting changes.
 
+# Reports 
+If you find a bug and want to report it, you could contact me by email/discord (see profile page) or alternatively, open a GitHub issue.
+
 # Notes
 - Refer `Controls.txt` for engine controls/shortcuts.
 - Refer `Additional Notes.txt` for additional general info.
+
+# License 
+See `LICENSE` in the project's root directory.
 
 # Credits 
 See `Credits.txt`.
@@ -169,3 +191,7 @@ See `Credits.txt`.
 # Supporting
 
 If you like this project and would like to show your support, please consider starring the project on github. :)
+
+
+
+
