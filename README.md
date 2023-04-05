@@ -19,7 +19,7 @@ Candela is an ***experimental*** engine that prioritizes both performance and vi
 
 # Project Status 
 Since I have to primarily focus on school, development on the engine will be slow. However, I have no intentions of abandoning it as of yet. 
-Do note that I also work on other projects and shaders (although private for now.) 
+It is also worth noting that I also work on other projects and shaders in my free time.
 
 # Current Feature List 
 - Model loading, abstracted program/application API
