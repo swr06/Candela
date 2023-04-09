@@ -42,6 +42,8 @@ uniform vec2 u_Dimensions;
 
 uniform bool u_CatmullRom;
 
+uniform bool u_NormalFix;
+
 uniform float u_ScaleLODBias;
 
 in vec2 v_TexCoords;
@@ -72,11 +74,8 @@ void main()
 	vec3 HQN = u_UsesNormalMap ? normalize(v_TBNMatrix * ((u_CatmullRom ? CatmullRom(u_NormalMap, v_TexCoords).xyz : texture(u_NormalMap, v_TexCoords).xyz) * 2.0f - 1.0f)) 
 			 : ((!GenerateNormals) ? (LFN) : normalize(v_TBNMatrix * CreateNormalMap(o_Albedo.xyz,AlbedoTexSize)));
 
-	if (dot(LFN, Incident) > 0.0001f) {
+	if (dot(LFN, Incident) > 0.0f && u_NormalFix) {
 		LFN = -LFN;
-	}
-
-	if (dot(HQN, Incident) > 0.0001f) {
 		HQN = -HQN;
 	}
 	

@@ -28,6 +28,7 @@ uniform sampler2D u_NormalLFTexture;
 uniform sampler2D u_PBRTexture;
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_BlueNoise;
+uniform sampler2D u_TransparentDepth;
 uniform samplerCube u_Skymap;
 
 uniform sampler2D u_IndirectDiffuse;
@@ -333,6 +334,8 @@ void main()
 
 	float Depth = texelFetch(u_DepthTexture, Pixel, 0).x;
 
+	float TransparentDepth = texelFetch(u_TransparentDepth, Pixel, 0).x;
+
 	float LineaRayDirectionepth = LinearizeDepth(Depth);
 
 	if (Depth > 0.999999f) {
@@ -411,6 +414,11 @@ void main()
 	vec3 EmissiveColor = Albedo * NormalLF.w;
 
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect + EmissiveColor;
+
+	// Occluded by transparent object
+	if (TransparentDepth < Depth) {
+
+	}
 
 	o_Color = Combined.xyz;
 

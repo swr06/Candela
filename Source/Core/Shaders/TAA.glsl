@@ -135,6 +135,16 @@ ivec2 GetNearestFragment(ivec2 Pixel, out float ClosestDepth) {
     return BestTexel;
 }
 
+// 1~ pixel bias 
+bool IsInScreenspaceBiasedTAA(vec2 x) {
+    const float bias = 0.0001f;
+    if (x.x > bias && x.x < 1.0f-bias && x.y > bias && x.y < 1.0f-bias) {
+        return true;
+    }
+
+    return false;
+}   
+
 bool ENABLED = u_Enabled;
 
 void main() {
@@ -190,7 +200,8 @@ void main() {
 
     vec2 Reprojected = MotionVector + v_TexCoords;
 
-    if (IsInScreenspaceBiased(Reprojected)) {
+    if (IsInScreenspaceBiasedTAA(Reprojected)) 
+    {
 
         vec4 Min, Max, Mean, Moments;
         GatherStatistics(u_CurrentColorTexture, ivec2(Pixel * ScaleMultiplier), Current, Min, Max, Mean, Moments);

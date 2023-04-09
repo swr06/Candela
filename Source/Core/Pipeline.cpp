@@ -99,6 +99,7 @@ static float InternalRenderResolution = 1.0f;
 static float RoughnessMultiplier = 1.0f;
 static bool GenerateHighFrequencyNormals = false;
 static float NormalStrength = 0.4f;
+static bool DoNormalFix = true;
 
 // Perf
 static bool DoFrustumCulling = false;
@@ -468,6 +469,8 @@ public:
 				ImGui::SliderFloat("HF Normal Strength", &NormalStrength, 0.0f, 1.0f);
 
 			ImGui::NewLine();
+			ImGui::Checkbox("Do Normal Fix? (Artifacts possible; Normal flips when view angle is > 180°)", &DoNormalFix);
+			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Translucent Rendering?", &RENDER_GLASS_FLAG);
 			ImGui::Checkbox("Use OIT? (if off, uses ssrt refractions)", &OIT);
@@ -818,6 +821,8 @@ void RenderProbe(Candela::ProbeMap& probe, int face, glm::vec3 center, std::vect
 	shader.SetInteger("u_RoughnessMap", 2);
 	shader.SetInteger("u_MetalnessMap", 3);
 	shader.SetInteger("u_MetalnessRoughnessMap", 5);
+	shader.SetBool("u_NormalFix", DoNormalFix);
+
 	RenderEntityList(EntityList, shader, false);
 
 	glDisable(GL_CULL_FACE);
@@ -1411,6 +1416,7 @@ void Candela::StartPipeline()
 		GBufferShader.SetInteger("u_MetalnessMap", 3);
 		GBufferShader.SetInteger("u_MetalnessRoughnessMap", 5);
 		GBufferShader.SetBool("u_CatmullRom", HQTextureFiltering);
+		GBufferShader.SetBool("u_NormalFix", DoNormalFix);
 		GBufferShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 		GBufferShader.SetFloat("u_RoughnessMultiplier", RoughnessMultiplier);
 		GBufferShader.SetFloat("u_ScaleLODBias", floor(log2(InternalRenderResolution)));
@@ -1438,7 +1444,8 @@ void Candela::StartPipeline()
 			GBufferTransparentPrepassShader.SetVector3f("u_ViewerPosition", Camera.GetPosition());
 			GBufferTransparentPrepassShader.SetVector2f("u_Dimensions", glm::vec2(GBuffer.GetWidth(), GBuffer.GetHeight()));
 			GBufferTransparentPrepassShader.SetBool("u_Stochastic", StochasticTransparency && OIT);
-			
+			GBufferTransparentPrepassShader.SetBool("u_NormalFix", DoNormalFix);
+
 			SetCommonUniforms<GLClasses::Shader>(GBufferTransparentPrepassShader, UniformBuffer);
 
 			RenderEntityList(EntityRenderList, GBufferTransparentPrepassShader, true);
@@ -2063,6 +2070,7 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_DebugTexture", 19);
 		LightingShader.SetInteger("u_ProbePlayer", 20);
 		LightingShader.SetInteger("u_ProbePlayerDepth", 21);
+		LightingShader.SetInteger("u_TransparentDepth", 23);
 		LightingShader.SetInteger("u_DebugMode", DebugMode);
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 		LightingShader.SetBool("u_DoSSShadow", DoScreenspaceShadow);
@@ -2163,6 +2171,10 @@ void Candela::StartPipeline()
 			glBindTexture(GL_TEXTURE_CUBE_MAP, PlayerProbe.NormalPBRPackedCubemap);
 		}
 
+		glActiveTexture(GL_TEXTURE23);
+		glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+
+
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, DOFSSBO);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, PlayerSSBO);
@@ -2225,6 +2237,7 @@ void Candela::StartPipeline()
 				TransparentForwardShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
 
 				TransparentForwardShader.SetInteger("u_RadianceCache", 14);
+				TransparentForwardShader.SetBool("u_NormalFix", DoNormalFix);
 
 
 				glActiveTexture(GL_TEXTURE14);
@@ -2386,6 +2399,8 @@ void Candela::StartPipeline()
 				GlassDeferredShader.SetInteger("u_OpaqueLighting", 4);
 				GlassDeferredShader.SetInteger("u_OpaqueDepth", 5);
 				GlassDeferredShader.SetInteger("u_TransparentDepth", 6);
+				GlassDeferredShader.SetInteger("u_Vol", 7);
+				GlassDeferredShader.SetBool("u_DoVol", DoVolumetrics);
 
 				glActiveTexture(GL_TEXTURE1);
 				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetTexture(1));
@@ -2402,8 +2417,12 @@ void Candela::StartPipeline()
 				glActiveTexture(GL_TEXTURE5);
 				glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
 
+
 				glActiveTexture(GL_TEXTURE6);
 				glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
+
+				glActiveTexture(GL_TEXTURE7);
+				glBindTexture(GL_TEXTURE_2D, SpatialUpscaled.GetTexture(2));
 
 				SetCommonUniforms<GLClasses::Shader>(GlassDeferredShader, UniformBuffer);
 

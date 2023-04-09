@@ -20,6 +20,9 @@ uniform sampler2D u_OpaqueLighting;
 uniform sampler2D u_OpaqueDepth;
 uniform sampler2D u_TransparentDepth;
 
+uniform sampler2D u_Vol;
+uniform bool u_DoVol;
+
 in vec2 v_TexCoords;
 
 float LinearizeDepth(float depth)
@@ -39,6 +42,11 @@ void main()
 	vec3 RefractionData = texture(u_RefractionData, v_TexCoords).xyz;
 
 	vec3 Refracted = texture(u_OpaqueLighting, RefractionData.xy).xyz ;
+
+	///if (u_DoVol) {
+	///	vec4 Vol = texture(u_Vol, RefractionData.xy).xyzw;
+	///	Refracted = Refracted * Vol.w + Vol.xyz;
+	///}
 	
 	vec4 Normal = texture(u_NormalData, v_TexCoords);
 	vec4 Albedo = texture(u_AlbedoData, v_TexCoords);
