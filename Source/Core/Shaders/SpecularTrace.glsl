@@ -432,6 +432,10 @@ float SeedFunction(float Input) {
 	//return Input * (2.0f - Input);
 }
 
+vec3 Sky(vec3 D, float R) {
+	return pow(texture(u_SkyCube, D).xyz, 1.0.xxx) * mix(1.4f, 2.65f, R);
+}
+
 
 int TRACE_MODE = 0; 
 
@@ -556,11 +560,11 @@ void main() {
 			if (TUVW.x > 0.0f) 
 				FinalRadiance = SampleLighting(RayOrigin+RayDirection*TUVW.x, IntersectionNormal, IntersectionAlbedo.xyz) + (IntersectionAlbedo.w * IntersectionAlbedo.xyz);
 			else 
-				FinalRadiance = texture(u_SkyCube, RayDirection).xyz * 2.4f;
+				FinalRadiance = Sky(RayDirection, PBR.x);
 		}
 
 		else {
-		    FinalRadiance = Screentrace.w * texture(u_SkyCube, RayDirection).xyz * 2.4f;
+		    FinalRadiance = Screentrace.w * Sky(RayDirection, PBR.x);
 			FinalTransversal = 8.0f;
 		}
 	}

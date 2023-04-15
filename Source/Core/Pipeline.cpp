@@ -926,6 +926,8 @@ static void HandleFBODebug() {
 
 	int x = 0;
 
+	DebugFBO = nullptr;
+
 	for (int i = 0; i < FramebufferList.size(); i++) {
 		for (int j = 0; j < FramebufferList[i]->m_TextureAttachments.size(); j++) {
 			if (x == FBODebugID) {
@@ -1955,7 +1957,7 @@ void Candela::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Volumetrics", 8);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SpatialFilterShader.SetInteger("u_Pass", Pass);
-				SpatialFilterShader.SetBool("u_FilterVolumetrics", InitialPass && DoVolumetrics && VolumetricsSpatial);
+				SpatialFilterShader.SetBool("u_FilterVolumetrics", DoVolumetrics && VolumetricsSpatial);
 				SpatialFilterShader.SetBool("u_Enabled", DoSpatial);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SpatialFilterShader.SetFloat("u_PhiLMult", 1.0f/glm::max(SVGFStrictness,0.01f));

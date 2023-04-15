@@ -86,10 +86,8 @@ SG RoughnessLobe(float Roughness, vec3 Normal, vec3 Incident) {
 }
 
 float GetLobeWeight(float CenterRoughness, float SampleRoughness, vec3 CenterNormal, vec3 SampleNormal, vec2 Transversals, vec3 Incident) {
-	
-	Incident = -Incident; 
 
-	const float Beta = 32.0f;
+	const float Beta = 4.5f; // Higher -> More detail 
 
 	float LobeSimilarity = 1.0f;
 	float AxisSimilarity = 1.0f;
@@ -107,7 +105,7 @@ float GetLobeWeight(float CenterRoughness, float SampleRoughness, vec3 CenterNor
 
 float GetLobeWeight(in SG CenterLobe, float SampleRoughness, vec3 SampleNormal, const vec3 Incident) {
 	
-	const float Beta = 128.0f;
+	const float Beta = 4.5f;
 
 	float LobeSimilarity = 1.0f;
 	float AxisSimilarity = 1.0f;
@@ -170,6 +168,11 @@ float GradientNoise()
 	vec2 coord = gl_FragCoord.xy + mod(u_Time * 100.493850275f, 500.0f);
 	float noise = fract(52.9829189f * fract(0.06711056f * coord.x + 0.00583715f * coord.y));
 	return noise;
+}
+
+float VolumetricsFactor(vec3 x) {
+	float y = dot(x, 0.3333f.xxx);
+	return y * y;
 }
 
 float HASH2SEED = 0.0f;
@@ -296,7 +299,7 @@ void main() {
 				ShouldSampleSpecular = false;
 			}
 
-			ShouldSampleSpecular = ShouldSampleSpecular && (CenterRoughness > 0.04025f);
+			ShouldSampleSpecular = ShouldSampleSpecular && (CenterRoughness > 0.05f);
 
 			ivec2 SamplePixel = Pixel + ivec2((vec2(x,y)) * u_StepSize) + ivec2(Hash * PhiS);
 
@@ -361,9 +364,12 @@ void main() {
 			TotalDiffuseWeight += DiffuseWeight;
 			TotalAOWeight += AOWeight;
 
-			if (u_FilterVolumetrics) {
+			if (u_FilterVolumetrics && ShiftLength < 2.0f) {
 				vec4 SampleVolumetrics = texelFetch(u_Volumetrics, SamplePixel, 0);
-				float VolumetricsWeight = clamp(pow(DepthWeight, 1.33f), 0.0f, 1.0f); //RawWeight;
+
+				const float PhiLV = 0.11f;
+				float Lw = exp(-(abs(VolumetricsFactor(SampleVolumetrics.xyz) - VolumetricsFactor(CenterVol.xyz))) / (PhiLV));
+				float VolumetricsWeight = clamp(DepthWeight * KernelWeight * Lw, 0.0f, 1.0f); //RawWeight;
 				Volumetrics += VolumetricsWeight * SampleVolumetrics;
 				TotalVolWeight += VolumetricsWeight;
 			}

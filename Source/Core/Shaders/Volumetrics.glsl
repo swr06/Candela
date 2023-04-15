@@ -246,7 +246,13 @@ void main() {
 
 	float HashAnimated = fract(fract(mod(float(u_Frame) + float(0.) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer16(gl_FragCoord.xy));
 
-	vec3 RayPosition = Player + Direction * HashAnimated * 1.0f; 
+	float WhiteHash = hash2().x;
+
+	// x% bayer and (100-x)% white 
+	// Since bayer doesn't converge on the true solution of the integral over time (it isn't suitable for perfect monte carlo integration)
+	// The 10% white noise helps the situation a bit 
+	float Proportion = 0.9f;
+	vec3 RayPosition = Player + Direction * ((HashAnimated * Proportion) + (WhiteHash * (1.0f - Proportion))); 
 
     float CosTheta = clamp(dot(-Direction, u_SunDirection), 0.0f, 1.0f);
 
@@ -289,6 +295,7 @@ void main() {
 		}
 
 		else {
+			// Computing hash over ray interval reduces noise drastically 
 			VolumeHash.x = fract(fract(mod(float(u_Frame) + float((Step * 3) + 0) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer32(gl_FragCoord.xy));
 			VolumeHash.y = fract(fract(mod(float(u_Frame) + float((Step * 3) + 1) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer32(gl_FragCoord.xy));
 			VolumeHash.z = fract(fract(mod(float(u_Frame) + float((Step * 3) + 2) * 2., 384.0f) * (1.0 / 1.6180339)) + bayer32(gl_FragCoord.xy));
