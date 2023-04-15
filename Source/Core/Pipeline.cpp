@@ -144,7 +144,7 @@ static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.0f;
 static float VolumetricsIndirectStrength = 1.4f;
-static int VolumetricsSteps = 24;
+static int VolumetricsSteps = 16;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
 
