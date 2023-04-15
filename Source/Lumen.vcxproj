@@ -196,6 +196,7 @@
     <ClInclude Include="Core\ShadowMapHandler.h" />
     <ClInclude Include="Core\ShadowRenderer.h" />
     <ClInclude Include="Core\SkyShadowMap.h" />
+    <ClInclude Include="Core\SpatioTemporalBN.h" />
     <ClInclude Include="Core\TAAJitter.h" />
     <ClInclude Include="Core\Threadpool.h" />
     <ClInclude Include="Core\Tonemap.h" />
@@ -266,6 +267,7 @@
     <ClCompile Include="Core\ShadowMapHandler.cpp" />
     <ClCompile Include="Core\ShadowRenderer.cpp" />
     <ClCompile Include="Core\SkyShadowMap.cpp" />
+    <ClCompile Include="Core\SpatioTemporalBN.cpp" />
     <ClCompile Include="Core\TAAJitter.cpp" />
     <ClCompile Include="Core\Threadpool.cpp" />
     <ClCompile Include="Core\Tonemap.cpp" />
