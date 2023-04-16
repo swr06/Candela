@@ -87,7 +87,7 @@ void Candela::RenderEntity(Entity& entity, GLClasses::Shader& shader, Frustum& f
 		shader.SetFloat("u_GlassFactor", entity.m_TranslucencyAmount);
 		shader.SetInteger("u_EntityNumber", entity_num);
 
-		if (mesh->TexturePaths[5].size() > 0 && mesh->m_MetalnessRoughnessMap.GetID() > 0) {
+		if (mesh->TexturePaths[5].size() > 0 && mesh->m_MetalnessRoughnessMap.GetID() > 0 && mesh->m_IsGLTF && entity.m_UsePBRMap) {
 
 			shader.SetBool("u_UsesGLTFPBR", true);
 			mesh->m_MetalnessRoughnessMap.Bind(5);

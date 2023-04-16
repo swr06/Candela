@@ -84,6 +84,8 @@ void main()
 
 	// https://www.khronos.org/blog/art-pipeline-for-gltf
 
+	o_PBR.xyz = vec3(u_EntityRoughness, u_EntityMetalness, 0.0f);
+
 	if (u_UsesGLTFPBR) {
 		//o_PBR.xyz = vec3(texture(u_MetalnessRoughnessMap, v_TexCoords).yx, 1.0f);
 		vec4 mapfetch = texture(u_MetalnessRoughnessMap, v_TexCoords);
