@@ -140,7 +140,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
 
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
-	return max(vec3(Albedo) * SUN_COLOR_PROBES * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f), 0.00000001f);
+	return max(vec3(Albedo) * SUN_COLOR_PROBES * Shadow * clamp(dot(Normal, -u_SunDirection), 0.0f, 1.0f), 0.0f);
 }
 
 float HASH2SEED = 0.0f;
@@ -462,8 +462,8 @@ void main() {
 	if (TUVW.x > 0.0f) {
 		//vec3 Dither = (hash2().x > 0.5f ? -1.0f : 1.0f) * vec3(hash2(), hash2().x) * 0.1f;
 		vec3 Bounce = SampleProbes((iWorldPos + iNormal * 0.001f),iNormal);
-		const float AttenuationBounce = 0.99f; 
-		FinalRadiance += Bounce * AttenuationBounce;
+		const float AttenuationBounce = 0.999f; 
+		FinalRadiance += Bounce * AttenuationBounce * Albedo.xyz; // Multiply by albedo for throughput 
 	}
 
 	// Write map data 

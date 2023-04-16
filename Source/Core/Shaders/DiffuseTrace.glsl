@@ -34,6 +34,7 @@ uniform sampler2D u_BlueNoise;
 uniform samplerCube u_Skymap;
 
 uniform int u_Frame;
+uniform int u_SecondaryBounces;
 uniform float u_Time;
 
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
@@ -483,10 +484,12 @@ void main() {
 		vec3 HitPosition = RayOrigin + RayDirection * TUVW.x;
 
 		if (RT_SECOND_BOUNCE) {
+			
+			int SecondaryBounces = u_SecondaryBounces;
 
-			int Samples = 1;
+			vec3 Throughput = Albedo.xyz;
 
-			for (int i = 0 ; i < Samples ; i++) {
+			for (int i = 0 ; i < SecondaryBounces ; i++) {
 
 				int SecondIntersectedMesh = -1;
 				int SecondIntersectedTri = -1;
@@ -502,10 +505,18 @@ void main() {
 					SecondiNormal = -SecondiNormal;
 				}
 
-				Bounced += TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.0f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo.xyz);
+				Bounced += (TUVW.x < 0.0f ? texture(u_Skymap, SecondRayDirection).xyz * 2.2f : GetDirect((SecondRayOrigin + SecondRayDirection * SecondTUVW.x), SecondiNormal, SecondAlbedo.xyz) + SecondAlbedo.w * SecondAlbedo.xyz) * Throughput;
+				
+				if (TUVW.x < 0.0f) {
+					break;
+				}
+				
+				Throughput *= SecondAlbedo.xyz;
+				HitPosition = SecondRayOrigin + SecondRayDirection * SecondTUVW.x;
+				iNormal = SecondiNormal;
 			}
 
-			Bounced /= float(Samples);
+			FinalRadiance += Bounced;
 		}
 
 		else {
@@ -540,19 +551,26 @@ void main() {
 					Bounced = vec3(0.07f) + (texture(u_Skymap, vec3(0.0f, 1.0f, 0.0f)).xyz * 0.03f);
 				}
 			}
-			
+
+			float ShotRayProbability = clamp(dot(Normal, RayDirection), 0.0f, 1.0f);
+
+			vec3 Throughput = Albedo.xyz;
+
+			// Multiply by PI to correct for radiance brightness loss due to SH
+			// (Hemispherical harmonic basis)
+			FinalRadiance += Bounced * Throughput * PI;
+
+			//if (RayProbability > 0.000001f) {
+			//	vec3 Throughput = Albedo.xyz; 
+			//	FinalRadiance += Bounced * clamp(Throughput, 0.0f, 5.0f);
+			//}
+			//
+			//else {
+			//	FinalRadiance += Bounced * Albedo.xyz;
+			//}
 		}
 
 
-		float RayProbability = clamp(dot(Normal, RayDirection), 0.0f, 1.0f);
-		if (RayProbability > 0.000001f) {
-			vec3 Throughput = Albedo.xyz / RayProbability; 
-			FinalRadiance += Bounced * clamp(Throughput, 0.0f, 5.0f);
-		}
-
-		else {
-			FinalRadiance += Bounced * (1.0f / PI) * Albedo.xyz;
-		}
 	}
 
 

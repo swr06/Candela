@@ -113,6 +113,7 @@ static int ShadowmapUpdateRate = 1;
 
 // GI
 static bool DoMultiBounce = true;
+static int SecondaryBounces = 1;
 static bool DoInfiniteBounceGI = true;
 static bool IndirectSSCaustics = true;
 static bool DO_BL_SAMPLING = false;
@@ -504,6 +505,10 @@ public:
 
 			if (DoMultiBounce) {
 				ImGui::Checkbox("Infinite Bounce GI?", &DoInfiniteBounceGI);
+
+				if (!DoInfiniteBounceGI) {
+					ImGui::SliderInt("Secondary Bounces", &SecondaryBounces, 1, 8);
+				}
 			}
 
 			if (RENDER_GLASS_FLAG) {
@@ -1617,6 +1622,7 @@ void Candela::StartPipeline()
 		DiffuseShader.SetInteger("u_Albedo", 16);
 		DiffuseShader.SetInteger("u_TransparentDepth", 17);
 		DiffuseShader.SetInteger("u_TransparentAlbedo", 18);
+		DiffuseShader.SetInteger("u_SecondaryBounces", SecondaryBounces);
 		DiffuseShader.SetBool("u_Checker", DoCheckering);
 		DiffuseShader.SetBool("u_SecondBounce", DoMultiBounce);
 		DiffuseShader.SetBool("u_SecondBounceRT", !DoInfiniteBounceGI);
