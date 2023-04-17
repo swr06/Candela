@@ -400,7 +400,7 @@ vec3 SampleLighting(in vec2 TexCoords, in vec3 WorldPosition, in vec3 Normal, in
 	float L = length(MotionVector);
 	float Shadow = GetDirectShadow(WorldPosition, Normal);
 
-	if (L < 0.0325f) {
+	if (L < 0.02f) {
 
 		vec4 DiffuseIndirect = texture(u_IndirectDiffuse, TexCoords + MotionVector).xyzw;
 		return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * DiffuseIndirect.xyz * DiffuseIndirect.w * DiffuseIndirect.w); 
@@ -409,9 +409,9 @@ vec3 SampleLighting(in vec2 TexCoords, in vec3 WorldPosition, in vec3 Normal, in
 
 	else {
 		
-		vec3 DiffuseIndirect = SampleProbes(WorldPosition,Normal);
+		vec3 DiffuseIndirect = SampleProbes(WorldPosition,Normal) * PI;
 		float Shadow = GetDirectShadow(WorldPosition, Normal);
-		return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * 1.0f * DiffuseIndirect.xyz * 1.25f); 
+		return (vec3(Albedo) * SUN_COLOR_SPEC * Shadow) + (Albedo * sqrt(2.0f) * DiffuseIndirect.xyz); 
 
 	}
 

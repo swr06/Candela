@@ -34,6 +34,8 @@ uniform mat4 u_InverseProjection;
 uniform float u_zNear;
 uniform float u_zFar;
 
+uniform float u_SpecularBeta;
+
 uniform vec3 u_ViewerPosition;
 
 uniform int u_StepSize;
@@ -87,7 +89,7 @@ SG RoughnessLobe(float Roughness, vec3 Normal, vec3 Incident) {
 
 float GetLobeWeight(float CenterRoughness, float SampleRoughness, vec3 CenterNormal, vec3 SampleNormal, vec2 Transversals, vec3 Incident) {
 
-	const float Beta = 4.5f; // Higher -> More detail 
+	const float Beta = u_SpecularBeta; // Higher -> More detail 
 
 	float LobeSimilarity = 1.0f;
 	float AxisSimilarity = 1.0f;
@@ -105,7 +107,7 @@ float GetLobeWeight(float CenterRoughness, float SampleRoughness, vec3 CenterNor
 
 float GetLobeWeight(in SG CenterLobe, float SampleRoughness, vec3 SampleNormal, const vec3 Incident) {
 	
-	const float Beta = 4.5f;
+	const float Beta = u_SpecularBeta;
 
 	float LobeSimilarity = 1.0f;
 	float AxisSimilarity = 1.0f;

@@ -135,6 +135,8 @@ static bool DoTemporal = true;
 static bool ClipDiffuse = false;
 static float ClipStrength = 0.04f;
 
+static float SpecularBeta = 4.5f;
+
 static bool DoSpatial = true;
 static float SVGFStrictness = 0.2f;
 static bool DoSVGF = true;
@@ -556,9 +558,14 @@ public:
 
 			ImGui::NewLine();
 			ImGui::Checkbox("Spatial Filtering?", &DoSpatial);
-			ImGui::Checkbox("Use Variance Guided Filter?", &DoSVGF);
-			if (DoSVGF)
-				ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
+			if (DoSpatial) {
+				ImGui::Checkbox("Use Variance Guided Filter?", &DoSVGF);
+				if (DoSVGF)
+					ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
+
+				ImGui::SliderFloat("Specular Lobe Weight Beta (Higher = More detail, more noise.", &SpecularBeta, 0.1f, 32.0f);
+			}
+			
 			ImGui::NewLine();
 			ImGui::Checkbox("Spatial Upscaling?", &DoSpatialUpscaling);
 			ImGui::NewLine();
@@ -1963,6 +1970,7 @@ void Candela::StartPipeline()
 				SpatialFilterShader.SetInteger("u_Volumetrics", 8);
 				SpatialFilterShader.SetInteger("u_StepSize", StepSizes[Pass]);
 				SpatialFilterShader.SetInteger("u_Pass", Pass);
+				SpatialFilterShader.SetFloat("u_SpecularBeta", SpecularBeta);
 				SpatialFilterShader.SetBool("u_FilterVolumetrics", DoVolumetrics && VolumetricsSpatial);
 				SpatialFilterShader.SetBool("u_Enabled", DoSpatial);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
