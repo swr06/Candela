@@ -389,7 +389,7 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 		return max(SampleSH(FinalSH, N), 0.0f);
 	}
 
-	return vec3(0.1f);
+	return vec3(0.0f);
 }
 
 // Computes final lighting at a point 
