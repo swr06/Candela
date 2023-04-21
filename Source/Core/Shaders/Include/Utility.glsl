@@ -709,4 +709,34 @@ float snoise(vec4 v) {
 }
 
 
+
+
+
 /////////////////////////
+
+
+const mat3x3 xyzToRGBMatrix = mat3(
+    3.1338561, -1.6168667, -0.4906146,
+    -0.9787684,  1.9161415,  0.0334540,
+    0.0719453, -0.2289914,  1.4052427
+);
+
+const mat3x3 rgbToXYZMatrix = mat3(
+    vec3(0.5149, 0.3244, 0.1607),
+    vec3(0.3654, 0.6704, 0.0642),
+    vec3(0.0248, 0.1248, 0.8504)
+);
+
+vec3 xyzToRGB(in vec3 xyz) {
+    float r = dot(xyz, xyzToRGBMatrix[0]);
+    float g = dot(xyz, xyzToRGBMatrix[1]);
+    float b = dot(xyz, xyzToRGBMatrix[2]);
+    return vec3(r, g, b);
+}
+
+vec3 rgbToXYZ(in vec3 rgb) {
+    float x = dot(rgb, rgbToXYZMatrix[0]);
+    float y = dot(rgb, rgbToXYZMatrix[1]);
+    float z = dot(rgb, rgbToXYZMatrix[2]);
+    return vec3(x, y, z);
+}

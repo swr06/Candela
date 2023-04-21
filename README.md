@@ -43,7 +43,7 @@ It is also worth noting that I also work on other projects and shaders in my fre
 - Upscaling (Temporal/Spatial)
 - Culling (Frustum/Face Culling)
 - HDR Environment Map Support 
-- Post Processing Pipeline (Bloom, DoF, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping, Procedural Lens Flare etc.)
+- Post Processing Pipeline (Bloom, DoF, Purkinje Effect, Grain, Chromatic Aberration, Color Dithering, ACES Tonemapping, Procedural Lens Flare etc.)
 - Basic Editor Features + Debug Views
 - Transparent/Refractive Material Support (Weighted Blended OIT, Stochastic OIT, Screenspace Refractions and Screenspace caustics)
 

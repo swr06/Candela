@@ -183,6 +183,9 @@ static float PlayerShadowSmooth = 1.0f;
 static float DOFBlurRadius = 10.0f;
 static float DOFScale = 0.01f;
 
+// Purkinje 
+static float PurkinjeStrength = 0.0f;
+
 // Chromatic Aberration 
 static float CAScale = 0.0f;
 
@@ -634,7 +637,8 @@ public:
 			ImGui::SliderFloat("Chromatic Aberration Strength", &CAScale, 0.0f, 0.50f);
 			ImGui::SliderFloat("Film Grain Strength", &GrainStrength, 0.0f, 1.0f);
 			ImGui::SliderFloat("Lens Flare Strength", &LensFlareStrength, 0.0f, 6.0f);
-			
+			ImGui::NewLine();
+			ImGui::SliderFloat("Purkinje Effect Intensity", &PurkinjeStrength, 0.0f, 3.0f);
 			ImGui::NewLine();
 			ImGui::Checkbox("Distortion? (Barrel/Pincushion)", &DoDistortion);
 			
@@ -2653,7 +2657,7 @@ void Candela::StartPipeline()
 		CompositeShader.SetFloat("u_GrainStrength", GrainStrength);
 		CompositeShader.SetFloat("u_DOFScale", DOFScale);
 		CompositeShader.SetFloat("u_Exposure", ExposureMultiplier);
-
+		CompositeShader.SetFloat("u_PurkinjeStrength", PurkinjeStrength);
 
 
 		SetCommonUniforms<GLClasses::Shader>(CompositeShader, UniformBuffer);

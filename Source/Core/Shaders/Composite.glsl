@@ -29,6 +29,10 @@ uniform float u_Time;
 
 uniform float u_Exposure;
 
+uniform vec3 u_SunDirection;
+
+uniform float u_PurkinjeStrength;
+
 const float DOFBlurSize = 20.0f;
 float DOFScale = u_DOFScale * 4.0f;
 
@@ -150,6 +154,17 @@ vec3 Uncharted2ToneMapping(vec3 color)
 	return color;
 }
 
+vec3 PurkinjeEffect(vec3 Color, float Intensity) 
+{
+	vec3 BaseColor = Color;
+    vec3 RodResponse = vec3(7.15e-5f, 4.81e-1f, 3.28e-1f);
+    vec3 XYZ = rgbToXYZ(Color);
+    vec3 ScopticLuma = XYZ * (1.33f * (1.0f + (XYZ.y + XYZ.z) / XYZ.x) - 1.68f);
+    float Purkinge = dot(RodResponse, xyzToRGB(ScopticLuma));
+    Color = mix(Color, Purkinge * vec3(0.5f, 0.7f, 1.0f), exp2(-Purkinge * 2.0f));
+    return mix(max(Color, 0.0), BaseColor, clamp(1.0f-Intensity,0.0f,1.0f));
+}
+
 // main 
 void main()
 {
@@ -173,9 +188,12 @@ void main()
 
     }
 
-    float Exposure = 0.825f * u_Exposure;
+    if (u_PurkinjeStrength > 0.0000001f) {
+        Color = PurkinjeEffect(Color, clamp(sqrt(clamp(exp(u_SunDirection.y),0.0f, 1.0f))*u_PurkinjeStrength,0.,1.));
+    }
 
-    Color *= Exposure;
+    float EffectiveExposure = 0.825f * u_Exposure; 
+    Color *= EffectiveExposure;
 
     switch (u_SelectedTonemap) {
         
