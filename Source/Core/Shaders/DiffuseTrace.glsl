@@ -59,6 +59,22 @@ uniform bool u_SecondBounceRT;
 uniform bool u_IndirectSSCaustics;
 uniform bool DO_BL_SAMPLING;
 
+uniform sampler2D u_IndirectDiffuse; // <- Previous frame diffuse, to create a positive feedback loop 
+uniform sampler2D u_MotionVectors;
+
+uniform mat4 u_PrevProjection;
+uniform mat4 u_PrevView;
+uniform mat4 u_PrevInverseProjection;
+uniform mat4 u_PrevInverseView;
+
+vec3 Reprojection(vec3 WorldPos) 
+{
+	vec4 ProjectedPosition = u_PrevProjection * u_PrevView * vec4(WorldPos, 1.0f);
+	ProjectedPosition.xyz /= ProjectedPosition.w;
+	ProjectedPosition.xyz = ProjectedPosition.xyz * 0.5f + 0.5f;
+	return ProjectedPosition.xyz;
+}
+
 vec3 WorldPosFromDepth(float depth, vec2 txc)
 {
     float z = depth * 2.0 - 1.0;
@@ -435,7 +451,7 @@ void main() {
 	vec3 iNormal = vec3(-1.0f);
 		
 	vec3 FinalRadiance = vec3(0.0f);
-
+	
 	vec4 Screentrace = vec4(-10.0f);
 	
 	if (DO_SCREENTRACE) 
@@ -535,20 +551,62 @@ void main() {
 			}
 
 			else {
-				// Point not in probe range, sample probes approximately 
-				vec3 NudgedPosition = clamp(SamplePointP, 0.0002f, 0.9998f); 
-				NudgedPosition = u_ProbeBoxOrigin + (u_ProbeBoxSize * (2.0f * NudgedPosition - 1.0f));
+				
+				bool SampleScreen = false;
+				bool SampleApprox = true;
 
-				float DistanceError = distance(NudgedPosition, HitPosition);
+				if (SampleScreen) {
+					
+					vec3 SecondRayOrigin = HitPosition+iNormal*0.02f;
+					vec3 SecondRayDirection = CosWeightedHemisphere(iNormal,hash2());
+					vec4 SecondScreentrace;
+					
+					SecondScreentrace = ScreenspaceRaytrace(u_DepthTexture, SecondRayOrigin, SecondRayDirection, 6, 4, 0.006f, 16.0f);
 
-				if (DistanceError <= 16.0f) {
-					float Weight = max(1.0f - clamp(DistanceError / 16.0f, 0.0f, 1.0f), 0.15f); 
-					vec3 InterpolatedRadiance = SampleProbes(NudgedPosition, iNormal);
-					Bounced = Weight * InterpolatedRadiance * 1.0f;
+					if (IsInScreenspace(SecondScreentrace.xy) && SecondScreentrace.z > 0.0f) {
+						
+						vec3 IntersectionPosition = SecondRayOrigin + SecondRayDirection * SecondScreentrace.z;
+
+						vec3 Reprojected = Reprojection(IntersectionPosition);
+
+						if (IsInScreenspace(Reprojected.xy)) {
+
+							SampleApprox = false;
+
+							Bounced = texture(u_IndirectDiffuse, Reprojected.xy).xyz * 0.5f;
+							
+						}
+
+						//vec4 NormalFetchSS = TexelFetchNormalized(u_NormalTexture, SecondScreentrace.xy);
+						//vec4 SAlbedo = vec4(TexelFetchNormalized(u_Albedo, SecondScreentrace.xy).xyz, NormalFetchSS.w);
+
+						//Albedo.xyz = pow(Albedo.xyz, vec3(1.0f / 2.2f));
+
+						//Bounced = GetDirect(IntersectionPosition, NormalFetchSS.xyz, SAlbedo.xyz) + (NormalFetchSS.w * SAlbedo.xyz);
+						Bounced *= PI;
+
+					}
+
 				}
 
-				else {
-					Bounced = vec3(0.07f) + (texture(u_Skymap, vec3(0.0f, 1.0f, 0.0f)).xyz * 0.03f);
+				if (SampleApprox) {
+
+					//Point not in probe range, sample probes approximately 
+					vec3 NudgedPosition = clamp(SamplePointP, 0.0002f, 0.9998f); 
+					NudgedPosition = u_ProbeBoxOrigin + (u_ProbeBoxSize * (2.0f * NudgedPosition - 1.0f));
+					
+					float DistanceError = distance(NudgedPosition, HitPosition);
+					
+					if (DistanceError <= 16.0f) {
+						float Weight = 1.0f;// max(1.0f - clamp(DistanceError / 16.0f, 0.0f, 1.0f), 0.15f); 
+						vec3 InterpolatedRadiance = SampleProbes(NudgedPosition, iNormal);
+						Bounced = Weight * InterpolatedRadiance * 1.0f;
+					}
+					
+					else {
+						Bounced = vec3(0.07f) + (texture(u_Skymap, vec3(0.0f, 1.0f, 0.0f)).xyz * 0.03f);
+					}
+
 				}
 			}
 

@@ -1628,6 +1628,8 @@ void Candela::StartPipeline()
 		DiffuseShader.SetVector3f("u_ProbeBoxSize", PROBE_GRID_SIZE);
 		DiffuseShader.SetVector3f("u_ProbeGridResolution", PROBE_GRID_RES);
 		DiffuseShader.SetVector3f("u_ProbeBoxOrigin", ProbeGI::GetProbeBoxOrigin());
+		DiffuseShader.SetInteger("u_IndirectDiffuse", 11);
+		DiffuseShader.SetInteger("u_MotionVectors", 12);
 		DiffuseShader.SetInteger("u_SHDataA", 14);
 		DiffuseShader.SetInteger("u_SHDataB", 15);
 		DiffuseShader.SetInteger("u_Albedo", 16);
@@ -1669,6 +1671,12 @@ void Candela::StartPipeline()
 			glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
 			glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
 		}
+
+		glActiveTexture(GL_TEXTURE11);
+		glBindTexture(GL_TEXTURE_2D, FinalDenoiseBufferPtr->GetTexture(0));
+
+		glActiveTexture(GL_TEXTURE12);
+		glBindTexture(GL_TEXTURE_2D, MotionVectors.GetTexture());
 
 		glActiveTexture(GL_TEXTURE14);
 		glBindTexture(GL_TEXTURE_3D, ProbeGI::GetProbeDataTextures().x);
