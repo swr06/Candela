@@ -85,6 +85,7 @@ bool RayBoxIntersect(vec3 origin, vec3 direction, vec3 mins, vec3 maxs, out floa
 
 float SampleDensity(vec3 p)
 {
+
 	const float AltitudeMin = -1.4f;
 	const float Thickness = 48.0f;
 	const float Coverage = 2.0f;
@@ -250,9 +251,9 @@ void main() {
 
 	// x% bayer and (100-x)% white 
 	// Since bayer doesn't converge on the true solution of the integral over time (it isn't suitable for perfect monte carlo integration)
-	// The 10% white noise helps the situation a bit 
-	float Proportion = 0.9f;
-	vec3 RayPosition = Player + Direction * ((HashAnimated * Proportion) + (WhiteHash * (1.0f - Proportion))); 
+	// The percentage white noise helps the situation a bit 
+	float Proportion = 0.825f;
+	vec3 RayPosition = Player + Direction * StepSize * ((HashAnimated * Proportion) + (WhiteHash * (1.0f - Proportion))); 
 
     float CosTheta = clamp(dot(-Direction, u_SunDirection), 0.0f, 1.0f);
 
