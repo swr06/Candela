@@ -252,8 +252,8 @@ void main() {
 	// x% bayer and (100-x)% white 
 	// Since bayer doesn't converge on the true solution of the integral over time (it isn't suitable for perfect monte carlo integration)
 	// The percentage white noise helps the situation a bit 
-	float Proportion = 0.825f;
-	vec3 RayPosition = Player + Direction * StepSize * ((HashAnimated * Proportion) + (WhiteHash * (1.0f - Proportion))); 
+	float Proportion = 0.9f;
+	vec3 RayPosition = Player + Direction * StepSize * 0.75f * ((HashAnimated * Proportion) + (WhiteHash * (1.0f - Proportion))); 
 
     float CosTheta = clamp(dot(-Direction, u_SunDirection), 0.0f, 1.0f);
 
