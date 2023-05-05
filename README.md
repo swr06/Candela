@@ -93,6 +93,18 @@ See `Credits.txt`.
 
 </br>
 
+![s18](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/18.png)
+
+</br>
+
+</br>
+
+![s19](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/19.png)
+
+</br>
+
+</br>
+
 ![s1](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/1.png)
 
 </br>
