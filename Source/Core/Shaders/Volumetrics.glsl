@@ -27,6 +27,9 @@ uniform samplerCube u_Skymap;
 uniform int u_Frame;
 uniform float u_Time;
 
+uniform bool u_UniformDensity;
+uniform bool u_CompleteTransmittance;
+
 uniform int u_Steps;
 uniform float u_Strength;
 uniform float u_DStrength;
@@ -85,6 +88,10 @@ bool RayBoxIntersect(vec3 origin, vec3 direction, vec3 mins, vec3 maxs, out floa
 
 float SampleDensity(vec3 p)
 {
+
+	if (u_UniformDensity) {
+		return 1.f;
+	}
 
 	const float AltitudeMin = -1.4f;
 	const float Thickness = 48.0f;
@@ -316,7 +323,7 @@ void main() {
 	Transmittance = clamp(Transmittance, 0.0f, 1.0f);
 	TotalScattering = max(TotalScattering, 0.0f);
 
-    vec4 Data = vec4(vec3(TotalScattering), Transmittance);
+    vec4 Data = vec4(vec3(TotalScattering), u_CompleteTransmittance ? 1.0f : Transmittance);
 
 	if (!IsValid(Data)) {
 		Data = vec4(vec3(0.0f), 1.0f);

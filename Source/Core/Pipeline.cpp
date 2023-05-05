@@ -136,6 +136,7 @@ static bool ClipDiffuse = false;
 static float ClipStrength = 0.04f;
 
 static float SpecularBeta = 4.5f;
+static float SpecularTransversalWeight = 8.0f;
 
 static bool DoSpatial = true;
 static float SVGFStrictness = 0.2f;
@@ -150,6 +151,8 @@ static float VolumetricsIndirectStrength = 1.4f;
 static int VolumetricsSteps = 16;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
+static bool UniformDensityFog = false;
+static bool CompleteTransmittance = false;
 
 // Screenspace shadow
 static bool DoScreenspaceShadow = false;
@@ -371,7 +374,7 @@ public:
 				ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
 
 				if (ShouldDrawGrid) {
-					DrawGrid(Camera.GetViewMatrix(), Camera.GetProjectionMatrix(), glm::vec3(0.0f, 1.0f, 0.0f), 75.0f);
+					DrawGrid(Camera.GetViewMatrix(), Camera.GetProjectionMatrix(), glm::vec3(0.0f, 1.0f, 0.0f), 200.0f);
 				}
 
 				if (SelectedEntity) {
@@ -455,6 +458,7 @@ public:
 		if (ImGui::Begin("Options")) {
 			ImGui::Text("Camera Position : %f,  %f,  %f", Camera.GetPosition().x, Camera.GetPosition().y, Camera.GetPosition().z);
 			ImGui::Text("Camera Front : %f,  %f,  %f", Camera.GetFront().x, Camera.GetFront().y, Camera.GetFront().z);
+			ImGui::Text("Time : %f s", glfwGetTime());
 			ImGui::NewLine();
 			ImGui::Text("Number of Meshes Rendered (For the main camera view) : %d", __MainViewMeshesRendered);
 			ImGui::Text("Total Number of Meshes Rendered : %d", __TotalMeshesRendered);
@@ -493,8 +497,8 @@ public:
 			ImGui::Checkbox("Face Culling?", &DoFaceCulling);
 			ImGui::NewLine();
 			ImGui::NewLine();
-			ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 4.0f);
-			ImGui::SliderInt("Shadowmap Resolution", &ShadowmapRes, 256, 4096);
+			ImGui::SliderFloat("Shadow Distance Multiplier", &ShadowDistanceMultiplier, 0.1f, 16.0f);
+			ImGui::SliderInt("Shadowmap Resolution", &ShadowmapRes, 256, 8096);
 			ImGui::SliderInt("Shadowmap Update Rate (Increasing this parameter will result in more responsive shadows at the cost of performance)", &ShadowmapUpdateRate, 1, 5);
 			ImGui::SliderFloat("Shadow Normal Bias Multiplier (To reduce shadow acne/flickering)", &ShadowNBiasMultiplier, 0.25f, 6.0f);
 			ImGui::SliderFloat("Shadow Sample Bias Multiplier (To reduce shadow acne/flickering)", &ShadowSBiasMultiplier, 0.25f, 8.0f);
@@ -544,6 +548,9 @@ public:
 				if (DoSpatial) {
 					ImGui::Checkbox("Spatially Filter Volumetrics?", &VolumetricsSpatial);
 				}
+
+				ImGui::Checkbox("Complete VL Transmittance?", &CompleteTransmittance);
+				ImGui::Checkbox("Uniform Density Volumetric Fog?", &UniformDensityFog);
 			}
 
 			ImGui::NewLine();
@@ -566,7 +573,8 @@ public:
 				if (DoSVGF)
 					ImGui::SliderFloat("SVGF Strictness", &SVGFStrictness, 0.0f, 5.0f);
 
-				ImGui::SliderFloat("Specular Lobe Weight Beta (Higher = More detail, more noise.", &SpecularBeta, 0.1f, 32.0f);
+				ImGui::SliderFloat("Specular Lobe Weight Beta (Higher = More detail, more noise.)", &SpecularBeta, 0.1f, 32.0f);
+				ImGui::SliderFloat("Specular Transversal Weight (Higher = Better Contact Hardening, more noise.)", &SpecularTransversalWeight, 0.2f, 32.0f);
 			}
 			
 			ImGui::NewLine();
@@ -999,10 +1007,13 @@ void Candela::StartPipeline()
 	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
 	//FileLoader::LoadModelFile(&MetalObject, "Models/monke/Suzanne.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/mario/scene.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/sonic/N64 Yoshi Valley.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/zeldamk/Wii Wario's Gold Mine.obj");
+	//FileLoader::LoadModelFile(&MainModel, "Models/thwomp/Thwomp Ruins.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
 	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
 	//FileLoader::LoadModelFile(&MainModel, "Models/mc/scene.gltf");
+	//FileLoader::LoadModelFile(&MainModel, "Models/peachcastle/Castle.obj");
 	
 	// Add objects to intersector
 	Intersector.Initialize();
@@ -1023,6 +1034,7 @@ void Candela::StartPipeline()
 	Entity MainModelEntity(&MainModel);
 	MainModelEntity.m_EntityRoughness = 0.65f;
 	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+	//MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f));
 	//MainModelEntity.m_Model *= ZOrientMatrixNegative;
 	//MainModelEntity.m_Model *= ZOrientMatrix;
 
@@ -1573,6 +1585,8 @@ void Candela::StartPipeline()
 			VolumetricsShader.SetFloat("u_DStrength", VolumetricsDirectStrength);
 			VolumetricsShader.SetFloat("u_IStrength", VolumetricsIndirectStrength);
 			VolumetricsShader.SetBool("u_Checker", DoCheckering);
+			VolumetricsShader.SetBool("u_CompleteTransmittance", CompleteTransmittance);
+			VolumetricsShader.SetBool("u_UniformDensity", UniformDensityFog);
 
 			SetCommonUniforms<GLClasses::Shader>(VolumetricsShader, UniformBuffer);
 
@@ -1987,6 +2001,7 @@ void Candela::StartPipeline()
 				SpatialFilterShader.SetBool("u_Enabled", DoSpatial);
 				SpatialFilterShader.SetFloat("u_SqrtStepSize", glm::sqrt(float(StepSizes[Pass])));
 				SpatialFilterShader.SetFloat("u_PhiLMult", 1.0f/glm::max(SVGFStrictness,0.01f));
+				SpatialFilterShader.SetFloat("u_SpecularTransversalWeight", SpecularTransversalWeight);
 				SpatialFilterShader.SetBool("u_RoughSpec", DoRoughSpecular);
 				SpatialFilterShader.SetBool("u_DoSVGF", DoSVGF);
 

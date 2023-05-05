@@ -51,6 +51,8 @@ uniform bool u_DoSVGF;
 uniform float u_PhiLMult;
 uniform bool u_RoughSpec;
 
+uniform float u_SpecularTransversalWeight;
+
 bool SPATIAL_OFF = !u_Enabled;
 
 vec3 WorldPosFromDepth(float depth, vec2 txc)
@@ -261,7 +263,7 @@ void main() {
 	vec3 Incident = normalize(u_ViewerPosition - WorldPosition);
 
 	float F = CenterSTraversal / max((CenterSTraversal + PrimaryTransversal), 0.0000001f);
-	float Radius = clamp(pow(mix(1.0f * CenterRoughness, 1.0f, F), pow((1.0f-CenterRoughness),1.0/1.4f)*8.0f), 0.0f, 1.0f);
+	float Radius = clamp(pow(mix(1.0f * CenterRoughness, 1.0f, F), pow((1.0f-CenterRoughness),1.0/1.4f)*u_SpecularTransversalWeight), 0.0f, 1.0f);
 
 	float CenterAO = Diffuse.w;
 	float CenterDiffuseLuma = Luminance(Diffuse.xyz);

@@ -105,6 +105,12 @@ See `Credits.txt`.
 
 </br>
 
+![s20](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/20.png)
+
+</br>
+
+</br>
+
 ![s1](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/1.png)
 
 </br>
@@ -199,6 +205,13 @@ See `Credits.txt`.
 ![s17](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/17.png)
 
 </br>
+
+</br>
+
+![s21](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/21.png)
+
+</br>
+
 
 # Supporting
 

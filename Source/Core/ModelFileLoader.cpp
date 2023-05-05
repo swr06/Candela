@@ -24,6 +24,9 @@ namespace Candela
 		static int GlobalMeshCounter = 0;
 		static bool is_gltf = false;
 
+		static int IndexCounter = 0;
+		static int VertexCounter = 0;
+
 		std::vector<_MeshMaterialData> MeshTextureReferences;
 
 		void LoadMaterialTextures(aiMesh* mesh, aiMaterial* mat, Mesh* _mesh, const std::string& path)
@@ -105,6 +108,8 @@ namespace Candela
 
 			for (int i = 0; i < mesh->mNumVertices; i++)
 			{
+				VertexCounter++;
+
 				Vertex vt;
 				vt.position = glm::vec4(glm::vec3(
 					mesh->mVertices[i].x,
@@ -160,6 +165,8 @@ namespace Candela
 				{
 					indices.push_back(face.mIndices[j]);
 				}
+
+				IndexCounter++;
 			}
 
 			/* Load material maps
@@ -221,6 +228,8 @@ namespace Candela
 
 		void LoadModelFile(Object* object, const std::string& filepath)
 		{
+			IndexCounter = 0;
+			VertexCounter = 0;
 
 			object->Path = filepath;
 
@@ -246,6 +255,8 @@ namespace Candela
 			{
 				std::stringstream str;
 				str << "ERROR LOADING ASSIMP MODEL (" << filepath << ") ||  ASSIMP ERROR : " << importer.GetErrorString();
+				throw "ERROR LOADING ASSIMP MODEL";
+				std::cout << "\n\n" << str.str() << "\n\n";
 				Logger::Log(str.str());
 				return;
 			}
@@ -300,11 +311,23 @@ namespace Candela
 				object->Max = glm::max(object->Max, mesh.Max);
 			}
 
+			std::string filename = object->Path;
+			size_t Idx = filename.find_last_of("\\/");
+			if (std::string::npos != Idx)
+			{
+				filename.erase(0, Idx + 1);
+			}
+
+			std::cout << "\n\nMODEL LOADER : Loaded Model For Object : " << object->m_ObjectID << "    Model filename : " << filename;
+			std::cout << "\nMeshes : " << mesh_count << "\nIndices : " << IndexCounter << "\nVertices : " << VertexCounter << "\nTriangles : " << IndexCounter / 3 << "\n";
+
+
 			object->Buffer();
 
 			mesh_count = 0;
 			is_gltf = false;
 
+			
 			return;
 
 		}
