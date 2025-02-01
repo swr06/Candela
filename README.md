@@ -35,6 +35,7 @@ It is also worth noting that I also work on other projects and shaders in my fre
 - Ray traced Ambient Occlusion (RTAO)
 - Hemispherical Shadow Maps for a sky shadowing approximation
 - Hybrid Specular GI (SSR + World Space RT)
+- Ground Truth Screen Space Ambient Occlusion (GTAO)
 - SVGF + Specialized Specular Denoiser
 - Temporal Anti Aliasing + Upscaling
 - Fast Approximate Anti Aliasing (Based on FXAA 3.11 by Nvidia)
@@ -56,21 +57,18 @@ It is also worth noting that I also work on other projects and shaders in my fre
 - LTC for area lighting 
 - RSM 
 - Bent Normals 
-- GTAO
 - Particle system with screenspace lighting 
 - Voxelization and VXCT 
 - Screenspace cone tracing 
 - Constant time parallax mapping
 - Raytraced Acoustics (WIP) 
+- Robust light precomputation system
 
 
 # Requirements  
 - GPU : One with >= 2 GB of vRAM that supports OpenGL 4.5 and the bindless texture OpenGL extension (ARB_bindless_texture).
 - CPU : A decent 64 bit CPU should be fine. 
 - RAM : >= 4 GB should be fine.
-
-# Performance 
-Runs at around 24 fps on a AMD Vega 11 (desktop) iGPU. 
 
 # Known Issues
 - Volumetrics and infinite bounce GI prone to light leaking.
@@ -85,6 +83,8 @@ If you find a bug and want to report it, you could contact me by email/discord (
 
 # License 
 See `LICENSE` in the project's root directory.
+
+*Do not claim my work as your own*
 
 # Credits 
 See `Credits.txt`.

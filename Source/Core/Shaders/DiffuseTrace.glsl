@@ -472,7 +472,7 @@ void main() {
 		return;
 	}
 
-	const vec3 Player = u_InverseView[3].xyz;
+	vec3 Player = u_InverseView[3].xyz;
 
 	vec3 WorldPosition = WorldPosFromDepth(Depth, TexCoords);
 	vec3 Normal = normalize(texelFetch(u_NormalTexture, HighResPixel, 0).xyz);

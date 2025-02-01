@@ -331,6 +331,7 @@
     <None Include="Core\Shaders\GlassDeferredStochastic.glsl" />
     <None Include="Core\Shaders\GlassPrePassFrag.glsl" />
     <None Include="Core\Shaders\GlassPrePassVert.glsl" />
+    <None Include="Core\Shaders\GTAO.glsl" />
     <None Include="Core\Shaders\Include\3DNoise.glsl" />
     <None Include="Core\Shaders\Include\BRDF.glsl" />
     <None Include="Core\Shaders\Include\DDA.glsl" />

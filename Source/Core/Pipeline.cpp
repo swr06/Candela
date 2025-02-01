@@ -134,6 +134,9 @@ static bool IndirectSSCaustics = true;
 static bool DO_BL_SAMPLING = false;
 static float RTAOStrength = 1.0f;
 
+// GTAO
+static bool DoGTAO = false;
+
 // Irradiance volume 
 static bool UpdateIrradianceVolume = true;
 static bool FilterIrradianceVolume = true;
@@ -322,7 +325,7 @@ public:
 
 				if (!FBODebugMode) {
 					// Drop down box
-					const char* DebugLabelItems[] = { "Default", "Probe Debug", "Indirect Diffuse", "Ambient Occlusion", "Indirect Specular", "Direct Shadows", "Volumetrics", "Probe GI", "Albedo", "Normals", "Roughness", "Metalness", "Emissivity", "Voxelization"};
+					const char* DebugLabelItems[] = { "Default", "Probe Debug", "Indirect Diffuse", "Ambient Occlusion", "Indirect Specular", "Direct Shadows", "Volumetrics", "Probe GI", "Albedo", "Normals", "Roughness", "Metalness", "Emissivity", "Voxelization", "GTAO"};
 					static const char* CurrentDebugLabel = DebugLabelItems[0];
 
 					if (ImGui::BeginCombo("##combo", CurrentDebugLabel))
@@ -556,6 +559,10 @@ public:
 
 			ImGui::NewLine();
 			ImGui::NewLine();
+			ImGui::Checkbox("Ground truth ambient occlusion (GTAO)", &DoGTAO);
+			ImGui::NewLine();
+			ImGui::NewLine();
+
 			ImGui::Checkbox("Rough Specular?", &DoRoughSpecular);
 			ImGui::Checkbox("Full Worldspace RT Specular GI?", &DoFullRTSpecular);
 
@@ -958,6 +965,9 @@ GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RG
 // Antialiasing 
 GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
 
+// AO
+GLClasses::Framebuffer GTAO(16, 16, { {GL_R16F, GL_RED, GL_FLOAT, true, true} }, false, false);
+
 static std::vector <GLClasses::Framebuffer*> FramebufferList {
 		&LightingPass, &TempFramebuffer,
 		&TransparentPass, &Composited,
@@ -1099,16 +1109,12 @@ void Candela::StartPipeline()
 	// Create sphere 
 	Entity SphereEntity(&Sphere);
 	SphereEntity.m_Model = glm::translate(glm::mat4(1.0f), glm::vec3(-14.0f, 6.25f, -0.1f));
+	SphereEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.5f));
 	SphereEntity.m_IsSphereLight = true; 
 	SphereEntity.m_EmissiveAmount = 8.0f;
 
-	Entity SphereEntity2(&Sphere);
-	SphereEntity2.m_Model = glm::translate(glm::mat4(1.0f), glm::vec3(-8.0f, 6.25f, -0.1f));
-	SphereEntity2.m_IsSphereLight = true;
-	SphereEntity2.m_EmissiveAmount = 8.0f;
-
 	// Add entities to the render list 
-	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity, &GlassDragon, &SphereEntity, &SphereEntity2 };
+	EntityRenderList = { &MainModelEntity, &DragonEntity, &MetalObjectEntity, &GlassDragon, &SphereEntity };
 
 	// Create the environment map (the environment map is arbitrary) 
 
@@ -1209,6 +1215,7 @@ void Candela::StartPipeline()
 	GLClasses::Shader& BasicBlitShader = ShaderManager::GetShader("BASIC_BLIT");
 	GLClasses::Shader& GenerateHQN = ShaderManager::GetShader("GEN_HQN");
 	GLClasses::Shader& ProbeForwardShader = ShaderManager::GetShader("PROBE");
+	GLClasses::Shader& GTAOShader = ShaderManager::GetShader("GTAO");
 
 	// Matrices
 	glm::mat4 PreviousView;
@@ -1368,6 +1375,8 @@ void Candela::StartPipeline()
 		LightingPass.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 		TempFramebuffer.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
 		
+		GTAO.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+
 		// Antialiasing
 		TAABuffers[0].SetSize(app.GetWidth(), app.GetHeight());
 		TAABuffers[1].SetSize(app.GetWidth(), app.GetHeight());
@@ -1978,6 +1987,35 @@ void Candela::StartPipeline()
 
 		CheckerboardUpscaled.Unbind();
 
+		// GTAO
+		if (DoGTAO) {
+			GTAOShader.Use();
+			GTAO.Bind();
+			GTAOShader.SetInteger("u_DepthTexture", 0);
+			GTAOShader.SetInteger("u_NormalTexture", 1);
+			GTAOShader.SetInteger("u_BlueNoise", 2);
+			GTAOShader.SetInteger("u_Width", GTAO.GetWidth());
+			GTAOShader.SetInteger("u_Height", GTAO.GetHeight());
+			GTAOShader.SetFloat("u_Aspect", float(GTAO.GetWidth()) / float(GTAO.GetHeight()));
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetDepthBuffer());
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(3));
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, BlueNoiseHR.GetTextureID());
+
+			SetCommonUniforms<GLClasses::Shader>(GTAOShader, UniformBuffer);
+
+			ScreenQuadVAO.Bind();
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			ScreenQuadVAO.Unbind();
+
+			GTAO.Unbind();
+		}
+
 		// Temporal 
 
 		TemporalFilterShader.Use();
@@ -2238,6 +2276,7 @@ void Candela::StartPipeline()
 		LightingShader.SetInteger("u_ProbePlayer", 20);
 		LightingShader.SetInteger("u_ProbePlayerDepth", 21);
 		LightingShader.SetInteger("u_TransparentDepth", 23);
+		LightingShader.SetInteger("u_GTAO", 24);
 		LightingShader.SetInteger("u_DebugMode", DebugMode);
 
 		LightingShader.SetInteger("u_VoxelRange", Voxelizer::GetVolRange());
@@ -2246,6 +2285,7 @@ void Candela::StartPipeline()
 
 		LightingShader.SetBool("u_DoVolumetrics", DoVolumetrics);
 		LightingShader.SetBool("u_DoSSShadow", DoScreenspaceShadow);
+		LightingShader.SetBool("u_DoGTAO", DoGTAO);
 		LightingShader.SetVector2f("u_FocusPoint", DOFFocusPoint / glm::vec2(app.GetWidth(), app.GetHeight()));
 
 		LightingShader.SetVector2f("u_ShadowBiasMult", glm::vec2(ShadowNBiasMultiplier,ShadowSBiasMultiplier));
@@ -2346,6 +2386,8 @@ void Candela::StartPipeline()
 		glActiveTexture(GL_TEXTURE23);
 		glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
 
+		glActiveTexture(GL_TEXTURE24);
+		glBindTexture(GL_TEXTURE_2D, GTAO.GetTexture());
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, DOFSSBO);

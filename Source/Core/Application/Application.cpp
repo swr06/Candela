@@ -108,12 +108,10 @@ namespace Candela
 
 		case GL_DEBUG_SEVERITY_LOW:
 			_severity = (char*)"LOW";
-			return;
 			break;
 
 		case GL_DEBUG_SEVERITY_NOTIFICATION:
 			_severity = (char*)"NOTIFICATION";
-			return;
 			break;
 
 		default:

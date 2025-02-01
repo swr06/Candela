@@ -41,6 +41,9 @@ uniform sampler2D u_Volumetrics;
 
 uniform sampler2D u_DebugTexture;
 
+uniform sampler2D u_GTAO;
+uniform bool u_DoGTAO;
+
 uniform samplerCube u_ProbePlayer;
 
 uniform float u_RTAOStrength;
@@ -536,7 +539,7 @@ void main()
 
 		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
 		
-		float AO = clamp(pow(GI.w, 1.4f * u_RTAOStrength) + 0.0f, 0.0f, 1.0f);
+		float AO = u_DoGTAO ? texture(u_GTAO,v_TexCoords).x : clamp(pow(GI.w, 1.4f * u_RTAOStrength) + 0.0f, 0.0f, 1.0f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * IndirectStrength.x * AO;
 
 		const mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
@@ -604,8 +607,9 @@ void main()
 				o_Color = n*0.5+0.5;
 			}
 		}
+	} else if (u_DebugMode == 13) {
+		o_Color = vec3(texture(u_GTAO,v_TexCoords).x);
 	}
-
 
 	//o_Color = texture(u_DebugTexture, v_TexCoords).xyz; // / max(texture(u_DebugTexture, v_TexCoords).w, 0.0001f);
 	//SphereLights[0].PositionRadius.xyz
