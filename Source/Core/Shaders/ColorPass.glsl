@@ -440,7 +440,6 @@ void main()
 	vec3 RayOrigin = u_InverseView[3].xyz;
 	vec3 RayDirection = normalize(SampleIncidentRayDirection(v_TexCoords));
 
-	
 	float BayerHash = fract(fract(mod(float(u_Frame), 256.0f) * (1.0 / 1.61803398)) + bayer32(gl_FragCoord.st));
 
 	float SurfaceDistance = 1000000.0f;
@@ -493,7 +492,6 @@ void main()
 	//uint data = imageLoad(o_VoxelVolume, ivec3(VoxelCoord.xyz)).x;
 	
 
-
 	// DEBUG 
 	/////////
 	/////vec3 n,w;
@@ -537,13 +535,17 @@ void main()
 		BRDFCoord = clamp(BRDFCoord, 0.0f, 1.0f);
 		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
-		SpecularIndirect = SpecGI.xyz * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
+		float gtao = u_DoGTAO ? texture(u_GTAO,v_TexCoords).x : 1.;
+		float AO = gtao * clamp(pow(GI.w, ((u_DoGTAO) ? 0.5f : 1.0f) * 1.4f * u_RTAOStrength) + 0.0f, 0.0f, 1.0f);
 		
-		float AO = u_DoGTAO ? texture(u_GTAO,v_TexCoords).x : clamp(pow(GI.w, 1.4f * u_RTAOStrength) + 0.0f, 0.0f, 1.0f);
+		// We multiplied specular by ao as well
+		// but in reality we should integrate a separate specular ao term
+		// On the todo list for now
+		SpecularIndirect = SpecGI.xyz * AO * (FresnelTerm * BRDF.x + BRDF.y) * IndirectStrength.y * (PBR.y > 0.04f ? 1.75f : 1.1f);
 		DiffuseIndirect = kD * GI.xyz * Albedo * IndirectStrength.x * AO;
 
-		const mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
-		DiffuseIndirect = vec3(ColorTweakMatrix * vec4(DiffuseIndirect, 1.0f));
+		//const mat4 ColorTweakMatrix = mat4(1.0f); //SaturationMatrix(1.1f);
+		//DiffuseIndirect = vec3(ColorTweakMatrix * vec4(DiffuseIndirect, 1.0f));
 
 	#endif
 
@@ -614,4 +616,7 @@ void main()
 	//o_Color = texture(u_DebugTexture, v_TexCoords).xyz; // / max(texture(u_DebugTexture, v_TexCoords).w, 0.0001f);
 	//SphereLights[0].PositionRadius.xyz
 	o_Color = max(o_Color, 0.0f);
+	if (any(isnan(o_Color))) {
+		o_Color = vec3(0.0);
+	}
 }

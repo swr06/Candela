@@ -111,8 +111,8 @@ static bool StochasticTransparency = false;
 static float InternalRenderResolution = 1.0f;
 static float RoughnessMultiplier = 1.0f;
 static bool GenerateHighFrequencyNormals = false;
-static float NormalStrength = 0.4f;
-static bool DoNormalFix = true;
+static float NormalStrength = 0.425f;
+static bool DoNormalFix = false;
 static bool CollidePlayer = false;
 
 // Perf
@@ -135,7 +135,7 @@ static bool DO_BL_SAMPLING = false;
 static float RTAOStrength = 1.0f;
 
 // GTAO
-static bool DoGTAO = false;
+static bool DoGTAO = true;
 
 // Irradiance volume 
 static bool UpdateIrradianceVolume = true;
@@ -166,7 +166,7 @@ static bool DoSpatialUpscaling = true;
 static bool DoVolumetrics = true;
 static float VolumetricsGlobalStrength = 1.0f;
 static float VolumetricsDirectStrength = 1.0f;
-static float VolumetricsIndirectStrength = 1.4f;
+static float VolumetricsIndirectStrength = 1.0f;
 static int VolumetricsSteps = 16;
 static bool VolumetricsTemporal = true;
 static bool VolumetricsSpatial = true;
@@ -181,7 +181,7 @@ static bool DoVoxelization = false;
 
 // Post 
 static bool DoGammaCurve = true;
-static int SelectedTonemap = 0;
+static int SelectedTonemap = 1;
 
 static bool DoTAA = true;
 static float TAAStrengthMultiplier = 1.0f;
@@ -559,7 +559,7 @@ public:
 
 			ImGui::NewLine();
 			ImGui::NewLine();
-			ImGui::Checkbox("Ground truth ambient occlusion (GTAO)", &DoGTAO);
+			ImGui::Checkbox("Ground truth ambient occlusion (GTAO, Expensive.)", &DoGTAO);
 			ImGui::NewLine();
 			ImGui::NewLine();
 
@@ -1108,7 +1108,7 @@ void Candela::StartPipeline()
 
 	// Create sphere 
 	Entity SphereEntity(&Sphere);
-	SphereEntity.m_Model = glm::translate(glm::mat4(1.0f), glm::vec3(-14.0f, 6.25f, -0.1f));
+	SphereEntity.m_Model = glm::translate(glm::mat4(1.0f), glm::vec3(-12.9f, 6.25f, -0.1f));
 	SphereEntity.m_Model *= glm::scale(glm::mat4(1.), glm::vec3(0.5f));
 	SphereEntity.m_IsSphereLight = true; 
 	SphereEntity.m_EmissiveAmount = 8.0f;
