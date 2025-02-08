@@ -37,7 +37,6 @@ uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices
 uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
-uniform vec3 u_SunDirection;
 
 // Settings 
 const float RADIUS = 1.5f; // Radius of affecting 
@@ -115,11 +114,7 @@ float IntegrateArc(float NDotV, float h, float NAngle) {
     return 0.25f*(NDotV+2.0f*h*sin(NAngle)-cos(2.0f*h-NAngle));
 }
 
-bool IsInBox(vec3 point, vec3 Min, vec3 Max) {
-  return (point.x >= Min.x && point.x <= Max.x) &&
-         (point.y >= Min.y && point.y <= Max.y) &&
-         (point.z >= Min.z && point.z <= Max.z);
-}
+
 
 float Bayer(ivec2 pxx, uint level) // level = 5 since 2^5 -> max no of bits in uint
 {
@@ -173,7 +168,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 
 	float HashBorder = 1.0f; 
 
-	for (int Cascade = 2 ; Cascade < 4; Cascade++) {
+	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
 	 
 		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.035f, 1.0f);
 
@@ -219,12 +214,10 @@ void main() {
 	
     float Depth = texture(u_DepthTexture, v_TexCoords).x;
 
-    vec3 WNormal = texture(u_NormalTexture, v_TexCoords).xyz;
-	vec3 Normal = normalize(vec3(u_View * vec4(WNormal, 0.)));
+	vec3 Normal = normalize(vec3(u_View * vec4(texture(u_NormalTexture, v_TexCoords).xyz, 0.)));
     
-    o_AO = GetDirect(WorldPosFromDepth(Depth, v_TexCoords), WNormal, vec3(1.0)).x;
-    return;
-
+    o_AO = GetDirectShadow(WorldPosFromDepth(Depth, v_TexCoords), Normal, vec3(1.0)).x;
+    
     vec3 ViewPosition = ViewPosFromDepth(Depth, TexCoords);
     vec3 ViewDirection = normalize(-ViewPosition);
 

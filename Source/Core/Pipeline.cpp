@@ -2007,6 +2007,23 @@ void Candela::StartPipeline()
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, BlueNoiseHR.GetTextureID());
 
+			for (int i = 0; i < 5; i++) {
+
+				const int BindingPointStart = 4;
+
+				std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+				std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+				std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+
+				GTAOShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+				GTAOShader.SetInteger(NameTex, i + BindingPointStart);
+				GTAOShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+
+				glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+				glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
+			}
+
+
 			SetCommonUniforms<GLClasses::Shader>(GTAOShader, UniformBuffer);
 
 			ScreenQuadVAO.Bind();
