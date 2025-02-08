@@ -43,7 +43,7 @@ uniform int u_SecondaryBounces;
 uniform float u_Time;
 
 uniform mat4 u_ShadowMatrices[5]; // <- shadow matrices 
-uniform sampler2D u_ShadowTextures[5]; // <- the shadowmaps themselves 
+uniform sampler2DShadow u_ShadowTextures[5]; // <- the shadowmaps themselves 
 uniform float u_ShadowClipPlanes[5]; // <- world space clip distances 
 
 uniform vec3 u_ProbeBoxSize;
@@ -319,27 +319,27 @@ vec3 SampleProbes(vec3 WorldPosition, vec3 N) {
 }
 
 
-float SampleShadowMap(vec2 SampleUV, int Map) {
+float SampleShadowMap(vec3 SampleUV, int Map) {
 
 	switch (Map) {
 		
 		case 0 :
-			return TexelFetchNormalized(u_ShadowTextures[0], SampleUV).x; break;
+			return texture(u_ShadowTextures[0], SampleUV).x; break;
 
 		case 1 :
-			return TexelFetchNormalized(u_ShadowTextures[1], SampleUV).x; break;
+			return texture(u_ShadowTextures[1], SampleUV).x; break;
 
 		case 2 :
-			return TexelFetchNormalized(u_ShadowTextures[2], SampleUV).x; break;
+			return texture(u_ShadowTextures[2], SampleUV).x; break;
 
 		case 3 :
-			return TexelFetchNormalized(u_ShadowTextures[3], SampleUV).x; break;
+			return texture(u_ShadowTextures[3], SampleUV).x; break;
 
 		case 4 :
-			return TexelFetchNormalized(u_ShadowTextures[4], SampleUV).x; break;
+			return texture(u_ShadowTextures[4], SampleUV).x; break;
 	}
 
-	return TexelFetchNormalized(u_ShadowTextures[4], SampleUV).x;
+	return texture(u_ShadowTextures[4], SampleUV).x;
 }
 
 bool IsInBox(vec3 point, vec3 Min, vec3 Max) {
@@ -366,10 +366,10 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 
 		if (ProjectionCoordinates.z < 1.0f && abs(ProjectionCoordinates.x) < 1.0f && abs(ProjectionCoordinates.y) < 1.0f)
 		{
-			bool BoxCheck = IsInBox(WorldPosition, 
-									u_InverseView[3].xyz-(u_ShadowClipPlanes[Cascade]),
-									u_InverseView[3].xyz+(u_ShadowClipPlanes[Cascade]));
-
+			//bool BoxCheck = IsInBox(WorldPosition, 
+			//						u_InverseView[3].xyz-(u_ShadowClipPlanes[Cascade]),
+			//						u_InverseView[3].xyz+(u_ShadowClipPlanes[Cascade]));
+			//
 			//if (BoxCheck) 
 			{
 				ProjectionCoordinates = ProjectionCoordinates * 0.5f + 0.5f;
@@ -385,8 +385,8 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 	
 	float Bias = 0.00002f;
 	vec2 SampleUV = ProjectionCoordinates.xy;
-	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
-	return 1.0f - Shadow;
+	Shadow = SampleShadowMap(vec3(SampleUV, ProjectionCoordinates.z - Bias), ClosestCascade); 
+	return Shadow;
 }
 
 vec3 GetDirect(in vec3 WorldPosition, in vec3 Normal, in vec3 Albedo) {
