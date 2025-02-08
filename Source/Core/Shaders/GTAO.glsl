@@ -31,11 +31,11 @@ uniform int u_Height;
 
 uniform int u_Frame;
 
-const float RADIUS = 1.5f; // Radius of affecting 
-const float MULTIPLIER = 0.2f; 
-const float DEPTH_TOLERANCE = 0.6f; // Adjust for thin geometry 
+const float RADIUS = 1.6f; // Radius of affecting 
+const float MULTIPLIER = 0.1f; 
+const float DEPTH_TOLERANCE = 0.5f; // Adjust for thin geometry 
 const float MAX_ITERATIONS = 2.0f;
-const int HORIZON_STEPS = 6;
+const int HORIZON_STEPS = 5;
 const float STEP_VECTOR_MUL = 0.9f ;
 const float COSINE = 0.1f;
 
@@ -143,7 +143,7 @@ void main() {
     
     float Offset = (PI / ITERATIONS);
     float SliceAngle = Offset * HFNoise.x;
-    float StepSizeSS = (7.0f*STEP_VECTOR_MUL)/float(u_Width);
+    float StepSizeSS = (7.5f*STEP_VECTOR_MUL)/float(u_Width);
 
     float Sum = 0.0f;
     for (int i = 0 ; i < int(ITERATIONS) ; i++) {
@@ -184,7 +184,7 @@ void main() {
                 float CurrentCos = mix(mix(Minimum, Maximum, float(k==0)), dot(normalize(Delta), ViewDirection), SampleWeight);
                 HCos[k] = max(HCos[k],CurrentCos);
             }
-            ExponentialStep *= 1.5;
+            ExponentialStep *= 1.52;
         }
 
          // Find horizon angles
@@ -200,5 +200,5 @@ void main() {
     }
 
     o_AO = Sum / ITERATIONS;
-    o_AO = pow(o_AO, 1.0f);
+    o_AO = pow(o_AO, 1.2f);
 }

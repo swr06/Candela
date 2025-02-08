@@ -155,7 +155,7 @@ static bool ClipDiffuse = false;
 static float ClipStrength = 0.04f;
 
 static float SpecularBeta = 4.5f;
-static float SpecularTransversalWeight = 8.0f;
+static float SpecularTransversalWeight = 5.0f;
 
 static bool DoSpatial = true;
 static float SVGFStrictness = 0.2f;

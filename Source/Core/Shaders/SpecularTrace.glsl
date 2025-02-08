@@ -275,7 +275,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 
 	float HashBorder = 1.0f; 
 
-	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
+	for (int Cascade = 1 ; Cascade < 4; Cascade++) {
 	
 		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.0275f, 1.0f);
 

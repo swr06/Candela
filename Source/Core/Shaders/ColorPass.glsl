@@ -536,7 +536,7 @@ void main()
 		vec2 BRDF = Karis(BRDFCoord.x, BRDFCoord.y);
 
 		float gtao = u_DoGTAO ? texture(u_GTAO,v_TexCoords).x : 1.;
-		float AO = gtao * clamp(pow(GI.w, ((u_DoGTAO) ? 0.5f : 1.0f) * 1.4f * u_RTAOStrength) + 0.0f, 0.0f, 1.0f);
+		float AO = gtao * clamp(pow(GI.w, ((u_DoGTAO) ? 0.8f : 1.0f) * 1.4f * u_RTAOStrength) + 0.0f, 0.0f, 1.0f);
 		
 		// We multiplied specular by ao as well
 		// but in reality we should integrate a separate specular ao term

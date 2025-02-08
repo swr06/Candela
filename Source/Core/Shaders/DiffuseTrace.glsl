@@ -360,7 +360,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 
 	float HashBorder = 1.0f; 
 
-	for (int Cascade = 0 ; Cascade < 4; Cascade++) {
+	for (int Cascade = 2 ; Cascade < 4; Cascade++) {
 	
 		ProjectionCoordinates = u_ShadowMatrices[Cascade] * vec4(WorldPosition + N * 0.035f, 1.0f);
 
@@ -383,7 +383,7 @@ float GetDirectShadow(vec3 WorldPosition, vec3 N)
 		return 0.0f;
 	}
 	
-	float Bias = 0.00001f;
+	float Bias = 0.00002f;
 	vec2 SampleUV = ProjectionCoordinates.xy;
 	Shadow = float(ProjectionCoordinates.z - Bias > SampleShadowMap(SampleUV, ClosestCascade)); 
 	return 1.0f - Shadow;
