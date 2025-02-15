@@ -105,6 +105,12 @@ See `Credits.txt`.
 
 </br>
 
+![s22](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/22.png)
+
+</br>
+
+</br>
+
 ![s20](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/20.png)
 
 </br>
@@ -172,12 +178,6 @@ See `Credits.txt`.
 </br>
 
 ![s13](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/13.png)
-
-</br>
-
-</br>
-
-![s4](https://github.com/swr06/Candela/blob/MainBranch/Screenshots/4.png)
 
 </br>
 
