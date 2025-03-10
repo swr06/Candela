@@ -966,7 +966,7 @@ GLClasses::Framebuffer SpatialBuffers[2]{ GLClasses::Framebuffer(16, 16, {{GL_RG
 GLClasses::Framebuffer TAABuffers[2] = { GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false), GLClasses::Framebuffer(16, 16, {GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true}, false, false) };
 
 // AO
-GLClasses::Framebuffer GTAO(16, 16, { {GL_R16F, GL_RED, GL_FLOAT, true, true} }, false, false);
+GLClasses::Framebuffer GTAO(16, 16, { {GL_R16F, GL_RED, GL_FLOAT, true, true}, { GL_RGBA16F, GL_RGBA, GL_FLOAT, true, true } }, false, false);
 
 static std::vector <GLClasses::Framebuffer*> FramebufferList {
 		&LightingPass, &TempFramebuffer,
@@ -1994,6 +1994,8 @@ void Candela::StartPipeline()
 			GTAOShader.SetInteger("u_DepthTexture", 0);
 			GTAOShader.SetInteger("u_NormalTexture", 1);
 			GTAOShader.SetInteger("u_BlueNoise", 2);
+			GTAOShader.SetInteger("u_AlbedoTexture", 3);
+			GTAOShader.SetInteger("u_PrevLighting", 4);
 			GTAOShader.SetInteger("u_Width", GTAO.GetWidth());
 			GTAOShader.SetInteger("u_Height", GTAO.GetHeight());
 			GTAOShader.SetFloat("u_Aspect", float(GTAO.GetWidth()) / float(GTAO.GetHeight()));
@@ -2007,7 +2009,30 @@ void Candela::StartPipeline()
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, BlueNoiseHR.GetTextureID());
 
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture(0));
+
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_2D, TAA.GetTexture(0));
+
+
 			SetCommonUniforms<GLClasses::Shader>(GTAOShader, UniformBuffer);
+
+			for (int i = 0; i < 5; i++) {
+
+				const int BindingPointStart = 9;
+
+				std::string Name = "u_ShadowMatrices[" + std::to_string(i) + "]";
+				std::string NameClip = "u_ShadowClipPlanes[" + std::to_string(i) + "]";
+				std::string NameTex = "u_ShadowTextures[" + std::to_string(i) + "]";
+
+				GTAOShader.SetMatrix4(Name, ShadowHandler::GetShadowViewProjectionMatrix(i));
+				GTAOShader.SetInteger(NameTex, i + BindingPointStart);
+				GTAOShader.SetFloat(NameClip, ShadowHandler::GetShadowCascadeDistance(i));
+
+				glActiveTexture(GL_TEXTURE0 + i + BindingPointStart);
+				glBindTexture(GL_TEXTURE_2D, ShadowHandler::GetDirectShadowmap(i));
+			}
 
 			ScreenQuadVAO.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -2387,7 +2412,7 @@ void Candela::StartPipeline()
 		glBindTexture(GL_TEXTURE_2D, TransparentGBuffer.GetDepthBuffer());
 
 		glActiveTexture(GL_TEXTURE24);
-		glBindTexture(GL_TEXTURE_2D, GTAO.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, GTAO.GetTexture(1));
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ProbeGI::GetProbeDataSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, DOFSSBO);

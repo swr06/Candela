@@ -437,6 +437,7 @@ const vec3 SunColor = SUN_COLOR_LIGHTING;
 void main() 
 {	
 
+
 	vec3 RayOrigin = u_InverseView[3].xyz;
 	vec3 RayDirection = normalize(SampleIncidentRayDirection(v_TexCoords));
 
@@ -563,6 +564,11 @@ void main()
 
 	vec3 Combined = Direct + SpecularIndirect + DiffuseIndirect + EmissiveColor;
 
+
+	o_Color = (texture(u_GTAO, v_TexCoords).xyz + vec3(0.01f)) * Albedo + Direct; 
+	o_Color *= vec3(pow(texture(u_GTAO, v_TexCoords).w, 1.));
+	//o_Color = texture(u_GTAO, v_TexCoords).xyz;
+	return;
 	// Occluded by transparent object
 	if (TransparentDepth < Depth) {
 
