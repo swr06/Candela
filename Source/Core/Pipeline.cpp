@@ -74,7 +74,7 @@ PLEASE DO NOT CLAIM MY WORK AS YOUR OWN.
 
 #include "LightCuller.h"
 
-#include <implot.h>
+#include "../Dependencies/implot/implot.h"
 
 // Externs.
 int __TotalMeshesRendered = 0;
@@ -505,7 +505,7 @@ public:
 				ImGui::SliderFloat("HF Normal Strength", &NormalStrength, 0.0f, 1.0f);
 
 			ImGui::NewLine();
-			ImGui::Checkbox("Do Normal Fix? (Artifacts possible; Normal flips when view angle is > 180°)", &DoNormalFix);
+			ImGui::Checkbox("Do Normal Fix? (Artifacts possible; Normal flips when view angle is > 180Â°)", &DoNormalFix);
 			ImGui::NewLine();
 			ImGui::NewLine();
 			ImGui::Checkbox("Translucent Rendering?", &RENDER_GLASS_FLAG);
