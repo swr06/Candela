@@ -5,6 +5,9 @@ find_package(OpenGL REQUIRED)
 find_package(assimp REQUIRED)
 find_package(glfw3 REQUIRED)
 
+
+add_subdirectory(./Dependencies)
+
 add_executable(candela
 ./main.cpp
 ./Core/ShaderManager.cpp
@@ -50,9 +53,22 @@ add_executable(candela
 ./Core/BloomRenderer.cpp
 ./Core/ShadowRenderer.cpp
 ./Core/Threadpool.cpp
+./Core/LightCuller.cpp
+./Core/Voxelizer.cpp
+./Core/Tonemap.cpp
+
 )
 
-add_subdirectory(Dependencies)
+
+target_sources(candela PRIVATE
+    Dependencies/implot/implot.cpp
+    Dependencies/implot/implot_items.cpp
+    Dependencies/implot/implot_demo.cpp
+)
+target_include_directories(candela PRIVATE Dependencies/implot)
+
+
+target_compile_definitions(imgui PRIVATE IMGUI_IMPL_OPENGL_LOADER_GLAD)
 
 target_link_libraries(candela PRIVATE ${assimp_LIBRARIES} crc::crc glad::glad imgui::imgui imguizmo::imguizmo glfw assimp)
 target_include_directories(candela PRIVATE Dependencies/glm)
